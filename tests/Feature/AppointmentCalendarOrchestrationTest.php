@@ -74,7 +74,7 @@ class AppointmentCalendarOrchestrationTest extends TestCase
 
         Http::fake(function ($request) use ($eventId) {
             if (str_ends_with($request->url(), '/events/'.$eventId)) return Http::response([], 404);
-            if (str_ends_with($request->url(), '/freeBusy')) return Http::response(['calendars' => ['primary' => ['busy' => [[
+            if (stripos($request->url(), 'freebusy') !== false) return Http::response(['calendars' => ['primary' => ['busy' => [[
                 'start' => '2026-11-23T04:55:00Z', 'end' => '2026-11-23T05:45:00Z',
             ]]]]]);
             return Http::response([], 500);
@@ -102,7 +102,7 @@ class AppointmentCalendarOrchestrationTest extends TestCase
 
         Http::fake(function ($request) use ($eventId) {
             if (str_ends_with($request->url(), '/events/'.$eventId)) return Http::response([], 404);
-            if (str_ends_with($request->url(), '/freeBusy')) return Http::response(['calendars' => ['primary' => ['busy' => []]]]);
+            if (stripos($request->url(), 'freebusy') !== false) return Http::response(['calendars' => ['primary' => ['busy' => []]]]);
             if (str_ends_with($request->url(), '/events')) return Http::response(['error' => 'temporary'], 500);
             return Http::response([], 500);
         });
@@ -132,7 +132,7 @@ class AppointmentCalendarOrchestrationTest extends TestCase
             if ($request->method() === 'GET' && str_contains($request->url(), '/events/'.$eventId)) {
                 return Http::response([], 404);
             }
-            if ($request->method() === 'POST' && str_ends_with($request->url(), '/freeBusy')) {
+            if ($request->method() === 'POST' && stripos($request->url(), 'freebusy') !== false) {
                 return Http::response(['error' => 'rate limit'], 429);
             }
 
