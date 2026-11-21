@@ -45,12 +45,14 @@ Artisan::command('appointments:dispatch-reminders {--tenant=}', function (): int
                 ->where('scheduled_at', '<=', now())
                 ->where(function ($query): void {
                     $query->where('status', 'pending')
-                        ->orWhere(function ($stale): void {
-                            $stale->whereIn('status', ['queued', 'processing'])
+                        ->orWhere(function ($queued): void {
+                            $queued->where('status', 'queued')
                                 ->where(function ($age): void {
-                                    $age->whereNull('queued_at')
-                                        ->orWhere('queued_at', '<=', now()->subMinutes(10));
+                                    $age->whereNull('queued_at')->orWhere('queued_at', '<=', now()->subMinutes(10));
                                 });
+                        })
+                        ->orWhere(function ($processing): void {
+                            $processing->where('status', 'processing')->where('updated_at', '<=', now()->subMinutes(10));
                         });
                 })
                 ->orderBy('scheduled_at')
@@ -64,9 +66,12 @@ Artisan::command('appointments:dispatch-reminders {--tenant=}', function (): int
                         return false;
                     }
 
-                    if ($reminder->status === 'pending'
-                        || (in_array($reminder->status, ['queued', 'processing'], true)
-                            && (! $reminder->queued_at || $reminder->queued_at->lessThanOrEqualTo(now()->subMinutes(10))))) {
+                    $staleQueued = $reminder->status === 'queued'
+                        && (! $reminder->queued_at || $reminder->queued_at->lessThanOrEqualTo(now()->subMinutes(10)));
+                    $staleProcessing = $reminder->status === 'processing'
+                        && $reminder->updated_at?->lessThanOrEqualTo(now()->subMinutes(10));
+
+                    if ($reminder->status === 'pending' || $staleQueued || $staleProcessing) {
                         $reminder->forceFill([
                             'status' => 'queued',
                             'queued_at' => now(),
