@@ -120,6 +120,7 @@ class AuthController extends Controller
 
         Auth::login($user);
         $request->session()->regenerate();
+        $user->sendEmailVerificationNotification();
         $request->session()->put('current_tenant_id', (string) $tenant->getKey());
 
         return redirect()->route('dashboard');
