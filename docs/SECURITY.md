@@ -2,20 +2,20 @@
 
 ## 1. Authentication and authorization
 
-- Use Laravel's supported authentication/session protections.
+- Use Laravel's supported authentication/session protections. Initial email/password registration, login/logout, password reset and signed email verification are implemented; keep runtime acceptance pending until the automated suite runs.
 - Enforce RBAC on every backend action; frontend visibility is not authorization.
-- Scope business roles to tenant membership.
+- Scope business roles to tenant membership. The request tenant context now carries the verified membership role, and role-restricted middleware is available; apply it to each module route as those modules are implemented.
 - Protect platform administration with separate privileged permissions and audit logging.
 - Rate-limit login, password reset, public endpoints, and sensitive operations.
 - Use secure, HTTP-only, SameSite cookies and HTTPS in production.
 
 ## 2. Tenant isolation
 
-- Resolve tenant from authenticated membership or verified WhatsApp/Calendar integration ownership.
+- Resolve tenant from authenticated membership or verified WhatsApp/Calendar integration ownership. Current web dashboard tenancy is resolved from the authenticated user's active membership; webhook/integration tenant resolution is still pending.
 - Never trust client-supplied tenant identifiers.
 - Scope all reads, writes, exports, jobs, and integration calls.
 - Use composite foreign keys and unique constraints to prevent cross-tenant references.
-- Add automated tests proving cross-tenant access is denied.
+- Add automated tests proving cross-tenant access is denied. Initial tests cover tenant selection and role gating; full data-operation and queued-job isolation tests are still required.
 - Audit platform staff cross-tenant access.
 
 ## 3. Secrets and encryption
