@@ -73,6 +73,9 @@ class MetaWhatsAppGraphApi
         if ($version === null) {
             throw new MetaWhatsAppApiException('Configure META_GRAPH_API_VERSION before sending messages.');
         }
+        if (! ctype_digit($recipient)) {
+            throw new MetaWhatsAppApiException('The WhatsApp recipient ID is invalid.');
+        }
 
         $response = Http::withToken($connection->access_token)
             ->acceptJson()
