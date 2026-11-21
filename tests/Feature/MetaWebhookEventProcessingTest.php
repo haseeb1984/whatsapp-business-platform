@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\GenerateAutomatedFaqReply;
 use App\Jobs\ProcessMetaWebhookEvent;
 use App\Models\Conversation;
 use App\Models\Customer;
@@ -10,6 +11,7 @@ use App\Models\Tenant;
 use App\Models\WebhookEvent;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class MetaWebhookEventProcessingTest extends TestCase
@@ -18,6 +20,7 @@ class MetaWebhookEventProcessingTest extends TestCase
 
     public function test_inbound_text_event_creates_tenant_scoped_customer_conversation_and_encrypted_message(): void
     {
+        Queue::fake();
         $tenant = $this->tenant('processor-workspace');
         $event = $this->inboundEvent($tenant->id, 'wamid.processor-1');
 
@@ -42,10 +45,12 @@ class MetaWebhookEventProcessingTest extends TestCase
             $this->assertSame('received', $message->delivery_status);
             $this->assertStringNotContainsString('Hello from WhatsApp', (string) $message->getRawOriginal('body'));
         });
+        Queue::assertPushed(GenerateAutomatedFaqReply::class, 1);
     }
 
     public function test_processing_the_same_provider_message_twice_does_not_duplicate_it(): void
     {
+        Queue::fake();
         $tenant = $this->tenant('processor-idempotent');
         $first = $this->inboundEvent($tenant->id, 'wamid.same-message');
         $second = $this->inboundEvent($tenant->id, 'wamid.same-message');
@@ -57,6 +62,7 @@ class MetaWebhookEventProcessingTest extends TestCase
         $this->assertDatabaseCount('conversations', 1);
         $this->assertDatabaseCount('messages', 1);
         $this->assertDatabaseHas('webhook_events', ['id' => $second->id, 'status' => 'processed']);
+        Queue::assertPushed(GenerateAutomatedFaqReply::class, 1);
     }
 
     public function test_message_status_event_updates_existing_message_delivery_state(): void
