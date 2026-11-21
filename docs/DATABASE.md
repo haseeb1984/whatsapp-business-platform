@@ -25,8 +25,8 @@
 - `business_hours`: UUID id, tenant_id, weekday (Monday=0 through Sunday=6), is_closed, opens_at, closes_at. The initial weekly-hours implementation stores one row per tenant/weekday, has a unique `(tenant_id, weekday)` key plus `(tenant_id, id)` for future same-tenant references, and enforces valid weekday/time ranges at the database layer. Closed days store null opening/closing times. Overnight periods are intentionally unsupported in this first version.
 - `business_holidays`: UUID id, tenant_id, business-local `date`, name, is_closed, opens_at, closes_at. The initial implementation is one exception per tenant/date, supports full-day closure or special same-day hours, and enforces a unique `(tenant_id, date)` key plus same-tenant reference key. Overnight exception hours are unsupported.
 - `services`: UUID id, tenant_id, name, description, `price_amount` (numeric 12,2), three-letter uppercase currency code, duration_minutes, buffer_before_minutes, buffer_after_minutes, active. The initial CRUD implementation uses unique `(tenant_id, name)`, same-tenant reference key, non-negative price, 5–1440 minute duration and 0–240 minute buffers.
-- `staff`: tenant_id, name, contact, active.
-- `staff_services`: tenant_id, staff_id, service_id.
+- `staff_members`: UUID id, tenant_id, name, email, phone, active. The initial staff CRUD module uses the tenant-owned model guard and `(tenant_id, id)` unique key.
+- `staff_services`: UUID id, tenant_id, staff_id, service_id. Assignment rows use tenant-owned model scoping and composite foreign keys to both `(tenant_id, staff_members.id)` and `(tenant_id, services.id)`, preventing cross-tenant service assignments.
 - `staff_working_hours`: tenant_id, staff_id, weekday, opens_at, closes_at.
 - `availability_exceptions`: tenant_id, staff_id nullable, starts_at, ends_at, type, reason.
 
