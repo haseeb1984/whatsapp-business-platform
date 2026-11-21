@@ -7,7 +7,7 @@ A reusable multi-tenant WhatsApp Business automation platform using the official
 **Milestone 0:** Technical specification committed.  
 **Milestone 1:** Laravel 13 / React / Inertia application shell and initial tenant schema committed; dependency installation and runtime tests are still pending.  
 **Milestone 2 (in progress):** Registration, login/logout, password reset, signed email verification, workspace selection/switching, tenant context and role-gating foundations are committed. Full runtime verification and the remaining authorization/database isolation work are pending. A fail-closed tenant-owned model concern (including bulk Eloquent tenant-ID update protection) and explicit background-work tenant context helper are now committed. Request middleware also clears/restores tenant context after each request, and suspended tenants are excluded from workspace selection. Production tenant models and database constraints still need to adopt the concern.
-**Milestone 3 (in progress):** Tenant-scoped business profile CRUD, regional settings, business-admin-only routes and a profile editor are committed. Business hours, holidays, services, staff, FAQs and complete dashboards remain outstanding.
+**Milestone 3 (in progress):** Tenant-scoped business profile CRUD, regional settings, weekly business hours editor, admin-only routes and feature tests are committed (runtime execution pending). Holidays, services, staff, FAQs and complete dashboards remain outstanding.
 **Not implemented yet:** Meta integration, AI workflows, human handover, appointment booking, Google Calendar OAuth, and production business/platform dashboards.
 
 ## Approved stack
@@ -80,7 +80,7 @@ Prerequisites: PHP 8.3+, Composer, Node.js 22+, npm, and a PostgreSQL database. 
    php artisan serve
    ```
 
-Open `http://127.0.0.1:8000`. New users can register an account and create an initial business workspace; existing users can sign in. The dashboard is still a foundation screen, not a completed business dashboard.
+Open `http://127.0.0.1:8000`. New users can register an account and create an initial business workspace; existing users can sign in. The dashboard is still a foundation screen, not a completed business dashboard. Business profile and weekly opening hours can be configured from its links.
 
 ## Verification
 
@@ -88,7 +88,7 @@ Open `http://127.0.0.1:8000`. New users can register an account and create an in
 - `php artisan test`
 - `npm run build`
 
-A GitHub Actions workflow is configured to run these checks on pushes and pull requests. Recent runs are failing before any job steps are reported (the runner provides no step/log details), so no Composer install, Laravel test, or frontend build result is currently available. PHP syntax checks have been run locally on the new authentication and tenancy PHP files only.
+A GitHub Actions workflow is configured to run these checks on pushes and pull requests. Recent runs are failing before any job steps are reported (the runner provides no step/log details), so no Composer install, Laravel test, or frontend build result is currently available. No complete local syntax/build/test run is currently available for this repository.
 
 ## Development principles
 
