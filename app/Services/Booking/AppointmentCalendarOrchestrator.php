@@ -5,7 +5,6 @@ namespace App\Services\Booking;
 use App\Exceptions\GoogleCalendarBusyException;
 use App\Models\Appointment;
 use App\Services\Google\GoogleCalendarService;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Throwable;
@@ -20,6 +19,11 @@ class AppointmentCalendarOrchestrator
 
     public function confirm(string $appointmentId): Appointment
     {
+        $existing = Appointment::query()->findOrFail($appointmentId);
+        if ($existing->status === 'confirmed') {
+            return $existing;
+        }
+
         $pending = $this->lifecycle->markCalendarPending($appointmentId);
         if ($pending->status === 'confirmed') {
             return $pending;
