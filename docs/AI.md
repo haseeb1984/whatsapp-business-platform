@@ -2,35 +2,38 @@
 
 ## 1. Provider strategy
 
-Groq is the initial provider. Application code depends on an internal interface, not on Groq-specific SDK classes or response formats.
+Groq is the configured initial provider. Application services depend on AiProviderInterface, not on Groq-specific SDK classes. GroqProvider uses Groq's OpenAI-compatible chat-completions endpoint with a configured model, base URL, timeout, zero temperature and bounded output tokens.
 
-Conceptual contract:
+Configuration is server-side through GROQ_API_KEY, GROQ_MODEL, GROQ_BASE_URL and GROQ_TIMEOUT. Do not store provider credentials in tenant records, return them to the browser, or log them. No secondary paid provider is enabled.
 
-```php
-interface AIProviderInterface
-{
-    public function generate(AIRequest $request): AIResponse;
-    public function healthCheck(): ProviderHealth;
-}
-```
+The current interface exposes bounded generate(messages, options). Health checks, usage metering, provider selection and a secondary provider remain future work.
 
-Implement a Groq adapter and provider manager. Provider credentials are encrypted and resolved server-side. Model name, timeout, token budget, and enabled state are configuration, not hard-coded assumptions.
+## 2. Implemented grounded FAQ path
 
-## 2. Processing pipeline
+FaqRetrievalService:
+- reads only the current tenant's published FAQ rows;
+- respects the requested locale and falls back from a regional locale such as en-US to its base locale;
+- uses a bounded keyword-overlap ranking and returns at most five candidates.
 
-1. Normalize incoming customer message.
-2. Load tenant, conversation, customer, and current automation state.
-3. Stop if human handover is active.
-4. Detect intent (FAQ, booking, handover, unsupported, greeting, other).
-5. Retrieve only active knowledge belonging to the resolved tenant.
-6. Prefer structured business facts and exact FAQ matches.
-7. If generative synthesis is useful, send a bounded prompt with retrieved facts and explicit response constraints.
-8. Validate the generated answer against retrieved facts and business rules.
-9. Execute only allowlisted tools with schema-validated arguments and tenant authorization.
-10. Recheck handover and conversation state before outbound delivery.
-11. Record provider, model, retrieval references, latency, outcome, and usage without logging secrets.
+GroundedFaqAssistant:
+1. returns an exact approved FAQ answer directly when the lexical match is sufficiently strong;
+2. otherwise asks Groq to select candidate FAQ IDs only;
+3. validates every selected ID against the retrieved candidate set;
+4. returns the original approved FAQ answer text, never model-generated answer prose;
+5. returns handoff when there is no evidence, Groq explicitly requests handoff, IDs are invalid, or a deterministic fallback is not sufficiently confident.
 
-## 3. Grounding and refusal behavior
+If Groq is unavailable or rate-limited, only a high-confidence deterministic FAQ match can be returned. Otherwise the result is handoff. The model is a selector, not a source of business facts.
+
+## 3. Remaining processing pipeline
+
+The service is not yet wired into the inbound message job. Remaining steps:
+1. detect intent (FAQ, booking, handover, greeting, unsupported);
+2. combine published FAQs with structured business facts such as hours, services and prices;
+3. apply human handover state before any AI call and recheck it before sending;
+4. execute only allowlisted application tools with schema-validated arguments and tenant authorization;
+5. add bounded usage metrics, provider latency and safe operational telemetry.
+
+## 4. Grounding and refusal behavior
 
 The assistant may answer only from approved tenant knowledge and live system results. It must not infer or invent:
 - prices, discounts, taxes, or payment policies;
@@ -40,44 +43,23 @@ The assistant may answer only from approved tenant knowledge and live system res
 - cancellation/refund rules;
 - stock or service availability.
 
-When required information is missing or conflicting, ask a focused clarification or offer staff handover. A model confidence score alone is not proof that a fact is correct.
-
-## 4. Retrieval order
-
-1. Exact FAQ match.
-2. Structured business profile, hours, services, prices, and policies.
-3. Keyword/synonym search over published tenant knowledge.
-4. Optional semantic retrieval only if an approved, affordable implementation is selected.
-5. Escalate when evidence is insufficient.
-
-Do not add a paid vector database or embedding service without approval. PostgreSQL full-text search and structured lookup are sufficient for the initial milestone.
+When required information is missing or conflicting, return handoff. A model confidence score alone is not proof that a fact is correct.
 
 ## 5. Tool execution
 
-The model does not receive unrestricted SQL, filesystem, network, or administrative access. Tools are explicit application actions, such as:
-- `get_business_hours`
-- `list_services`
-- `get_service_price`
-- `find_available_slots`
-- `create_booking`
-- `request_human_handover`
+The model does not receive unrestricted SQL, filesystem, network, or administrative access. Future tools are explicit application actions, such as:
+- get_business_hours
+- list_services
+- get_service_price
+- find_available_slots
+- create_booking
+- request_human_handover
 
-Each tool validates arguments, checks tenant ownership, applies rate/abuse limits, and returns a typed result. Booking tools must follow the booking state machine and cannot report success prematurely.
+Each tool must validate arguments, check tenant ownership, apply rate/abuse limits, and return a typed result. Booking tools must follow the booking state machine and cannot report success prematurely.
 
 ## 6. Failure and fallback
 
-Classify provider errors:
-- rate limited;
-- authentication/configuration error;
-- timeout/network;
-- provider unavailable;
-- invalid/malformed output;
-- token/context limit.
-
-Use bounded retries only for transient failures. If Groq is unavailable or rate-limited:
-1. Use a configured secondary provider only if credentials and approval exist.
-2. Otherwise use deterministic FAQ and guided workflow responses.
-3. Escalate unsupported or consequential questions to staff.
+The Groq adapter classifies missing configuration, authentication/provider errors, rate limits, timeouts and malformed responses without exposing raw provider errors. The FAQ assistant falls back to a high-confidence exact/keyword FAQ answer or handoff. No automatic retry loop is used for every customer message.
 
 No secondary paid provider is enabled by default. Do not repeatedly retry a rate-limited request on every incoming message.
 
@@ -88,7 +70,8 @@ No secondary paid provider is enabled by default. Do not repeatedly retry a rate
 - Retrieved content cannot grant tools, reveal secrets, or override tenant boundaries.
 - Never include another tenant's data in context.
 - Do not reveal system prompts, credentials, internal notes, or private customer records.
-- Validate all model output before it is sent or used as tool input.
+- Validate every selected FAQ ID against the current tenant's retrieved candidate set.
+- The final answer is copied from approved FAQ records, not generated by the model.
 
 ## 8. Human-readable responses
 
