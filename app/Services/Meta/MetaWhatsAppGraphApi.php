@@ -38,6 +38,31 @@ class MetaWhatsAppGraphApi
             ]);
         }
 
+        $wabaResponse = Http::withToken($connection->access_token)
+            ->acceptJson()
+            ->timeout(10)
+            ->get("https://graph.facebook.com/{$version}/{$connection->waba_id}/phone_numbers", [
+                'fields' => 'id',
+                'limit' => 100,
+            ]);
+
+        if (! $wabaResponse->successful()) {
+            throw ValidationException::withMessages([
+                'connection' => 'Meta could not confirm access to the configured WhatsApp Business Account.',
+            ]);
+        }
+
+        $phoneNumbers = $wabaResponse->json('data');
+        $belongsToWaba = is_array($phoneNumbers) && collect($phoneNumbers)->contains(
+            fn ($phoneNumber): bool => is_array($phoneNumber) && ($phoneNumber['id'] ?? null) === $connection->phone_number_id,
+        );
+
+        if (! $belongsToWaba) {
+            throw ValidationException::withMessages([
+                'connection' => 'Meta confirmed the phone number, but it is not listed under the configured WhatsApp Business Account.',
+            ]);
+        }
+
         return $data;
     }
 }
