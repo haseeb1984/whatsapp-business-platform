@@ -1,4 +1,5 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
+import type { FormEvent, ReactNode } from 'react';
 
 type Profile = {
     display_name: string;
@@ -25,7 +26,7 @@ export default function EditBusinessProfile() {
         locale: profile?.locale ?? 'en',
     });
 
-    function submit(event: React.FormEvent) {
+    function submit(event: FormEvent) {
         event.preventDefault();
         put('/business/profile');
     }
@@ -63,6 +64,6 @@ export default function EditBusinessProfile() {
     );
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
     return <label className="block text-sm font-medium text-slate-700">{label}{children}{error && <span className="mt-1 block text-sm text-red-600">{error}</span>}</label>;
 }
