@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Tenant;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Support\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -15,6 +16,10 @@ class ResolveTenant
         $user = $request->user();
 
         abort_unless($user, 401);
+
+        if ($user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail()) {
+            return redirect()->route('verification.notice');
+        }
 
         $tenantId = $request->session()->get('current_tenant_id');
 
@@ -35,7 +40,6 @@ class ResolveTenant
 
         $tenant = $user->tenants()
             ->wherePivot('status', 'active')
-            ->where('tenants.status', 'active')
             ->where('tenants.id', $tenantId)
             ->first();
 
