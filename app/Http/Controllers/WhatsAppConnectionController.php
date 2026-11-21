@@ -63,8 +63,8 @@ class WhatsAppConnectionController extends Controller
         }
 
         return $request->validate([
-            'phone_number_id' => ['required', 'string', 'max:64', $uniquePhoneId],
-            'waba_id' => ['required', 'string', 'max:64'],
+            'phone_number_id' => ['required', 'string', 'max:64', 'regex:/^\d+$/', $uniquePhoneId],
+            'waba_id' => ['required', 'string', 'max:64', 'regex:/^\d+$/'],
             'display_phone_number' => ['nullable', 'string', 'max:32'],
             'verified_name' => ['nullable', 'string', 'max:160'],
             'access_token' => [$creating ? 'required' : 'nullable', 'string', 'min:20', 'max:5000'],
