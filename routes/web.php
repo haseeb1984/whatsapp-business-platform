@@ -10,6 +10,7 @@ use App\Http\Controllers\StaffWorkingHoursController;
 use App\Http\Controllers\FaqController;
 use App\Http\Controllers\WhatsAppConnectionController;
 use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Http\Request;
@@ -100,6 +101,10 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::post('/conversations/{conversation}/handover', [ConversationController::class, 'requestHandover'])->name('conversations.handover');
         Route::post('/conversations/{conversation}/reply', [ConversationController::class, 'reply'])->name('conversations.reply');
         Route::post('/conversations/{conversation}/notes', [ConversationController::class, 'addNote'])->name('conversations.notes.store');
+        Route::get('/business/appointments', [AppointmentController::class, 'index'])->name('business.appointments.index');
+        Route::get('/business/appointments/availability', [AppointmentController::class, 'availability'])->name('business.appointments.availability');
+        Route::post('/business/appointments/holds', [AppointmentController::class, 'createHold'])->name('business.appointments.holds.store');
+        Route::post('/business/appointments/{appointment}/cancel-hold', [AppointmentController::class, 'cancelHold'])->name('business.appointments.holds.cancel');
         Route::middleware('tenant.role:business_admin')->group(function (): void {
             Route::put('/conversations/{conversation}/assign', [ConversationController::class, 'assign'])->name('conversations.assign');
             Route::post('/conversations/{conversation}/close', [ConversationController::class, 'close'])->name('conversations.close');
