@@ -1,5 +1,6 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import type { FormEvent } from 'react';
 
 type ServiceOption = { id: string; name: string };
 type CustomerOption = { id: string; label: string };
@@ -70,7 +71,7 @@ export default function AppointmentManagement() {
         }, { onSuccess: () => { setSlots([]); } });
     }
 
-    function savePolicy(event: React.FormEvent) {
+    function savePolicy(event: FormEvent) {
         event.preventDefault();
         policy.put('/business/appointments/policy');
     }
