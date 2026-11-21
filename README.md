@@ -16,7 +16,7 @@ A reusable multi-tenant WhatsApp Business automation platform using the official
 - Frontend: React 19, TypeScript, Inertia.js, Vite and Tailwind CSS
 - Database: Neon PostgreSQL
 - Queue: Laravel database queue, processed in bounded cron-triggered batches on Hostinger shared hosting
-- AI: Groq through a provider-independent adapter (planned)
+- AI: Groq through a provider-independent adapter (grounded FAQ selection implemented; inbound orchestration pending)
 - Messaging: Official Meta WhatsApp Cloud API only
 - Calendar: Google Calendar API (planned)
 - Hosting: Hostinger Business
@@ -88,7 +88,7 @@ Open `http://127.0.0.1:8000`. New users can register an account and create an in
 - `php artisan test`
 - `npm run build`
 
-GitHub Actions run [44930574412](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44930574412) passed on commit `bf6628de39162d208bfecd5db8f346fe728e6a54`: Composer manifest validation, dependency installation, **75 Laravel tests (274 assertions)**, npm dependency installation and Vite production build. The tests use SQLite; a separate Neon PostgreSQL migration/constraint rehearsal is still required.
+GitHub Actions run [44930789071](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44930789071) passed on commit `67c9b4f9c0ce1d2b97c7f2e53b781fcefe48b3e4`: Composer manifest validation, dependency installation, **81 Laravel tests (295 assertions)**, npm dependency installation and Vite production build. The tests use SQLite; a separate Neon PostgreSQL migration/constraint rehearsal is still required.
 
 ## Development principles
 
