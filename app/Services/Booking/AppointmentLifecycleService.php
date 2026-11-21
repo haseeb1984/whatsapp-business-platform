@@ -122,6 +122,26 @@ class AppointmentLifecycleService
     /**
      * Call only after the external calendar event has been successfully deleted.
      */
+
+    public function markCalendarDeletionUnknown(string $appointmentId, string $reasonCode): Appointment
+    {
+        return DB::transaction(function () use ($appointmentId, $reasonCode): Appointment {
+            $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointmentId);
+            if ($appointment->status !== 'confirmed') {
+                throw ValidationException::withMessages(['appointment' => 'Only a confirmed appointment can have an ambiguous calendar deletion.']);
+            }
+
+            if ($appointment->calendar_sync_status === 'unknown') {
+                return $appointment;
+            }
+
+            $appointment->forceFill(['calendar_sync_status' => 'unknown'])->save();
+            $this->event($appointment, 'calendar_deletion_unknown', ['reason_code' => mb_substr($reasonCode, 0, 80)]);
+
+            return $appointment->refresh();
+        });
+    }
+
     public function cancelAfterCalendarDeletion(string $appointmentId): Appointment
     {
         return DB::transaction(function () use ($appointmentId): Appointment {
