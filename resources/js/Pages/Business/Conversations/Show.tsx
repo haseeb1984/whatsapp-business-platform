@@ -21,6 +21,9 @@ export default function ConversationShow() {
     const isOwner = conversation.assigned_user_id === current_user_id;
     const isAdmin = current_user_role === 'business_admin';
     const humanActive = conversation.automation_state === 'HUMAN_ACTIVE' && isOwner;
+    const canTake = conversation.status === 'open'
+        && conversation.automation_state !== 'HUMAN_ACTIVE'
+        && (!conversation.assigned_user_id || isAdmin || isOwner);
 
     function submitReply(event: FormEvent) {
         event.preventDefault();
@@ -48,7 +51,7 @@ export default function ConversationShow() {
                     </div>
                     {conversation.handover_reason && <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Handover reason: {conversation.handover_reason}</p>}
                     <div className="mt-5 flex flex-wrap gap-2">
-                        {conversation.status === 'open' && conversation.automation_state !== 'HUMAN_ACTIVE' && <button onClick={() => router.post('/conversations/' + conversation.id + '/take')} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white">Take over conversation</button>}
+                        {canTake && <button onClick={() => router.post('/conversations/' + conversation.id + '/take')} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white">Take over conversation</button>}
                         {conversation.status === 'open' && humanActive && <button onClick={() => router.post('/conversations/' + conversation.id + '/release')} className="rounded-lg border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-800">Release to automation</button>}
                         {conversation.status === 'open' && conversation.automation_state === 'AUTO_ACTIVE' && <button onClick={() => router.post('/conversations/' + conversation.id + '/handover', { reason: 'Requested by team member' })} className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-800">Pause automation / request staff</button>}
                         {isAdmin && conversation.status === 'open' && <button onClick={() => router.post('/conversations/' + conversation.id + '/close')} className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700">Close conversation</button>}
