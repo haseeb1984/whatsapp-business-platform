@@ -18,7 +18,7 @@ class WhatsAppMessageService
     {
     }
 
-    public function sendText(Conversation $conversation, string $body, MessageActor $actor = MessageActor::Automation, ?string $replyToMessageId = null, ?int $staffUserId = null): Message
+    public function sendText(Conversation $conversation, string $body, MessageActor $actor = MessageActor::Automation, ?string $replyToMessageId = null, ?int $staffUserId = null, ?string $reminderId = null): Message
     {
         $body = trim($body);
         if ($body === '' || mb_strlen($body) > 4096) {
@@ -27,8 +27,19 @@ class WhatsAppMessageService
             ]);
         }
 
-        return DB::transaction(function () use ($conversation, $body, $actor, $replyToMessageId, $staffUserId): Message {
+        return DB::transaction(function () use ($conversation, $body, $actor, $replyToMessageId, $staffUserId, $reminderId): Message {
             $lockedConversation = Conversation::query()->lockForUpdate()->findOrFail($conversation->id);
+            if ($reminderId !== null) {
+                $existingReminderMessage = Message::query()->where('reminder_id', $reminderId)->first();
+                if ($existingReminderMessage) {
+                    if ($existingReminderMessage->conversation_id !== $lockedConversation->id) {
+                        throw ValidationException::withMessages(['reminder' => 'This reminder was already sent to a different conversation.']);
+                    }
+
+                    return $existingReminderMessage;
+                }
+            }
+
             if ($lockedConversation->status !== 'open') {
                 throw ValidationException::withMessages(['conversation' => 'This conversation is closed.']);
             }
@@ -91,6 +102,7 @@ class WhatsAppMessageService
             $message = Message::query()->create([
                 'conversation_id' => $lockedConversation->id,
                 'reply_to_message_id' => $replyToMessageId,
+                'reminder_id' => $reminderId,
                 'direction' => 'outbound',
                 'message_type' => 'text',
                 'body' => $body,
