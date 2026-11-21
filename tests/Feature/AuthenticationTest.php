@@ -25,7 +25,7 @@ class AuthenticationTest extends TestCase
         $user = User::query()->where('email', 'owner@example.test')->firstOrFail();
         $tenant = Tenant::query()->where('slug', 'example-studio')->firstOrFail();
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertRedirect(route('verification.notice'));
         $this->assertAuthenticatedAs($user);
         $this->assertTrue($tenant->users()->whereKey($user->id)->wherePivot('role', 'business_admin')->exists());
         $this->assertSame('Asia/Karachi', $tenant->timezone);
