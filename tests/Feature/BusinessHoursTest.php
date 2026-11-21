@@ -33,16 +33,16 @@ class BusinessHoursTest extends TestCase
         $this->assertDatabaseHas('business_hours', [
             'tenant_id' => $tenant->id,
             'weekday' => 6,
-            'is_closed' => true,
+            'is_closed' => 1,
             'opens_at' => null,
             'closes_at' => null,
         ]);
         $this->assertDatabaseHas('business_hours', [
             'tenant_id' => $tenant->id,
             'weekday' => 0,
-            'is_closed' => false,
-            'opens_at' => '09:00:00',
-            'closes_at' => '17:00:00',
+            'is_closed' => 0,
+            'opens_at' => '09:00',
+            'closes_at' => '17:00',
         ]);
     }
 
