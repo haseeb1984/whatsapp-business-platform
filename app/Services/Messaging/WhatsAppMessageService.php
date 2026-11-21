@@ -33,7 +33,7 @@ class WhatsAppMessageService
             if ($reminderId !== null) {
                 $existingReminderMessage = Message::query()->where('reminder_id', $reminderId)->first();
                 if ($existingReminderMessage) {
-                    if ($existingReminderMessage->conversation_id !== $lockedConversation->id) {
+                    if ($existingReminderMessage->conversation_id !== $conversation->id) {
                         throw ValidationException::withMessages(['reminder' => 'This reminder was already sent to a different conversation.']);
                     }
 
