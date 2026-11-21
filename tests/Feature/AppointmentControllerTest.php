@@ -14,6 +14,9 @@ use App\Models\User;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
+use App\Jobs\SyncAppointmentCalendarEvent;
 use Tests\TestCase;
 
 class AppointmentControllerTest extends TestCase
