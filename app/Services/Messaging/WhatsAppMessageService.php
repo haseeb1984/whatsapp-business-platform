@@ -45,6 +45,15 @@ class WhatsAppMessageService
                 if ($reminder->status !== 'processing' || $appointment->status !== 'confirmed') {
                     throw ValidationException::withMessages(['reminder' => 'This appointment reminder is no longer eligible to send.']);
                 }
+
+                $existingReminderMessage = Message::query()->where('reminder_id', $reminderId)->first();
+                if ($existingReminderMessage) {
+                    if ($existingReminderMessage->conversation_id !== $conversation->id) {
+                        throw ValidationException::withMessages(['reminder' => 'This reminder was already sent to a different conversation.']);
+                    }
+
+                    return $existingReminderMessage;
+                }
             }
 
             $lockedConversation = Conversation::query()->lockForUpdate()->findOrFail($conversation->id);
