@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Models\Tenant;
 use App\Models\WebhookEvent;
 use App\Models\WhatsAppConnection;
+use App\Jobs\ProcessMetaWebhookEvent;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class MetaWhatsAppWebhookTest extends TestCase
@@ -32,6 +34,7 @@ class MetaWhatsAppWebhookTest extends TestCase
 
     public function test_signed_message_event_is_encrypted_routed_and_persisted_idempotently(): void
     {
+        Queue::fake();
         config(['services.meta.app_secret' => 'test-meta-app-secret']);
         $tenant = Tenant::query()->create([
             'name' => 'Webhook Workspace',
@@ -76,6 +79,7 @@ class MetaWhatsAppWebhookTest extends TestCase
         ], $raw)->assertOk();
 
         $this->assertDatabaseCount('webhook_events', 1);
+        Queue::assertPushed(ProcessMetaWebhookEvent::class, 1);
         $this->assertDatabaseHas('webhook_events', [
             'tenant_id' => $tenant->id,
             'provider' => 'meta_whatsapp',
@@ -93,6 +97,7 @@ class MetaWhatsAppWebhookTest extends TestCase
         ], $raw)->assertOk();
 
         $this->assertDatabaseCount('webhook_events', 1);
+        Queue::assertPushed(ProcessMetaWebhookEvent::class, 1);
     }
 
     public function test_invalid_signature_is_rejected_before_event_persistence(): void
