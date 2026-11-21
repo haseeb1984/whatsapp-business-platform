@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BusinessProfileController;
 use App\Http\Controllers\BusinessHoursController;
+use App\Http\Controllers\BusinessHolidayController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Http\Request;
@@ -61,6 +62,10 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::put('/business/profile', [BusinessProfileController::class, 'update'])->name('business.profile.update');
         Route::get('/business/hours', [BusinessHoursController::class, 'edit'])->name('business.hours.edit');
         Route::put('/business/hours', [BusinessHoursController::class, 'update'])->name('business.hours.update');
+        Route::get('/business/holidays', [BusinessHolidayController::class, 'index'])->name('business.holidays.index');
+        Route::post('/business/holidays', [BusinessHolidayController::class, 'store'])->name('business.holidays.store');
+        Route::put('/business/holidays/{holiday}', [BusinessHolidayController::class, 'update'])->name('business.holidays.update');
+        Route::delete('/business/holidays/{holiday}', [BusinessHolidayController::class, 'destroy'])->name('business.holidays.destroy');
     });
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
