@@ -51,9 +51,15 @@ This roadmap distinguishes planned work from implemented work.
 **Exit gate:** A user from tenant A cannot read, update, delete or infer tenant B data through any tested route or job.
 
 ## Milestone 3 — Business configuration and FAQ
-- [ ] Business profile, timezone, hours, holidays, services, staff and policies.
+- [x] Tenant-scoped business profile with display name, description, contact details, website, address, timezone and locale.
+- [x] Business profile edit form, server-side validation and business-admin-only route protection.
+- [x] Keep tenant timezone and locale synchronized with the business profile in one database transaction.
+- [x] Add profile isolation and staff-access feature tests (authored; execution pending).
+- [ ] Business hours, holidays, services, staff and policies.
 - [ ] FAQ CRUD, publish/archive lifecycle and tenant-scoped search.
 - [ ] Dashboard forms and validation.
+
+**Status:** First business configuration module committed. It is not yet runtime-verified; full milestone remains in progress.
 
 ## Milestone 4 — WhatsApp Cloud API foundation
 - [ ] Meta webhook GET verification.
