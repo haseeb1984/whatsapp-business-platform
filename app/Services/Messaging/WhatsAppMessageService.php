@@ -51,7 +51,13 @@ class WhatsAppMessageService
                 ->first();
 
             if ($replyToMessageId !== null) {
-                if ($actor !== MessageActor::Automation || ! $lastInbound || $lastInbound->id !== $replyToMessageId) {
+                $latestInbound = Message::query()
+                    ->where('conversation_id', $lockedConversation->id)
+                    ->where('direction', 'inbound')
+                    ->orderByDesc('created_at')
+                    ->first();
+
+                if ($actor !== MessageActor::Automation || ! $latestInbound || $latestInbound->id !== $replyToMessageId) {
                     throw ValidationException::withMessages(['message' => 'An automated reply must reference the latest inbound customer message.']);
                 }
 
