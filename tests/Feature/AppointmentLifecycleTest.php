@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Appointment;
+use App\Models\AppointmentReminder;
 use App\Models\BookingPolicy;
 use App\Models\BusinessHour;
 use App\Models\Customer;
@@ -60,9 +61,33 @@ class AppointmentLifecycleTest extends TestCase
             $this->assertSame('google-event-1', $confirmed->external_event_id);
             $this->assertSame($confirmed->id, $again->id);
             $this->assertDatabaseHas('appointment_events', ['appointment_id' => $appointment->id, 'event_type' => 'confirmed']);
+            $reminders = AppointmentReminder::query()->where('appointment_id', $appointment->id)->get();
+            $this->assertCount(1, $reminders);
+            $this->assertSame('2_hours', $reminders->first()->reminder_type);
         });
     }
 
+
+
+    public function test_confirmation_schedules_both_future_reminder_offsets(): void
+    {
+        [$tenant, $appointment] = $this->hold('lifecycle-reminders', null, '2026-11-24 10:00:00');
+
+        TenantContext::runForTenant($tenant->id, function () use ($appointment): void {
+            $lifecycle = app(AppointmentLifecycleService::class);
+            $lifecycle->markCalendarPending($appointment->id);
+            $lifecycle->confirmAfterCalendarSync($appointment->id, 'google-event-reminders');
+
+            $reminders = AppointmentReminder::query()
+                ->where('appointment_id', $appointment->id)
+                ->orderBy('reminder_type')
+                ->get();
+
+            $this->assertCount(2, $reminders);
+            $this->assertEqualsCanonicalizing(['24_hours', '2_hours'], $reminders->pluck('reminder_type')->all());
+            $this->assertSame(['pending'], $reminders->pluck('status')->unique()->values()->all());
+        });
+    }
 
     public function test_ambiguous_calendar_result_keeps_the_slot_reserved_for_reconciliation(): void
     {
@@ -158,11 +183,12 @@ class AppointmentLifecycleTest extends TestCase
 
             $this->assertSame('cancelled', $cancelled->status);
             $this->assertSame($cancelled->id, $again->id);
+            $this->assertDatabaseHas('appointment_reminders', ['appointment_id' => $appointment->id, 'status' => 'cancelled']);
             $this->assertDatabaseHas('appointment_events', ['appointment_id' => $appointment->id, 'event_type' => 'cancelled_after_calendar_deletion']);
         });
     }
 
-    private function hold(string $slug, ?int $holdMinutes = null): array
+    private function hold(string $slug, ?int $holdMinutes = null, string $localStart = '2026-11-23 10:00:00'): array
     {
         $tenant = Tenant::query()->create([
             'name' => 'Lifecycle Workspace',
@@ -170,7 +196,10 @@ class AppointmentLifecycleTest extends TestCase
             'timezone' => 'Asia/Karachi',
         ]);
 
-        [$service, $staff, $customer] = TenantContext::runForTenant($tenant->id, function () use ($holdMinutes): array {
+        $requestedLocalStart = CarbonImmutable::parse($localStart, 'Asia/Karachi');
+        $weekday = $requestedLocalStart->dayOfWeekIso - 1;
+
+        [$service, $staff, $customer] = TenantContext::runForTenant($tenant->id, function () use ($holdMinutes, $weekday): array {
             if ($holdMinutes !== null) {
                 BookingPolicy::query()->create([
                     'minimum_notice_minutes' => 0,
@@ -191,7 +220,7 @@ class AppointmentLifecycleTest extends TestCase
             ]);
             $staff = Staff::query()->create(['name' => 'Team Member', 'active' => true]);
             StaffService::query()->create(['staff_id' => $staff->id, 'service_id' => $service->id]);
-            BusinessHour::query()->create(['weekday' => 0, 'is_closed' => false, 'opens_at' => '09:00', 'closes_at' => '17:00']);
+            BusinessHour::query()->create(['weekday' => $weekday, 'is_closed' => false, 'opens_at' => '09:00', 'closes_at' => '17:00']);
             StaffWorkingHour::query()->create(['staff_id' => $staff->id, 'weekday' => 0, 'is_closed' => false, 'opens_at' => '09:00', 'closes_at' => '17:00']);
             $customer = Customer::query()->create(['whatsapp_wa_id' => '923001112233']);
 
@@ -202,7 +231,7 @@ class AppointmentLifecycleTest extends TestCase
             $customer->id,
             $service->id,
             $staff->id,
-            CarbonImmutable::parse('2026-11-23 10:00:00', 'Asia/Karachi'),
+            $requestedLocalStart,
             'booking-'.$slug,
         ));
 
