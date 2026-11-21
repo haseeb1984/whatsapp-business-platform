@@ -63,6 +63,34 @@ class TenantOwnedModelTest extends TestCase
         TenantOwnedTestRecord::query()->create(['tenant_id' => $tenantB->id, 'value' => 'unsafe']);
     }
 
+
+    public function test_background_work_gets_an_explicit_context_and_restores_the_previous_context(): void
+    {
+        $tenantA = Tenant::query()->create(['name' => 'Tenant A', 'slug' => 'tenant-a']);
+        $tenantB = Tenant::query()->create(['name' => 'Tenant B', 'slug' => 'tenant-b']);
+        $this->setTenant($tenantA);
+
+        $result = TenantContext::runForTenant($tenantB->id, function (): string {
+            $this->assertSame('system', app(TenantContext::class)->role());
+            return app(TenantContext::class)->id();
+        });
+
+        $this->assertSame($tenantB->id, $result);
+        $this->assertSame($tenantA->id, app(TenantContext::class)->id());
+    }
+
+    public function test_background_work_rejects_inactive_tenants(): void
+    {
+        $tenant = Tenant::query()->create([
+            'name' => 'Paused Business',
+            'slug' => 'paused-business',
+            'status' => 'suspended',
+        ]);
+
+        $this->expectException(LogicException::class);
+        TenantContext::runForTenant($tenant->id, fn () => 'should not run');
+    }
+
     public function test_tenant_owned_queries_fail_closed_without_context(): void
     {
         app()->forgetInstance(TenantContext::class);
