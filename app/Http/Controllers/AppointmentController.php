@@ -119,8 +119,16 @@ class AppointmentController extends Controller
             && $appointment->status === 'pending_hold') {
             SyncAppointmentCalendarEvent::dispatch(app(TenantContext::class)->id(), $appointment->id);
         }
+        $appointment->refresh();
+
+        $message = match ($appointment->status) {
+            'confirmed' => 'Appointment confirmed after Google Calendar synchronization.',
+            'failed' => 'Google Calendar could not confirm this appointment. The slot has been released.',
+            default => 'Temporary hold created. This is not a confirmed booking until calendar synchronization succeeds.',
+        };
 
         if ($request->expectsJson()) {
+            $responseStatus = $appointment->status === 'confirmed' ? 201 : ($appointment->status === 'failed' ? 422 : 202);
             return response()->json([
                 'appointment' => [
                     'id' => $appointment->id,
@@ -128,11 +136,11 @@ class AppointmentController extends Controller
                     'calendar_sync_status' => $appointment->calendar_sync_status,
                     'hold_expires_at' => $appointment->hold_expires_at?->toIso8601String(),
                 ],
-                'message' => 'Temporary hold created. This is not a confirmed booking until calendar synchronization succeeds.',
-            ], 202);
+                'message' => $message,
+            ], $responseStatus);
         }
 
-        return back()->with('success', 'Temporary appointment hold created. It is not confirmed until Calendar sync succeeds.');
+        return back()->with($appointment->status === 'failed' ? 'error' : 'success', $message);
     }
 
     public function confirmCalendar(string $appointmentId, AppointmentCalendarOrchestrator $calendar): RedirectResponse
