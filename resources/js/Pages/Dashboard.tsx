@@ -1,5 +1,6 @@
-import React from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
+
+type PageProps = { tenant: { id: string; name: string } | null };
 
 const modules = [
     'Business workspaces',
@@ -10,16 +11,17 @@ const modules = [
 ];
 
 export default function Dashboard() {
+    const { tenant } = usePage<PageProps>().props;
     return (
         <>
             <Head title="Project dashboard" />
             <main className="min-h-screen bg-slate-950 px-6 py-12 text-slate-100">
                 <div className="mx-auto max-w-5xl">
-                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-400">JuncSys · SaaS platform</p>
+                    <div className="flex items-center justify-between gap-4"><p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-400">JuncSys · SaaS platform</p><button onClick={() => router.post('/logout')} className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">Sign out</button></div>
                     <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                         <div>
                             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">WhatsApp Business Platform</h1>
-                            <p className="mt-3 max-w-2xl text-slate-400">One configurable virtual receptionist for multiple independent businesses.</p>
+                            <p className="mt-3 max-w-2xl text-slate-400">One configurable virtual receptionist for multiple independent businesses.</p><p className="mt-2 text-sm text-blue-200">Current workspace: {tenant?.name ?? 'Not selected'}</p>
                         </div>
                         <span className="inline-flex w-fit rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-sm text-amber-200">Foundation stage</span>
                     </div>
