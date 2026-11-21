@@ -12,6 +12,8 @@ class WhatsAppTemplate extends Model
     use HasUuids;
     use BelongsToTenant;
 
+    protected $table = 'whatsapp_templates';
+
     protected $fillable = [
         'whatsapp_connection_id',
         'provider_template_id',
