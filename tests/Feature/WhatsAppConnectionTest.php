@@ -7,6 +7,7 @@ use App\Models\WhatsAppConnection;
 use App\Models\User;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class WhatsAppConnectionTest extends TestCase
@@ -35,6 +36,52 @@ class WhatsAppConnectionTest extends TestCase
             ->assertOk()
             ->assertDontSee('super-secret-meta-access-token')
             ->assertSee('123456789012345');
+    }
+
+    public function test_meta_verification_activates_a_connection_only_after_matching_phone_id(): void
+    {
+        config(['services.meta.graph_api_version' => 'v24.0']);
+        Http::fake([
+            'https://graph.facebook.com/v24.0/123456789012345*' => Http::response([
+                'id' => '123456789012345',
+                'display_phone_number' => '+1 555 0100',
+                'verified_name' => 'Example Verified Business',
+            ], 200),
+        ]);
+
+        [$user, $tenant] = $this->workspace('wa-verify@example.test');
+        $connection = TenantContext::runForTenant($tenant->id, fn () => WhatsAppConnection::query()->create([
+            'phone_number_id' => '123456789012345',
+            'waba_id' => '987654321098765',
+            'access_token' => 'verified-long-lived-access-token',
+            'status' => 'pending',
+        ]));
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id]);
+
+        $this->post('/business/whatsapp/'.$connection->id.'/verify')->assertRedirect();
+        $verified = TenantContext::runForTenant($tenant->id, fn () => WhatsAppConnection::query()->findOrFail($connection->id));
+        $this->assertSame('active', $verified->status);
+        $this->assertSame('Example Verified Business', $verified->verified_name);
+        $this->assertNotNull($verified->verified_at);
+        Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer verified-long-lived-access-token'));
+    }
+
+    public function test_meta_verification_failure_keeps_the_connection_pending(): void
+    {
+        config(['services.meta.graph_api_version' => 'v24.0']);
+        Http::fake(['https://graph.facebook.com/*' => Http::response(['error' => ['message' => 'Invalid token']], 401)]);
+
+        [$user, $tenant] = $this->workspace('wa-verify-fail@example.test');
+        $connection = TenantContext::runForTenant($tenant->id, fn () => WhatsAppConnection::query()->create([
+            'phone_number_id' => '123456789012346',
+            'waba_id' => '987654321098766',
+            'access_token' => 'invalid-long-lived-access-token',
+            'status' => 'pending',
+        ]));
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id]);
+
+        $this->post('/business/whatsapp/'.$connection->id.'/verify')->assertSessionHasErrors('connection');
+        $this->assertDatabaseHas('whatsapp_connections', ['id' => $connection->id, 'status' => 'pending']);
     }
 
     public function test_phone_number_id_cannot_be_claimed_by_another_tenant(): void
