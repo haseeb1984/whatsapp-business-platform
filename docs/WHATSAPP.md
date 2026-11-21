@@ -4,23 +4,25 @@
 
 Use Meta's official WhatsApp Business Platform Cloud API. No WhatsApp Web, QR-login session, browser automation, unofficial library, or reverse-engineered endpoint is permitted.
 
-Start development with a Meta test business/phone number. Production tenant onboarding and Embedded Signup are a later milestone after the core integration is stable.
+Start development with a Meta test business/phone number. The first setup screen stores a tenant's Phone Number ID, WABA ID and access token encrypted at rest. Connections remain pending; Meta credential verification and Embedded Signup are not implemented yet.
 
 ## 2. Tenant connection mapping
 
 Persist the verified relationship between tenant, WABA/business account, and phone_number_id. Incoming webhook events are routed to a tenant only by matching a known verified integration identifier. If no unique active mapping exists, quarantine the event and alert platform operations; never guess a tenant.
 
-Access tokens and app secrets must be encrypted at rest and never returned to dashboard clients or written to logs.
+Access tokens are encrypted at rest and omitted from dashboard props. App secrets remain environment configuration. Neither is returned to dashboard clients or written to logs.
 
 ## 3. Webhook verification
 
 ### GET subscription verification
+- Implemented at `/api/webhooks/meta/whatsapp`.
 - Read Meta's verification mode, verify token, and challenge parameters.
 - Compare mode and configured verify token using constant-time comparison where practical.
 - Return the challenge only when verification succeeds.
 - Do not expose secrets in error messages.
 
 ### POST event validation
+- Implemented raw-body HMAC-SHA256 validation with constant-time signature comparison and a 1 MiB request limit.
 - Preserve the raw request body.
 - Validate `X-Hub-Signature-256` using HMAC-SHA256 and the configured Meta app secret.
 - Use constant-time comparison.
@@ -29,13 +31,13 @@ Access tokens and app secrets must be encrypted at rest and never returned to da
 
 ## 4. Inbound event pipeline
 
-1. Validate signature and basic payload shape.
+1. Validate signature and basic payload shape (implemented).
 2. Extract stable provider event/message identifiers and integration routing identifiers.
-3. Insert the event into `webhook_events` with a unique idempotency key.
-4. If already present, treat it as a duplicate and do not repeat side effects.
-5. Commit durable storage.
-6. Return a successful acknowledgement promptly.
-7. Process the event asynchronously through a bounded database-queue job.
+3. Insert the event into `webhook_events` with a unique SHA-256 idempotency key and encrypted payload (implemented).
+4. If already present, treat it as a duplicate and do not repeat side effects (`insertOrIgnore`, implemented).
+5. Commit durable storage before acknowledgement (implemented).
+6. Return a successful acknowledgement promptly (implemented).
+7. Process the event asynchronously through a bounded database-queue job (pending).
 8. Persist normalized message/status records and update conversation state.
 9. Recheck tenant status and human handover before generating/sending any automated response.
 
