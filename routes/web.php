@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BusinessProfileController;
 use App\Http\Controllers\BusinessHoursController;
 use App\Http\Controllers\BusinessHolidayController;
+use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Http\Request;
@@ -66,6 +67,10 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::post('/business/holidays', [BusinessHolidayController::class, 'store'])->name('business.holidays.store');
         Route::put('/business/holidays/{holiday}', [BusinessHolidayController::class, 'update'])->name('business.holidays.update');
         Route::delete('/business/holidays/{holiday}', [BusinessHolidayController::class, 'destroy'])->name('business.holidays.destroy');
+        Route::get('/business/services', [ServiceController::class, 'index'])->name('business.services.index');
+        Route::post('/business/services', [ServiceController::class, 'store'])->name('business.services.store');
+        Route::put('/business/services/{service}', [ServiceController::class, 'update'])->name('business.services.update');
+        Route::delete('/business/services/{service}', [ServiceController::class, 'destroy'])->name('business.services.destroy');
     });
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
