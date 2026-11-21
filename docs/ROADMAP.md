@@ -16,11 +16,11 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Add Neon PostgreSQL environment/configuration placeholders.
 - [x] Add initial users, jobs and tenant/membership migrations.
 - [x] Add health endpoints and starter CI workflow.
-- [ ] Install Composer and npm dependencies in a runtime environment.
+- [x] Install Composer and npm dependencies in GitHub Actions CI.
 - [ ] Run migrations against a disposable PostgreSQL database.
-- [ ] Obtain a passing CI run and fix any build/runtime errors.
+- [x] Obtain a passing CI run for PHP tests and frontend production build.
 
-**Status:** Source scaffold committed; runtime verification is pending. Do not treat this milestone as accepted until the unchecked items pass.
+**Status:** Source scaffold committed; CI dependency installation, feature tests and frontend build pass. PostgreSQL migration rehearsal remains pending.
 
 ## Milestone 2 — Identity, tenancy, and authorization
 - [x] Implement email/password registration, login and logout with session regeneration/invalidation.
@@ -37,7 +37,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Protect the dashboard with authentication and tenant-context middleware.
 - [x] Add workspace selection/switching UI and validate active membership server-side.
 - [x] Add tenant role context and role-restricted middleware for tenant routes.
-- [x] Add feature tests for registration, login/logout, password recovery, workspace selection, cross-tenant selection rejection and role authorization.
+- [x] Add and run feature tests for registration, login/logout, password recovery, workspace selection, cross-tenant selection rejection and role authorization.
 - [x] Apply business-admin role middleware to business profile and weekly-hours configuration routes.
 - [x] Add a fail-closed `BelongsToTenant` Eloquent concern with context-derived tenant assignment and tenant ID immutability.
 - [x] Block tenant reassignment through Eloquent bulk `update()` operations on tenant-owned models.
@@ -46,7 +46,7 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Implement tenant-scoped repositories/policies and composite tenant-aware foreign keys.
 - [ ] Add cross-tenant negative authorization tests for read, update, delete and background jobs.
 
-**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks committed. Applying role restrictions to each business module, database constraints and full isolation acceptance tests remain outstanding. Configure production SMTP before sending verification or password-reset emails. Automated tests have been authored but are not yet executed in a working Laravel runtime.
+**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks committed. Applying role restrictions to each business module, database constraints and full isolation acceptance tests remain outstanding. Configure production SMTP before sending verification or password-reset emails. The current CI run executes the Laravel suite successfully (56 tests / 199 assertions); broader production isolation acceptance remains.
 
 **Exit gate:** A user from tenant A cannot read, update, delete or infer tenant B data through any tested route or job.
 
@@ -54,14 +54,14 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Tenant-scoped business profile with display name, description, contact details, website, address, timezone and locale.
 - [x] Business profile edit form, server-side validation and business-admin-only route protection.
 - [x] Keep tenant timezone and locale synchronized with the business profile in one database transaction.
-- [x] Add profile isolation and staff-access feature tests (authored; execution pending).
+- [x] Add profile isolation and staff-access feature tests (CI passing).
 - [x] Add weekly-hours validation, tenant-isolation and staff-access feature tests (authored; execution pending).
 - [x] Add holiday CRUD, duplicate-date, special-hours validation and tenant-isolation tests (authored; execution pending).
 - [x] Add service CRUD, price/duration/buffer validation, tenant-isolation and staff-access tests (authored; execution pending).
 - [x] Add staff CRUD, service assignment, cross-tenant assignment rejection and staff-access tests (authored; execution pending).
 - [x] Add staff weekly availability and tenant-isolation feature tests (authored; execution pending).
 - [x] Add FAQ publication lifecycle, validation and tenant-isolation tests (authored; execution pending).
-- [x] Weekly business hours editor with seven-day validation, tenant isolation and database constraints (tests authored; execution pending).
+- [x] Weekly business hours editor with seven-day validation, tenant isolation and database constraints (CI passing).
 - [x] Holiday and special-hours CRUD for a business-local date, with tenant isolation and validation (tests authored; execution pending).
 - [x] Service and pricing CRUD with currency code, duration, scheduling buffers, active status and tenant isolation (tests authored; execution pending).
 - [x] Staff CRUD and service assignment with composite tenant-aware foreign keys (tests authored; execution pending).
@@ -70,7 +70,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] FAQ CRUD, draft/published/archived lifecycle, locale validation and tenant-scoped search (tests authored; execution pending).
 - [ ] Dashboard forms and validation.
 
-**Status:** Business profile, weekly hours, holiday/special-hours management, service/pricing CRUD, staff/service assignments, staff weekly availability and FAQ management are committed, including admin-only routes and authored feature tests. Runtime verification remains pending; holidays, services, staff, FAQs and full dashboards remain in progress.
+**Status:** Business profile, weekly hours, holiday/special-hours management, service/pricing CRUD, staff/service assignments, staff weekly availability and FAQ management are committed with admin-only routes and passing CI tests. Runtime verification remains pending; holidays, services, staff, FAQs and full dashboards remain in progress.
 
 ## Milestone 4 — WhatsApp Cloud API foundation
 - [ ] Meta webhook GET verification.
