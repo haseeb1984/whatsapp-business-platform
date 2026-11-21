@@ -109,10 +109,17 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Prompt-injection-safe FAQ selection and tenant-isolation tests (CI passing).
 
 ## Milestone 7 — Booking domain
-- [ ] Availability engine and timezone-aware slot calculation.
-- [ ] Staff/service eligibility, hours, exceptions and buffers.
-- [ ] Pending holds, concurrency locks and idempotency.
-- [ ] Booking/reschedule/cancel state machine.
+- [x] Timezone-aware availability from tenant business hours, holiday overrides, staff weekly schedules and service duration/buffers.
+- [x] Staff/service eligibility and intersection of business/staff working hours.
+- [x] Tenant-scoped appointment and appointment-event schema with composite customer/service/staff foreign keys.
+- [x] Temporary booking holds with service/price snapshots, UTC intervals and pre/post-buffer reservation windows.
+- [x] Tenant-row transactional serialization, unique tenant idempotency keys and overlap rechecks to prevent concurrent double holds.
+- [x] Bounded hold expiry processor and every-minute Laravel scheduler command.
+- [x] Availability API and business appointment screen; temporary holds can be created and cancelled before Calendar side effects.
+- [x] Lifecycle gate requires calendar-pending state and an external event ID before confirmation; ambiguous Calendar outcomes keep the slot reserved for reconciliation.
+- [ ] Staff date-specific exceptions, minimum notice and booking horizon policies.
+- [ ] Google Calendar FreeBusy integration and real external event create/update/delete operations.
+- [ ] End-to-end WhatsApp booking conversation, rescheduling and confirmed-booking cancellation.
 
 ## Milestone 8 — Google Calendar integration
 - [ ] OAuth flow and encrypted token storage.
