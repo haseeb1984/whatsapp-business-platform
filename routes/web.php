@@ -88,6 +88,7 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::get('/business/whatsapp', [WhatsAppConnectionController::class, 'index'])->name('business.whatsapp.index');
         Route::post('/business/whatsapp', [WhatsAppConnectionController::class, 'store'])->name('business.whatsapp.store');
         Route::put('/business/whatsapp/{connection}', [WhatsAppConnectionController::class, 'update'])->name('business.whatsapp.update');
+        Route::post('/business/whatsapp/{connection}/verify', [WhatsAppConnectionController::class, 'verify'])->name('business.whatsapp.verify');
         Route::delete('/business/whatsapp/{connection}', [WhatsAppConnectionController::class, 'destroy'])->name('business.whatsapp.destroy');
     });
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
