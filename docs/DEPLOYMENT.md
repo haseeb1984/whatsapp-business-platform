@@ -14,7 +14,7 @@ No additional paid hosting, database tier, queue service, or AI provider may be 
 
 ## 2. Current application runtime
 
-The repository contains a Laravel 13 / React / TypeScript / Inertia application with PostgreSQL configuration, tenant-aware business configuration, authentication and email verification, official Meta WhatsApp Cloud API connection/webhook processing, encrypted message storage, outbound text sending, a Groq-grounded FAQ assistant, queued inbound FAQ replies, a staff conversation inbox/handover workflow, and a timezone-aware appointment availability/temporary-hold foundation. Google Calendar OAuth and live event operations, approved WhatsApp templates, full intent orchestration, and production deployment remain pending. Latest CI passes 111 Laravel tests (410 assertions) and the Vite production build; tests currently use SQLite.
+The repository contains a Laravel 13 / React / TypeScript / Inertia application with PostgreSQL configuration, tenant-aware business configuration, authentication and email verification, official Meta WhatsApp Cloud API connection/webhook processing, encrypted message storage, outbound text sending, a Groq-grounded FAQ assistant, queued inbound FAQ replies, a staff conversation inbox/handover workflow, and a timezone-aware appointment availability/temporary-hold foundation. Google Calendar OAuth, encrypted token storage/refresh, FreeBusy and deterministic event create/delete service primitives are committed; end-to-end booking orchestration, approved WhatsApp templates, full intent routing, and production deployment remain pending. CI verification is being extended for the new Google Calendar module; tests use SQLite.
 
 Laravel 13 requires PHP 8.3 or higher. Hostinger's current PHP selector documentation lists PHP 8.2 and newer options, including 8.3–8.5. Select PHP 8.3+ for this application and verify required extensions in the actual site's PHP Info page. Do not assume the account's current PHP setting.
 
@@ -60,7 +60,7 @@ The committed `.env.example` contains placeholder-only values. Configure real va
 - META_APP_ID, META_APP_SECRET, META_WEBHOOK_VERIFY_TOKEN, META_GRAPH_API_VERSION
 - MAIL_MAILER, MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM_ADDRESS, MAIL_FROM_NAME (configure a working SMTP transport before enabling password recovery in production)
 - GROQ_API_KEY, GROQ_MODEL
-- GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI
+- GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI (must exactly match the registered Google OAuth redirect URI)
 
 Never commit real values. Keep `.env` outside the public web root and ensure the public document root points to Laravel's `public/` directory.
 
