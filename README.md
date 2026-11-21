@@ -8,7 +8,7 @@ A reusable multi-tenant WhatsApp Business automation platform using the official
 **Milestone 1:** Laravel 13 / React / Inertia application shell and initial tenant schema committed; Composer dependencies install successfully in CI and the frontend production build passes.  
 **Milestone 2 (in progress):** Registration, login/logout, password reset, signed email verification, workspace selection/switching, tenant context and role-gating foundations are committed. The current CI suite passes; additional production model coverage, authorization hardening and database isolation acceptance work remain. A fail-closed tenant-owned model concern (including bulk Eloquent tenant-ID update protection) and explicit background-work tenant context helper are now committed. Request middleware also clears/restores tenant context after each request, and suspended tenants are excluded from workspace selection. All currently implemented tenant-owned models opt in; every future tenant-owned model must also adopt it. Composite database constraints still need broader coverage across future cross-entity relationships.
 **Milestone 3 (in progress):** Tenant-scoped business profile CRUD, regional settings, weekly business hours editor, holiday/special-hours CRUD, service/pricing management, staff CRUD with service assignments, staff weekly working hours, and FAQ CRUD with draft/published/archived lifecycle and tenant-scoped search are committed. The CI suite passes with coverage for these modules. Staff date-specific exceptions, business policies and complete dashboards remain outstanding.
-**Partially implemented:** Meta webhook verification, signed durable event ingestion, tenant phone-number routing and encrypted connection setup (connections remain pending until provider verification). **Not implemented yet:** outbound WhatsApp messaging, event processing, AI workflows, human handover, appointment booking, Google Calendar OAuth, and production business/platform dashboards.
+**Partially implemented:** Tenant WhatsApp connection setup with encrypted access tokens, Meta Graph API verification of the phone number and WABA membership, signed webhook verification, durable encrypted event ingestion, idempotency and active phone-number routing. **Not implemented yet:** outbound WhatsApp messaging, webhook event processing/conversations, AI workflows, human handover, appointment booking, Google Calendar OAuth, and production business/platform dashboards.
 
 ## Approved stack
 
@@ -88,7 +88,7 @@ Open `http://127.0.0.1:8000`. New users can register an account and create an in
 - `php artisan test`
 - `npm run build`
 
-GitHub Actions run [44928497305](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44928497305) passed on commit `d520e869283e106f0298203904b899b2634d6a7a`: Composer manifest validation, dependency installation, **56 Laravel tests (199 assertions)**, npm dependency installation and Vite production build. The tests use SQLite; a separate Neon PostgreSQL migration/constraint rehearsal is still required.
+GitHub Actions run [44929420107](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44929420107) passed on commit `631096b18d91ef9d629425e87fdefcc5c72b90da`: Composer manifest validation, dependency installation, **66 Laravel tests (233 assertions)**, npm dependency installation and Vite production build. The tests use SQLite; a separate Neon PostgreSQL migration/constraint rehearsal is still required.
 
 ## Development principles
 
