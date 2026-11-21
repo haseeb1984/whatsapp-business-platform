@@ -11,7 +11,7 @@
 
 ## 2. Tenant isolation
 
-- Resolve tenant from authenticated membership or verified WhatsApp/Calendar integration ownership. Current web dashboard tenancy is resolved from the authenticated user's active membership; WhatsApp webhook events now resolve a configured active phone_number_id to its tenant; unknown/disabled connections are quarantined. Calendar integration tenant resolution remains pending.
+- Resolve tenant from authenticated membership or verified WhatsApp/Calendar integration ownership. Current web dashboard tenancy is resolved from the authenticated user's active membership; WhatsApp webhook events now resolve a configured active phone_number_id to its tenant; unknown/disabled connections are quarantined. Google Calendar OAuth connections are tenant-scoped and Calendar service calls resolve the connection through the active tenant context.
 - Never trust client-supplied tenant identifiers.
 - Scope all reads, writes, exports, jobs, and integration calls. A `BelongsToTenant` Eloquent concern now provides a fail-closed tenant global scope, context-derived tenant assignment, tenant ID immutability for model saves, and a custom builder that blocks bulk Eloquent tenant-ID updates for models that opt in. `BusinessProfile`, `BusinessHour`, `BusinessHoliday`, `Service`, `Staff`, `StaffService`, `StaffWorkingHour`, `Faq`, `WhatsAppConnection`, `Customer`, `Conversation` and `Message` currently opt in; `WebhookEvent` is a platform-owned inbox table and intentionally has no tenant global scope. Other tenant-owned models must opt in when introduced. Staff-service assignments and staff working hours use composite tenant-aware foreign keys to their parent records.
 - Use composite foreign keys and unique constraints to prevent cross-tenant references.
@@ -20,7 +20,7 @@
 
 ## 3. Secrets and encryption
 
-- Keep `.env`, Meta tokens, Meta app secret, Groq keys, Google OAuth secrets, and refresh tokens out of Git. WhatsApp connection access tokens use Laravel encrypted casts and are never included in Inertia props.
+- Keep `.env`, Meta tokens, Meta app secret, Groq keys, Google OAuth secrets, and refresh tokens out of Git. WhatsApp and Google Calendar access/refresh tokens use Laravel encrypted casts and are never included in Inertia props. Google OAuth state is bound to the current tenant, user and short expiry window; callback rejects mismatches and replay.
 - Encrypt integration credentials at rest using Laravel encryption or a dedicated key-management facility if approved.
 - Keep APP_KEY stable and backed up securely; rotation requires a planned re-encryption procedure.
 - Never return secret values to the browser.
@@ -55,7 +55,7 @@
 
 ## 7. Reliability as a security property
 
-- Idempotency for webhooks, outbound actions, bookings, and reminders. Appointment holds use a tenant-unique idempotency key and a tenant-row transaction lock before availability recheck; staff date exceptions and booking policies are tenant-scoped; ambiguous Calendar outcomes remain reserved pending reconciliation.
+- Idempotency for webhooks, outbound actions, bookings, and reminders. Appointment holds use a tenant-unique idempotency key and a tenant-row transaction lock before availability recheck; staff date exceptions and booking policies are tenant-scoped; Google OAuth tokens are encrypted and refreshed server-side; deterministic event IDs support safe lookup after ambiguous creates; ambiguous Calendar outcomes remain reserved pending reconciliation.
 - Bounded retries with backoff; no infinite retry loops.
 - Failed-job and integration error visibility.
 - Database constraints for important invariants.
