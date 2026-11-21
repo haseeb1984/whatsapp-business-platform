@@ -1,0 +1,159 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Jobs\GenerateAutomatedFaqReply;
+use App\Models\Conversation;
+use App\Models\Customer;
+use App\Models\Faq;
+use App\Models\Message;
+use App\Models\Tenant;
+use App\Models\WhatsAppConnection;
+use App\Support\Tenancy\TenantContext;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
+
+class AutomatedFaqReplyJobTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_exact_approved_faq_is_sent_as_a_correlated_automated_reply(): void
+    {
+        config(['services.meta.graph_api_version' => 'v24.0']);
+        Http::fake([
+            'https://graph.facebook.com/v24.0/123456789012345/messages' => Http::response([
+                'messages' => [['id' => 'wamid.automated-faq-1']],
+            ], 200),
+        ]);
+
+        [$tenant, $conversation, $inbound] = $this->conversation('auto-faq-sent', 'AUTO_ACTIVE', 'What are your opening hours?');
+        TenantContext::runForTenant($tenant->id, fn () => Faq::query()->create([
+            'question' => 'What are your opening hours?',
+            'answer' => 'We are open Monday to Saturday, 9 AM to 6 PM.',
+            'locale' => 'en',
+            'status' => 'published',
+            'published_at' => now(),
+        ]));
+
+        (new GenerateAutomatedFaqReply($tenant->id, $conversation->id, $inbound->id))->handle(
+            app(\App\Services\AI\GroundedFaqAssistant::class),
+            app(\App\Services\Messaging\WhatsAppMessageService::class),
+        );
+
+        TenantContext::runForTenant($tenant->id, function () use ($inbound): void {
+            $reply = Message::query()->where('direction', 'outbound')->firstOrFail();
+            $this->assertSame($inbound->id, $reply->reply_to_message_id);
+            $this->assertSame('We are open Monday to Saturday, 9 AM to 6 PM.', $reply->body);
+            $this->assertSame('sent', $reply->delivery_status);
+            $this->assertSame('wamid.automated-faq-1', $reply->provider_message_id);
+        });
+
+        Http::assertSentCount(1);
+    }
+
+    public function test_missing_approved_faq_moves_conversation_to_waiting_for_staff_without_guessing(): void
+    {
+        Http::fake();
+        [$tenant, $conversation, $inbound] = $this->conversation('auto-faq-handoff', 'AUTO_ACTIVE', 'Can you guarantee a discount today?');
+
+        (new GenerateAutomatedFaqReply($tenant->id, $conversation->id, $inbound->id))->handle(
+            app(\App\Services\AI\GroundedFaqAssistant::class),
+            app(\App\Services\Messaging\WhatsAppMessageService::class),
+        );
+
+        TenantContext::runForTenant($tenant->id, function () use ($conversation): void {
+            $this->assertSame('WAITING_FOR_STAFF', Conversation::query()->findOrFail($conversation->id)->automation_state);
+            $this->assertDatabaseCount('messages', 1);
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_queued_faq_job_does_nothing_after_staff_has_taken_over(): void
+    {
+        Http::fake();
+        [$tenant, $conversation, $inbound] = $this->conversation('auto-faq-human-active', 'HUMAN_ACTIVE', 'What are your opening hours?');
+        TenantContext::runForTenant($tenant->id, fn () => Faq::query()->create([
+            'question' => 'What are your opening hours?',
+            'answer' => 'We are open from 9 AM to 6 PM.',
+            'locale' => 'en',
+            'status' => 'published',
+            'published_at' => now(),
+        ]));
+
+        (new GenerateAutomatedFaqReply($tenant->id, $conversation->id, $inbound->id))->handle(
+            app(\App\Services\AI\GroundedFaqAssistant::class),
+            app(\App\Services\Messaging\WhatsAppMessageService::class),
+        );
+
+        TenantContext::runForTenant($tenant->id, function () use ($conversation): void {
+            $this->assertSame('HUMAN_ACTIVE', Conversation::query()->findOrFail($conversation->id)->automation_state);
+            $this->assertDatabaseCount('messages', 1);
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_reprocessing_same_faq_job_does_not_send_a_second_whatsapp_message(): void
+    {
+        config(['services.meta.graph_api_version' => 'v24.0']);
+        Http::fake([
+            'https://graph.facebook.com/v24.0/123456789012345/messages' => Http::response([
+                'messages' => [['id' => 'wamid.automated-faq-once']],
+            ], 200),
+        ]);
+
+        [$tenant, $conversation, $inbound] = $this->conversation('auto-faq-idempotent', 'AUTO_ACTIVE', 'What are your opening hours?');
+        TenantContext::runForTenant($tenant->id, fn () => Faq::query()->create([
+            'question' => 'What are your opening hours?',
+            'answer' => 'We are open from 9 AM to 6 PM.',
+            'locale' => 'en',
+            'status' => 'published',
+            'published_at' => now(),
+        ]));
+
+        $job = new GenerateAutomatedFaqReply($tenant->id, $conversation->id, $inbound->id);
+        $job->handle(app(\App\Services\AI\GroundedFaqAssistant::class), app(\App\Services\Messaging\WhatsAppMessageService::class));
+        $job->handle(app(\App\Services\AI\GroundedFaqAssistant::class), app(\App\Services\Messaging\WhatsAppMessageService::class));
+
+        TenantContext::runForTenant($tenant->id, function () use ($inbound): void {
+            $this->assertDatabaseCount('messages', 2);
+            $this->assertDatabaseHas('messages', [
+                'reply_to_message_id' => $inbound->id,
+                'provider_message_id' => 'wamid.automated-faq-once',
+            ]);
+        });
+        Http::assertSentCount(1);
+    }
+
+    private function conversation(string $slug, string $state, string $body): array
+    {
+        $tenant = Tenant::query()->create(['name' => 'Automated FAQ Workspace', 'slug' => $slug]);
+
+        return TenantContext::runForTenant($tenant->id, function () use ($tenant, $state, $body): array {
+            WhatsAppConnection::query()->create([
+                'phone_number_id' => '123456789012345',
+                'waba_id' => '987654321098765',
+                'access_token' => 'test-long-lived-access-token',
+                'status' => 'active',
+                'verified_at' => now(),
+            ]);
+            $customer = Customer::query()->create(['whatsapp_wa_id' => '923001112233']);
+            $conversation = Conversation::query()->create([
+                'customer_id' => $customer->id,
+                'status' => 'open',
+                'automation_state' => $state,
+            ]);
+            $inbound = Message::query()->create([
+                'conversation_id' => $conversation->id,
+                'direction' => 'inbound',
+                'message_type' => 'text',
+                'body' => $body,
+                'provider_message_id' => 'wamid.inbound-'.str_replace('-', '', $tenant->id),
+                'delivery_status' => 'received',
+                'sent_at' => now(),
+            ]);
+
+            return [$tenant, $conversation, $inbound];
+        });
+    }
+}
