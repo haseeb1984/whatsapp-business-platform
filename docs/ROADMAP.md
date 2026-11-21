@@ -120,7 +120,10 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Google FreeBusy checked during availability and again before event creation; failures fail closed.
 - [x] Calendar confirmation gate, deterministic event reconciliation, safe cancellation and ambiguous-outcome reservation.
 - [ ] End-to-end WhatsApp booking conversation and customer-facing booking confirmation flow.
-- [ ] Rescheduling, reminder scheduling and cancellation-aware reminder processing.
+- [x] Idempotent 24-hour/2-hour reminder scheduling after Calendar confirmation.
+- [x] Bounded cron dispatch, retryable tenant-scoped reminder jobs, delivery-state tracking and appointment cancellation handling.
+- [x] Enforce WhatsApp 24-hour customer-service window and human-handover gate for reminder sends; outside-window reminders are held pending approved template support.
+- [ ] Approved template reminders, rescheduling and reminder schedule replacement.
 
 ## Milestone 8 — Google Calendar integration
 - [x] Tenant-scoped OAuth with session state, PKCE, current-user/workspace binding and expiry checks.
