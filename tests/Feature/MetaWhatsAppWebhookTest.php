@@ -40,8 +40,8 @@ class MetaWhatsAppWebhookTest extends TestCase
 
         TenantContext::runForTenant($tenant->id, function (): void {
             WhatsAppConnection::query()->create([
-                'phone_number_id' => 'PHONE-123',
-                'waba_id' => 'WABA-123',
+                'phone_number_id' => '123456789012345',
+                'waba_id' => '987654321098765',
                 'access_token' => 'long-lived-access-token',
                 'status' => 'pending',
             ]);
@@ -50,12 +50,12 @@ class MetaWhatsAppWebhookTest extends TestCase
         $payload = [
             'object' => 'whatsapp_business_account',
             'entry' => [[
-                'id' => 'WABA-123',
+                'id' => '987654321098765',
                 'changes' => [[
                     'field' => 'messages',
                     'value' => [
                         'messaging_product' => 'whatsapp',
-                        'metadata' => ['phone_number_id' => 'PHONE-123'],
+                        'metadata' => ['phone_number_id' => '123456789012345'],
                         'messages' => [[
                             'from' => '923001112233',
                             'id' => 'wamid.test-message-1',
@@ -120,7 +120,7 @@ class MetaWhatsAppWebhookTest extends TestCase
                 'changes' => [[
                     'field' => 'messages',
                     'value' => [
-                        'metadata' => ['phone_number_id' => 'UNKNOWN-PHONE'],
+                        'metadata' => ['phone_number_id' => '999999999999999'],
                         'messages' => [['id' => 'wamid.unknown', 'type' => 'text']],
                     ],
                 ]],
@@ -135,7 +135,7 @@ class MetaWhatsAppWebhookTest extends TestCase
 
         $this->assertDatabaseHas('webhook_events', [
             'tenant_id' => null,
-            'phone_number_id' => 'UNKNOWN-PHONE',
+            'phone_number_id' => '999999999999999',
             'status' => 'unmatched',
         ]);
     }
