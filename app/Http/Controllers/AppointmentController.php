@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
+use App\Models\BookingPolicy;
 use App\Models\Customer;
 use App\Models\Service;
 use App\Models\Staff;
@@ -56,6 +57,13 @@ class AppointmentController extends Controller
                 ->map(fn (Staff $member): array => ['id' => $member->id, 'name' => $member->name])->all(),
             'today_local' => CarbonImmutable::now($timezone)->format('Y-m-d'),
             'timezone' => $timezone,
+            'booking_policy' => [
+                'minimum_notice_minutes' => BookingPolicy::query()->first()?->minimum_notice_minutes ?? 60,
+                'booking_horizon_days' => BookingPolicy::query()->first()?->booking_horizon_days ?? 60,
+                'slot_interval_minutes' => BookingPolicy::query()->first()?->slot_interval_minutes ?? 15,
+                'hold_minutes' => BookingPolicy::query()->first()?->hold_minutes ?? 10,
+            ],
+            'current_user_role' => app(TenantContext::class)->role(),
         ]);
     }
 
