@@ -39,6 +39,7 @@ class ResolveTenant
 
         // Deliberately return 404 for unknown and non-member tenant IDs.
         abort_unless($tenant instanceof Tenant, 404);
+        abort_unless($tenant->status === 'active', 403, 'This business workspace is not active.');
 
         $context = new TenantContext($tenant, (string) $tenant->pivot->role);
         app()->instance(TenantContext::class, $context);
