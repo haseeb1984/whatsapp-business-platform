@@ -23,9 +23,19 @@ Route::get('/', function (Request $request) {
         return redirect()->route('login');
     }
 
-    return $request->session()->has('current_tenant_id')
-        ? redirect()->route('dashboard')
-        : redirect()->route('workspaces.index');
+    $tenantId = $request->session()->get('current_tenant_id');
+    $hasActiveMembership = is_string($tenantId) && $request->user()->tenants()
+        ->wherePivot('status', 'active')
+        ->where('tenants.id', $tenantId)
+        ->exists();
+
+    if ($hasActiveMembership) {
+        return redirect()->route('dashboard');
+    }
+
+    $request->session()->forget('current_tenant_id');
+
+    return redirect()->route('workspaces.index');
 });
 
 Route::middleware('auth')->group(function (): void {
