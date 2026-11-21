@@ -81,15 +81,15 @@ class AppointmentController extends Controller
             'customer_id' => ['required', 'uuid', Rule::exists('customers', 'id')->where(fn ($query) => $query->where('tenant_id', $tenantId))],
             'service_id' => ['required', 'uuid', Rule::exists('services', 'id')->where(fn ($query) => $query->where('tenant_id', $tenantId)->where('active', true))],
             'staff_id' => ['required', 'uuid', Rule::exists('staff_members', 'id')->where(fn ($query) => $query->where('tenant_id', $tenantId)->where('active', true))],
-            'starts_at' => ['required', 'date_format:Y-m-d H:i'],
+            'starts_at' => ['required', 'date_format:Y-m-d\\TH:i:sP'],
             'idempotency_key' => ['required', 'string', 'max:128'],
             'source' => ['nullable', Rule::in(['whatsapp', 'dashboard', 'api'])],
         ]);
 
         $timezone = app(TenantContext::class)->tenant()->timezone ?: 'UTC';
-        $localStart = CarbonImmutable::createFromFormat('!Y-m-d H:i', $validated['starts_at'], $timezone);
-        if (! $localStart || $localStart->format('Y-m-d H:i') !== $validated['starts_at']) {
-            throw ValidationException::withMessages(['starts_at' => 'The requested local appointment time is invalid for the business timezone.']);
+        $localStart = CarbonImmutable::createFromFormat('!Y-m-d\\TH:i:sP', $validated['starts_at'], 'UTC');
+        if (! $localStart || $localStart->format('Y-m-d\\TH:i:sP') !== $validated['starts_at']) {
+            throw ValidationException::withMessages(['starts_at' => 'Provide the selected slot as an ISO-8601 timestamp with an explicit UTC offset.']);
         }
 
         $appointment = $booking->createHold(
