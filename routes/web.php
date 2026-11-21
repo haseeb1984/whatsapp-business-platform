@@ -7,6 +7,7 @@ use App\Http\Controllers\BusinessHolidayController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StaffWorkingHoursController;
+use App\Http\Controllers\FaqController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Http\Request;
@@ -79,6 +80,10 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::delete('/business/staff/{staff}', [StaffController::class, 'destroy'])->name('business.staff.destroy');
         Route::get('/business/staff/{staff}/hours', [StaffWorkingHoursController::class, 'edit'])->name('business.staff.hours.edit');
         Route::put('/business/staff/{staff}/hours', [StaffWorkingHoursController::class, 'update'])->name('business.staff.hours.update');
+        Route::get('/business/faqs', [FaqController::class, 'index'])->name('business.faqs.index');
+        Route::post('/business/faqs', [FaqController::class, 'store'])->name('business.faqs.store');
+        Route::put('/business/faqs/{faq}', [FaqController::class, 'update'])->name('business.faqs.update');
+        Route::delete('/business/faqs/{faq}', [FaqController::class, 'destroy'])->name('business.faqs.destroy');
     });
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
