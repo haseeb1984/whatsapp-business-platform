@@ -82,6 +82,7 @@ class WhatsAppMessageService
                 );
             } catch (ConnectionException) {
                 $message->forceFill(['delivery_status' => 'unknown'])->save();
+                $lockedConversation->forceFill(['last_message_at' => now()])->save();
 
                 return $message;
             } catch (MetaWhatsAppApiException $exception) {
@@ -89,9 +90,7 @@ class WhatsAppMessageService
                     'delivery_status' => $exception->outcomeUnknown ? 'unknown' : 'failed',
                 ])->save();
 
-                if (! $exception->outcomeUnknown) {
-                    throw ValidationException::withMessages(['message' => $exception->getMessage()]);
-                }
+                $lockedConversation->forceFill(['last_message_at' => now()])->save();
 
                 return $message;
             }
