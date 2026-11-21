@@ -4,11 +4,11 @@
 
 Use Meta's official WhatsApp Business Platform Cloud API. No WhatsApp Web, QR-login session, browser automation, unofficial library, or reverse-engineered endpoint is permitted.
 
-Start development with a Meta test business/phone number. The first setup screen stores a tenant's Phone Number ID, WABA ID and access token encrypted at rest. Connections remain pending; Meta credential verification and Embedded Signup are not implemented yet.
+Start development with a Meta test business/phone number. The first setup screen stores a tenant's Phone Number ID, WABA ID and access token encrypted at rest. A Meta Graph API verification action checks the configured phone number and confirms it appears under the configured WABA before setting the connection active. Embedded Signup is not implemented yet.
 
 ## 2. Tenant connection mapping
 
-Persist the verified relationship between tenant, WABA/business account, and phone_number_id. Incoming webhook events are routed to a tenant only by matching a known verified integration identifier. If no unique active mapping exists, quarantine the event and alert platform operations; never guess a tenant.
+Persist the verified relationship between tenant, WABA/business account, and phone_number_id. Incoming webhook events are routed to a tenant only by matching a known active, Meta-verified phone_number_id. If no unique active mapping exists, quarantine the event and alert platform operations; never guess a tenant.
 
 Access tokens are encrypted at rest and omitted from dashboard props. App secrets remain environment configuration. Neither is returned to dashboard clients or written to logs.
 
@@ -37,7 +37,7 @@ Access tokens are encrypted at rest and omitted from dashboard props. App secret
 4. If already present, treat it as a duplicate and do not repeat side effects (`insertOrIgnore`, implemented).
 5. Commit durable storage before acknowledgement (implemented).
 6. Return a successful acknowledgement promptly (implemented).
-7. Process the event asynchronously through a bounded database-queue job (pending).
+7. Process the event asynchronously through a bounded database-queue job (pending; durable event rows currently await processing).
 8. Persist normalized message/status records and update conversation state.
 9. Recheck tenant status and human handover before generating/sending any automated response.
 
