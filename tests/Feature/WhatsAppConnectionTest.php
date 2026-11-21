@@ -47,6 +47,9 @@ class WhatsAppConnectionTest extends TestCase
                 'display_phone_number' => '+1 555 0100',
                 'verified_name' => 'Example Verified Business',
             ], 200),
+            'https://graph.facebook.com/v24.0/987654321098765/phone_numbers*' => Http::response([
+                'data' => [['id' => '123456789012345']],
+            ], 200),
         ]);
 
         [$user, $tenant] = $this->workspace('wa-verify@example.test');
