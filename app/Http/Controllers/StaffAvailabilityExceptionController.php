@@ -40,6 +40,10 @@ class StaffAvailabilityExceptionController extends Controller
     {
         $staff = Staff::query()->findOrFail($staffId);
         $validated = $this->validated($request, $staff);
+        if ($validated['is_closed']) {
+            $validated['opens_at'] = null;
+            $validated['closes_at'] = null;
+        }
         StaffAvailabilityException::query()->create([
             'staff_id' => $staff->id,
             ...$validated,
@@ -55,6 +59,10 @@ class StaffAvailabilityExceptionController extends Controller
             ->where('staff_id', $staff->id)
             ->findOrFail($exceptionId);
         $validated = $this->validated($request, $staff, $exception);
+        if ($validated['is_closed']) {
+            $validated['opens_at'] = null;
+            $validated['closes_at'] = null;
+        }
         $exception->fill($validated)->save();
 
         return back()->with('success', 'Staff availability exception updated.');
