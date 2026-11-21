@@ -60,6 +60,27 @@ class TenantContextMiddlewareTest extends TestCase
             ->assertNotFound();
     }
 
+
+    public function test_it_blocks_a_suspended_business_workspace(): void
+    {
+        $user = User::query()->create([
+            'name' => 'Workspace Owner',
+            'email' => 'suspended-owner@example.test',
+            'password' => 'StrongPassword123',
+        ]);
+        $tenant = Tenant::query()->create([
+            'name' => 'Suspended Business',
+            'slug' => 'suspended-business',
+            'status' => 'suspended',
+        ]);
+        $tenant->users()->attach($user->id, ['role' => 'business_admin', 'status' => 'active']);
+
+        $this->actingAs($user)
+            ->withSession(['current_tenant_id' => $tenant->id])
+            ->getJson('/_test/tenant-context')
+            ->assertForbidden();
+    }
+
     public function test_it_requires_explicit_selection_when_a_user_has_multiple_active_tenants(): void
     {
         $user = User::query()->create([
