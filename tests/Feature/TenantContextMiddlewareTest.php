@@ -31,6 +31,7 @@ class TenantContextMiddlewareTest extends TestCase
             'email' => 'owner@example.test',
             'password' => 'test-password',
         ]);
+        $user->forceFill(['email_verified_at' => now()])->save();
         $tenant = Tenant::query()->create([
             'name' => 'Example Business',
             'slug' => 'example-business',
@@ -52,6 +53,7 @@ class TenantContextMiddlewareTest extends TestCase
             'email' => 'owner@example.test',
             'password' => 'test-password',
         ]);
+        $user->forceFill(['email_verified_at' => now()])->save();
         $ownTenant = Tenant::query()->create(['name' => 'Own Business', 'slug' => 'own-business']);
         $otherTenant = Tenant::query()->create(['name' => 'Other Business', 'slug' => 'other-business']);
         $ownTenant->users()->attach($user->id, ['role' => 'business_admin', 'status' => 'active']);
@@ -70,6 +72,7 @@ class TenantContextMiddlewareTest extends TestCase
             'email' => 'suspended-owner@example.test',
             'password' => 'StrongPassword123',
         ]);
+        $user->forceFill(['email_verified_at' => now()])->save();
         $tenant = Tenant::query()->create([
             'name' => 'Suspended Business',
             'slug' => 'suspended-business',
@@ -90,6 +93,7 @@ class TenantContextMiddlewareTest extends TestCase
             'email' => 'owner@example.test',
             'password' => 'test-password',
         ]);
+        $user->forceFill(['email_verified_at' => now()])->save();
         $first = Tenant::query()->create(['name' => 'First Business', 'slug' => 'first-business']);
         $second = Tenant::query()->create(['name' => 'Second Business', 'slug' => 'second-business']);
         $first->users()->attach($user->id, ['role' => 'business_admin', 'status' => 'active']);
