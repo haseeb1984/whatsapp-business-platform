@@ -14,6 +14,7 @@ class WorkspaceController extends Controller
     {
         $workspaces = $request->user()->tenants()
             ->wherePivot('status', 'active')
+            ->where('tenants.status', 'active')
             ->orderBy('tenants.name')
             ->get(['tenants.id', 'tenants.name', 'tenants.slug', 'tenants.timezone']);
 
@@ -29,6 +30,7 @@ class WorkspaceController extends Controller
 
         $membership = $request->user()->tenants()
             ->wherePivot('status', 'active')
+            ->where('tenants.status', 'active')
             ->where('tenants.id', $validated['tenant_id'])
             ->first();
 
