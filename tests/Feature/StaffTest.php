@@ -105,8 +105,8 @@ class StaffTest extends TestCase
             'name' => 'Staff Test User',
             'email' => $email,
             'password' => 'StrongPassword123',
-            'email_verified_at' => now(),
-        ]);
+                    ]);
+        $user->forceFill(['email_verified_at' => now()])->save();
         $tenant = Tenant::query()->create([
             'name' => 'Staff Test Workspace',
             'slug' => str_replace(['@', '.'], '-', $email),
