@@ -48,7 +48,13 @@ class GroundedFaqAssistant
             ], ['temperature' => 0, 'max_tokens' => 180]);
 
             $selection = json_decode($content, true, 16, JSON_THROW_ON_ERROR);
-            if (! is_array($selection) || ($selection['decision'] ?? null) !== 'answer' || ! is_array($selection['faq_ids'] ?? null)) {
+            if (! is_array($selection)) {
+                return $this->deterministicFallback($top);
+            }
+            if (($selection['decision'] ?? null) === 'handoff') {
+                return $this->handoff();
+            }
+            if (($selection['decision'] ?? null) !== 'answer' || ! is_array($selection['faq_ids'] ?? null)) {
                 return $this->deterministicFallback($top);
             }
 
