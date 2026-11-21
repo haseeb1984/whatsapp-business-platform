@@ -118,7 +118,7 @@ class AppointmentAvailabilityService
     {
         $timezone = app(TenantContext::class)->tenant()->timezone ?: 'UTC';
         $localStart = $localStart->setTimezone($timezone);
-        $slots = $this->availableSlots($serviceId, $localStart->format('Y-m-d'), $staffId, 5);
+        $slots = $this->availableSlots($serviceId, $localStart->format('Y-m-d'), $staffId);
         $requestedUtc = $localStart->utc()->getTimestamp();
 
         foreach ($slots as $slot) {
