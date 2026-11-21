@@ -6,6 +6,7 @@ use App\Models\Conversation;
 use App\Models\Customer;
 use App\Models\Message;
 use App\Models\WebhookEvent;
+use App\Jobs\GenerateAutomatedFaqReply;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
@@ -51,7 +52,14 @@ class ProcessMetaWebhookEvent implements ShouldQueue
 
                 TenantContext::runForTenant($event->tenant_id, function () use ($event): void {
                     if ($event->event_type === 'message.received') {
-                        $this->processInboundMessage($event->payload, $event->received_at);
+                        $replyContext = $this->processInboundMessage($event->payload, $event->received_at);
+                        if ($replyContext) {
+                            GenerateAutomatedFaqReply::dispatch(
+                                $event->tenant_id,
+                                $replyContext['conversation_id'],
+                                $replyContext['message_id'],
+                            )->afterCommit();
+                        }
                     } elseif ($event->event_type === 'message.status') {
                         $this->processMessageStatus($event->payload);
                     }
@@ -90,7 +98,7 @@ class ProcessMetaWebhookEvent implements ShouldQueue
         ])->save();
     }
 
-    private function processInboundMessage(array $payload, CarbonImmutable $receivedAt): void
+    private function processInboundMessage(array $payload, CarbonImmutable $receivedAt): ?array
     {
         $waId = $payload['from'] ?? null;
         $providerMessageId = $payload['id'] ?? null;
@@ -137,7 +145,7 @@ class ProcessMetaWebhookEvent implements ShouldQueue
             ? data_get($payload, 'text.body')
             : null;
 
-        Message::query()->firstOrCreate(
+        $message = Message::query()->firstOrCreate(
             ['provider_message_id' => $providerMessageId],
             [
                 'conversation_id' => $conversation->id,
@@ -151,6 +159,12 @@ class ProcessMetaWebhookEvent implements ShouldQueue
         );
 
         $conversation->forceFill(['last_message_at' => $sentAt])->save();
+
+        if ($message->wasRecentlyCreated && $messageType === 'text' && is_string($body) && trim($body) !== '') {
+            return ['conversation_id' => $conversation->id, 'message_id' => $message->id];
+        }
+
+        return null;
     }
 
     private function processMessageStatus(array $payload): void
