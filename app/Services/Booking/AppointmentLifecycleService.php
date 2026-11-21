@@ -76,6 +76,26 @@ class AppointmentLifecycleService
         });
     }
 
+
+    public function markCalendarSyncUnknown(string $appointmentId, string $reasonCode): Appointment
+    {
+        return DB::transaction(function () use ($appointmentId, $reasonCode): Appointment {
+            $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointmentId);
+            if ($appointment->status !== 'calendar_pending') {
+                throw ValidationException::withMessages(['appointment' => 'Only an appointment awaiting calendar synchronization can have an unknown outcome.']);
+            }
+
+            if ($appointment->calendar_sync_status === 'unknown') {
+                return $appointment;
+            }
+
+            $appointment->forceFill(['calendar_sync_status' => 'unknown'])->save();
+            $this->event($appointment, 'calendar_sync_unknown', ['reason_code' => mb_substr($reasonCode, 0, 80)]);
+
+            return $appointment->refresh();
+        });
+    }
+
     public function failCalendarSync(string $appointmentId, string $reasonCode): Appointment
     {
         return DB::transaction(function () use ($appointmentId, $reasonCode): Appointment {
