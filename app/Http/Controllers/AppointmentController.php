@@ -30,7 +30,7 @@ class AppointmentController extends Controller
         $policy = BookingPolicy::query()->first();
 
         $appointments = Appointment::query()
-            ->with(['customer', 'service', 'staff'])
+            ->with(['customer', 'service', 'staff', 'reminders'])
             ->orderByDesc('starts_at')
             ->limit(100)
             ->get();
@@ -49,6 +49,11 @@ class AppointmentController extends Controller
                 'hold_expires_at' => $appointment->hold_expires_at?->setTimezone($timezone)->toIso8601String(),
                 'hold_expires_label' => $appointment->hold_expires_at?->setTimezone($timezone)->format('H:i'),
                 'price' => $appointment->price_amount.' '.$appointment->currency,
+                'reminders' => $appointment->reminders->map(fn ($reminder): array => [
+                    'type' => $reminder->reminder_type,
+                    'status' => $reminder->status,
+                    'scheduled_at' => $reminder->scheduled_at?->setTimezone($timezone)->toIso8601String(),
+                ])->all(),
             ])->all(),
             'services' => Service::query()->where('active', true)->orderBy('name')->get(['id', 'name']),
             'customers' => Customer::query()->orderByDesc('created_at')->limit(100)->get(['id', 'display_name', 'whatsapp_wa_id'])
