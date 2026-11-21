@@ -27,7 +27,7 @@ class BusinessHolidayTest extends TestCase
         ];
 
         $this->post('/business/holidays', $payload)->assertRedirect();
-        $holiday = BusinessHoliday::query()->firstOrFail();
+        $holiday = TenantContext::runForTenant($tenant->id, fn () => BusinessHoliday::query()->firstOrFail());
         $this->assertSame('Christmas Day', $holiday->name);
         $this->assertTrue($holiday->is_closed);
 
