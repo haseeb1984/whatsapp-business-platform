@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Appointment;
+use App\Models\BookingPolicy;
 use App\Models\BusinessHour;
 use App\Models\Customer;
 use App\Models\Service;
@@ -83,6 +84,27 @@ class AppointmentLifecycleTest extends TestCase
                 'event_type' => 'calendar_sync_unknown',
             ]);
         });
+    }
+
+    public function test_temporary_hold_uses_tenant_configured_duration(): void
+    {
+        [$tenant, $service, $staff, $customer] = $this->bookingSetup('lifecycle-hold-policy');
+        TenantContext::runForTenant($tenant->id, fn () => BookingPolicy::query()->create([
+            'minimum_notice_minutes' => 0,
+            'booking_horizon_days' => 60,
+            'slot_interval_minutes' => 15,
+            'hold_minutes' => 25,
+        ]));
+
+        $appointment = TenantContext::runForTenant($tenant->id, fn () => app(AppointmentBookingService::class)->createHold(
+            $customer->id,
+            $service->id,
+            $staff->id,
+            CarbonImmutable::parse('2026-11-23 10:00:00', 'Asia/Karachi'),
+            'booking-custom-hold-duration',
+        ));
+
+        $this->assertTrue($appointment->hold_expires_at->equalTo(now()->addMinutes(25)));
     }
 
     public function test_failed_calendar_sync_never_confirms_the_appointment(): void
