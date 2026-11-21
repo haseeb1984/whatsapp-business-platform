@@ -8,6 +8,8 @@ use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -34,14 +36,17 @@ class GoogleCalendarConnectionController extends Controller
     public function connect(Request $request, GoogleCalendarService $calendar): RedirectResponse
     {
         $state = bin2hex(random_bytes(32));
+        $verifier = rtrim(strtr(base64_encode(random_bytes(64)), '+/', '-_'), '=');
+        $challenge = rtrim(strtr(base64_encode(hash('sha256', $verifier, true)), '+/', '-_'), '=');
         $request->session()->put('google_calendar_oauth', [
             'state' => $state,
+            'code_verifier' => $verifier,
             'tenant_id' => app(TenantContext::class)->id(),
             'user_id' => $request->user()->id,
             'created_at' => now()->timestamp,
         ]);
 
-        return redirect()->away($calendar->authorizationUrl($state));
+        return redirect()->away($calendar->authorizationUrl($state, $challenge));
     }
 
     public function callback(Request $request, GoogleCalendarService $calendar): RedirectResponse
@@ -72,20 +77,39 @@ class GoogleCalendarConnectionController extends Controller
             ]);
         }
 
-        $tokens = $calendar->exchangeAuthorizationCode($code);
-        $userInfo = Http::withToken($tokens['access_token'])->acceptJson()->timeout(10)
-            ->get('https://www.googleapis.com/oauth2/v2/userinfo');
+        $verifier = $expected['code_verifier'] ?? null;
+        if (! is_string($verifier) || $verifier === '') {
+            abort(403, 'Google OAuth proof key is missing.');
+        }
+
+        try {
+            $tokens = $calendar->exchangeAuthorizationCode($code, $verifier);
+            $userInfo = Http::withToken($tokens['access_token'])->acceptJson()->timeout(10)
+                ->get(config('services.google.userinfo_url'));
+        } catch (Throwable $exception) {
+            Log::warning('Google Calendar OAuth callback failed.', ['exception' => $exception::class]);
+            return redirect()->route('business.calendar.index')->withErrors([
+                'calendar' => 'Google Calendar could not be connected. Please try again.',
+            ]);
+        }
 
         if (! $userInfo->successful() || ! is_string($userInfo->json('email'))) {
             throw new RuntimeException('Google account identity could not be verified.');
         }
 
         $connection = GoogleCalendarConnection::query()->first();
+        $refreshToken = $tokens['refresh_token'] ?? $connection?->refresh_token;
+        if (! is_string($refreshToken) || $refreshToken === '') {
+            return redirect()->route('business.calendar.index')->withErrors([
+                'calendar' => 'Google did not provide offline access. Disconnect the old authorization and reconnect with consent.',
+            ]);
+        }
         $connection ??= new GoogleCalendarConnection();
         $connection->fill([
+            'connected_by_user_id' => $request->user()->id,
             'google_account_email' => $userInfo->json('email'),
             'access_token' => $tokens['access_token'],
-            'refresh_token' => $tokens['refresh_token'] ?? $connection->refresh_token,
+            'refresh_token' => $refreshToken,
             'token_expires_at' => now()->addSeconds(max(60, (int) ($tokens['expires_in'] ?? 3600))),
             'scope' => $tokens['scope'] ?? null,
             'default_calendar_id' => $connection->default_calendar_id ?: 'primary',
@@ -96,11 +120,17 @@ class GoogleCalendarConnectionController extends Controller
         return redirect()->route('business.calendar.index')->with('success', 'Google Calendar connected successfully.');
     }
 
-    public function disconnect(): RedirectResponse
+    public function disconnect(GoogleCalendarService $calendar): RedirectResponse
     {
         $connection = GoogleCalendarConnection::query()->first();
         if ($connection) {
+            try {
+                $calendar->revoke($connection->refresh_token ?: $connection->access_token);
+            } catch (Throwable $exception) {
+                Log::warning('Google Calendar token revocation failed.', ['exception' => $exception::class]);
+            }
             $connection->forceFill([
+                'connected_by_user_id' => null,
                 'access_token' => null,
                 'refresh_token' => null,
                 'token_expires_at' => null,
