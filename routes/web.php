@@ -11,6 +11,8 @@ use App\Http\Controllers\FaqController;
 use App\Http\Controllers\WhatsAppConnectionController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\BookingPolicyController;
+use App\Http\Controllers\StaffAvailabilityExceptionController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Http\Request;
@@ -106,6 +108,11 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::post('/business/appointments/holds', [AppointmentController::class, 'createHold'])->name('business.appointments.holds.store');
         Route::post('/business/appointments/{appointment}/cancel-hold', [AppointmentController::class, 'cancelHold'])->name('business.appointments.holds.cancel');
         Route::middleware('tenant.role:business_admin')->group(function (): void {
+            Route::put('/business/appointments/policy', [BookingPolicyController::class, 'update'])->name('business.appointments.policy.update');
+            Route::get('/business/staff/{staff}/exceptions', [StaffAvailabilityExceptionController::class, 'index'])->name('business.staff.exceptions.index');
+            Route::post('/business/staff/{staff}/exceptions', [StaffAvailabilityExceptionController::class, 'store'])->name('business.staff.exceptions.store');
+            Route::put('/business/staff/{staff}/exceptions/{exception}', [StaffAvailabilityExceptionController::class, 'update'])->name('business.staff.exceptions.update');
+            Route::delete('/business/staff/{staff}/exceptions/{exception}', [StaffAvailabilityExceptionController::class, 'destroy'])->name('business.staff.exceptions.destroy');
             Route::put('/conversations/{conversation}/assign', [ConversationController::class, 'assign'])->name('conversations.assign');
             Route::post('/conversations/{conversation}/close', [ConversationController::class, 'close'])->name('conversations.close');
             Route::post('/conversations/{conversation}/reopen', [ConversationController::class, 'reopen'])->name('conversations.reopen');
