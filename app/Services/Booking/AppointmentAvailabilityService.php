@@ -5,13 +5,16 @@ namespace App\Services\Booking;
 use App\Models\Appointment;
 use App\Models\BookingPolicy;
 use App\Models\BusinessHoliday;
+use App\Models\GoogleCalendarConnection;
 use App\Models\BusinessHour;
 use App\Models\Service;
 use App\Models\Staff;
 use App\Models\StaffAvailabilityException;
 use App\Models\StaffService;
 use App\Models\StaffWorkingHour;
+use App\Services\Google\GoogleCalendarService;
 use App\Support\Tenancy\TenantContext;
+use Throwable;
 use Carbon\CarbonImmutable;
 use Illuminate\Validation\ValidationException;
 
@@ -20,7 +23,7 @@ class AppointmentAvailabilityService
     /**
      * Return available local start times for an active service and eligible staff.
      *
-     * @return array<int, array{staff_id: string, staff_name: string, starts_at: string, ends_at: string, local_start: string, local_end: string, utc_offset: string, timezone: string}>
+     * @return array<int, array{staff_id: string, staff_name: string, starts_at: string, ends_at: string, local_start: string, local_end: string, utc_offset: string, timezone: string, calendar_checked: bool}>
      */
     public function availableSlots(string $serviceId, string $localDate, ?string $staffId = null, ?int $intervalMinutes = null): array
     {
@@ -57,6 +60,8 @@ class AppointmentAvailabilityService
         }
 
         $staffMembers = $staffQuery->orderBy('name')->get();
+        $calendarConnection = GoogleCalendarConnection::query()->where('status', 'connected')->first();
+        $calendarService = app(GoogleCalendarService::class);
         $slots = [];
 
         foreach ($staffMembers as $staff) {
@@ -71,6 +76,26 @@ class AppointmentAvailabilityService
             $closesAt = $businessWindow['closes_at']->lessThan($staffWindow['closes_at'])
                 ? $businessWindow['closes_at']
                 : $staffWindow['closes_at'];
+
+            $externalBusy = [];
+            if ($calendarConnection) {
+                $calendarId = $staff->google_calendar_id ?: $calendarConnection->default_calendar_id;
+                try {
+                    $calendarData = $calendarService->freeBusy(
+                        [$calendarId],
+                        $opensAt->utc()->toIso8601String(),
+                        $closesAt->utc()->toIso8601String(),
+                    );
+                } catch (Throwable $exception) {
+                    throw ValidationException::withMessages(['calendar' => 'Google Calendar availability could not be verified. Please retry or reconnect the calendar.']);
+                }
+
+                if (! is_array($calendarData[$calendarId] ?? null) || isset($calendarData[$calendarId]['errors'])) {
+                    throw ValidationException::withMessages(['calendar' => 'The assigned Google Calendar is not accessible. Check the staff calendar mapping.']);
+                }
+
+                $externalBusy = $calendarData[$calendarId]['busy'] ?? [];
+            }
 
             $firstStart = $opensAt->addMinutes((int) $service->buffer_before_minutes);
             if ($earliestStart->greaterThan($firstStart)) {
@@ -92,7 +117,8 @@ class AppointmentAvailabilityService
                 $reservedStart = $start->subMinutes((int) $service->buffer_before_minutes);
                 $reservedEnd = $end->addMinutes((int) $service->buffer_after_minutes);
 
-                if ($this->isBusy($staff->id, $reservedStart, $reservedEnd)) {
+                if ($this->isBusy($staff->id, $reservedStart, $reservedEnd)
+                    || $this->isExternallyBusy($externalBusy, $reservedStart, $reservedEnd)) {
                     continue;
                 }
 
@@ -105,6 +131,7 @@ class AppointmentAvailabilityService
                     'local_end' => $end->format('H:i'),
                     'utc_offset' => $start->format('P'),
                     'timezone' => $timezone,
+                    'calendar_checked' => $calendarConnection !== null,
                 ];
             }
         }
@@ -114,11 +141,11 @@ class AppointmentAvailabilityService
         return $slots;
     }
 
-    public function assertSlotAvailable(string $serviceId, string $staffId, CarbonImmutable $localStart): void
+    public function assertSlotAvailable(string $serviceId, string $staffId, CarbonImmutable $localStart, bool $checkExternalCalendar = true): void
     {
         $timezone = app(TenantContext::class)->tenant()->timezone ?: 'UTC';
         $localStart = $localStart->setTimezone($timezone);
-        $slots = $this->availableSlots($serviceId, $localStart->format('Y-m-d'), $staffId);
+        $slots = $this->availableSlots($serviceId, $localStart->format('Y-m-d'), $staffId, $checkExternalCalendar ? null : 5);
         $requestedUtc = $localStart->utc()->getTimestamp();
 
         foreach ($slots as $slot) {
@@ -128,6 +155,24 @@ class AppointmentAvailabilityService
         }
 
         throw ValidationException::withMessages(['starts_at' => 'That appointment time is no longer available.']);
+    }
+
+
+    private function isExternallyBusy(array $busyPeriods, CarbonImmutable $reservedStart, CarbonImmutable $reservedEnd): bool
+    {
+        foreach ($busyPeriods as $period) {
+            if (! is_array($period) || ! is_string($period['start'] ?? null) || ! is_string($period['end'] ?? null)) {
+                continue;
+            }
+
+            $busyStart = CarbonImmutable::parse($period['start'])->utc();
+            $busyEnd = CarbonImmutable::parse($period['end'])->utc();
+            if ($busyStart->lessThan($reservedEnd->utc()) && $busyEnd->greaterThan($reservedStart->utc())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function businessWindow(CarbonImmutable $date): ?array
