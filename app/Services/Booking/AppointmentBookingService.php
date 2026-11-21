@@ -4,6 +4,7 @@ namespace App\Services\Booking;
 
 use App\Models\Appointment;
 use App\Models\AppointmentEvent;
+use App\Models\BookingPolicy;
 use App\Models\Customer;
 use App\Models\Service;
 use App\Models\Staff;
@@ -89,7 +90,7 @@ class AppointmentBookingService
                 'source' => $source,
                 'idempotency_key' => $idempotencyKey,
                 'calendar_sync_status' => 'pending',
-                'hold_expires_at' => now()->addMinutes(10),
+                'hold_expires_at' => now()->addMinutes(BookingPolicy::query()->first()?->hold_minutes ?? 10),
             ]);
 
             AppointmentEvent::query()->create([
