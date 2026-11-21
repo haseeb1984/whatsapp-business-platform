@@ -10,6 +10,7 @@ return new class extends Migration {
         Schema::create('google_calendar_connections', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->uuid('tenant_id')->unique();
+            $table->foreignId('connected_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('google_account_email', 254)->nullable();
             $table->text('access_token')->nullable();
             $table->text('refresh_token')->nullable();
@@ -18,6 +19,7 @@ return new class extends Migration {
             $table->string('default_calendar_id', 255)->default('primary');
             $table->string('status', 24)->default('disconnected');
             $table->timestampTz('connected_at')->nullable();
+            $table->timestampTz('last_synced_at')->nullable();
             $table->timestamps();
 
             $table->unique(['tenant_id', 'id']);
