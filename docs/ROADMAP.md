@@ -37,6 +37,8 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Add tenant role context and role-restricted middleware for tenant routes.
 - [x] Add feature tests for registration, login/logout, password recovery, workspace selection, cross-tenant selection rejection and role authorization.
 - [ ] Apply role middleware to business configuration routes as those modules are introduced.
+- [x] Add a fail-closed `BelongsToTenant` Eloquent concern with context-derived tenant assignment and tenant ID immutability.
+- [ ] Apply the concern to every tenant-owned model as modules are created.
 - [ ] Implement tenant-scoped repositories/policies and composite tenant-aware foreign keys.
 - [ ] Add cross-tenant negative authorization tests for read, update, delete and background jobs.
 
