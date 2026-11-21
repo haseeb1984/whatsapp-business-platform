@@ -66,7 +66,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Service and pricing CRUD with currency code, duration, scheduling buffers, active status and tenant isolation (CI passing).
 - [x] Staff CRUD and service assignment with composite tenant-aware foreign keys (CI passing).
 - [x] Staff-specific weekly working hours editor with tenant-aware foreign key and validation (CI passing).
-- [ ] Staff-specific holidays/exceptions and business policies.
+- [x] Staff-specific date exceptions and booking policy configuration (minimum notice, booking horizon, slot interval, temporary-hold duration).
 - [x] FAQ CRUD, draft/published/archived lifecycle, locale validation and tenant-scoped search (CI passing).
 - [ ] Dashboard forms and validation.
 
@@ -122,6 +122,12 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] End-to-end WhatsApp booking conversation, rescheduling and confirmed-booking cancellation.
 
 ## Milestone 8 — Google Calendar integration
+- [x] Tenant-scoped OAuth connection with state validation bound to the signed-in user and selected workspace.
+- [x] Encrypt Google access and refresh tokens at rest; refresh expired access tokens and keep credentials out of frontend props.
+- [x] Request least-privilege identity, Calendar FreeBusy and Calendar Events scopes.
+- [x] Implement FreeBusy, deterministic appointment event creation/reconciliation lookup, and event deletion service operations.
+- [ ] Connect FreeBusy results to slot calculation and implement full create/confirm, update/reschedule, cancellation orchestration.
+- [ ] Add per-staff calendar mapping UI, OAuth revocation handling, and provider integration acceptance tests against a Google test account.
 - [ ] OAuth flow and encrypted token storage.
 - [ ] Multiple staff calendar mappings.
 - [ ] FreeBusy checks and event create/update/delete.
