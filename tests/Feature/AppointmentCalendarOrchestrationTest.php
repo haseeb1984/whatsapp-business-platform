@@ -18,8 +18,46 @@ use App\Services\Google\GoogleCalendarService;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Mockery;
+use RuntimeException;
 use Tests\TestCase;
+use Throwable;
+
+class FakeAppointmentGoogleCalendarService extends GoogleCalendarService
+{
+    public ?string $existingEventId = null;
+    public string $createdEventId = 'google-event-created';
+    public ?Throwable $availabilityFailure = null;
+    public ?Throwable $createFailure = null;
+    public ?Throwable $deleteFailure = null;
+
+    public function findAppointmentEvent(Appointment $appointment): ?string
+    {
+        return $this->existingEventId;
+    }
+
+    public function assertAppointmentCalendarAvailable(Appointment $appointment): void
+    {
+        if ($this->availabilityFailure) {
+            throw $this->availabilityFailure;
+        }
+    }
+
+    public function createAppointmentEvent(Appointment $appointment): string
+    {
+        if ($this->createFailure) {
+            throw $this->createFailure;
+        }
+
+        return $this->createdEventId;
+    }
+
+    public function deleteAppointmentEvent(Appointment $appointment): void
+    {
+        if ($this->deleteFailure) {
+            throw $this->deleteFailure;
+        }
+    }
+}
 
 class AppointmentCalendarOrchestrationTest extends TestCase
 {
@@ -40,19 +78,14 @@ class AppointmentCalendarOrchestrationTest extends TestCase
     public function test_appointment_is_confirmed_only_after_freebusy_and_event_creation_succeed(): void
     {
         [$tenant, $appointment] = $this->booking('calendar-confirm');
-        $eventId = 'google-event-confirmed';
-
-        $calendar = Mockery::mock(GoogleCalendarService::class);
-        $calendar->shouldReceive('findAppointmentEvent')->once()->with(Mockery::type(Appointment::class))->andReturn(null);
-        $calendar->shouldReceive('assertAppointmentCalendarAvailable')->once()->with(Mockery::type(Appointment::class));
-        $calendar->shouldReceive('createAppointmentEvent')->once()->with(Mockery::type(Appointment::class))->andReturn($eventId);
-        $calendar->shouldReceive('deleteAppointmentEvent')->once()->with(Mockery::type(Appointment::class));
+        $calendar = new FakeAppointmentGoogleCalendarService();
+        $calendar->createdEventId = 'google-event-confirmed';
         $this->app->instance(GoogleCalendarService::class, $calendar);
 
         $confirmed = TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->confirm($appointment->id));
         $this->assertSame('confirmed', $confirmed->status);
         $this->assertSame('synced', $confirmed->calendar_sync_status);
-        $this->assertSame($eventId, $confirmed->external_event_id);
+        $this->assertSame('google-event-confirmed', $confirmed->external_event_id);
 
         $cancelled = TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->cancel($appointment->id));
         $this->assertSame('cancelled', $cancelled->status);
@@ -61,11 +94,8 @@ class AppointmentCalendarOrchestrationTest extends TestCase
     public function test_calendar_busy_response_releases_the_temporary_hold_without_creating_an_event(): void
     {
         [$tenant, $appointment] = $this->booking('calendar-busy');
-
-        $calendar = Mockery::mock(GoogleCalendarService::class);
-        $calendar->shouldReceive('findAppointmentEvent')->once()->andReturn(null);
-        $calendar->shouldReceive('assertAppointmentCalendarAvailable')->once()->andThrow(new GoogleCalendarBusyException('Calendar is busy.'));
-        $calendar->shouldNotReceive('createAppointmentEvent');
+        $calendar = new FakeAppointmentGoogleCalendarService();
+        $calendar->availabilityFailure = new GoogleCalendarBusyException('Calendar is busy.');
         $this->app->instance(GoogleCalendarService::class, $calendar);
 
         try {
@@ -85,17 +115,14 @@ class AppointmentCalendarOrchestrationTest extends TestCase
     public function test_ambiguous_calendar_create_keeps_the_appointment_reserved_for_reconciliation(): void
     {
         [$tenant, $appointment] = $this->booking('calendar-unknown');
-
-        $calendar = Mockery::mock(GoogleCalendarService::class);
-        $calendar->shouldReceive('findAppointmentEvent')->once()->andReturn(null);
-        $calendar->shouldReceive('assertAppointmentCalendarAvailable')->once();
-        $calendar->shouldReceive('createAppointmentEvent')->once()->andThrow(new \RuntimeException('Google Calendar API request failed with HTTP 500.'));
+        $calendar = new FakeAppointmentGoogleCalendarService();
+        $calendar->createFailure = new RuntimeException('Google Calendar API request failed with HTTP 500.');
         $this->app->instance(GoogleCalendarService::class, $calendar);
 
         try {
             TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->confirm($appointment->id));
             $this->fail('Ambiguous provider response must not confirm.');
-        } catch (\RuntimeException $exception) {
+        } catch (RuntimeException $exception) {
             $this->assertStringContainsString('HTTP 500', $exception->getMessage());
         }
 
@@ -109,17 +136,14 @@ class AppointmentCalendarOrchestrationTest extends TestCase
     public function test_google_rate_limit_keeps_calendar_pending_for_retry_instead_of_releasing_slot(): void
     {
         [$tenant, $appointment] = $this->booking('calendar-rate-limit');
-
-        $calendar = Mockery::mock(GoogleCalendarService::class);
-        $calendar->shouldReceive('findAppointmentEvent')->once()->andReturn(null);
-        $calendar->shouldReceive('assertAppointmentCalendarAvailable')->once()->andThrow(new \RuntimeException('Google Calendar API request failed with HTTP 429.'));
-        $calendar->shouldNotReceive('createAppointmentEvent');
+        $calendar = new FakeAppointmentGoogleCalendarService();
+        $calendar->availabilityFailure = new RuntimeException('Google Calendar API request failed with HTTP 429.');
         $this->app->instance(GoogleCalendarService::class, $calendar);
 
         try {
             TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->confirm($appointment->id));
             $this->fail('A rate-limited calendar request must remain pending.');
-        } catch (\RuntimeException $exception) {
+        } catch (RuntimeException $exception) {
             $this->assertStringContainsString('HTTP 429', $exception->getMessage());
         }
 
@@ -133,12 +157,9 @@ class AppointmentCalendarOrchestrationTest extends TestCase
     public function test_ambiguous_calendar_deletion_keeps_appointment_confirmed_and_reserved(): void
     {
         [$tenant, $appointment] = $this->booking('calendar-delete-unknown');
-
-        $calendar = Mockery::mock(GoogleCalendarService::class);
-        $calendar->shouldReceive('findAppointmentEvent')->once()->andReturn(null);
-        $calendar->shouldReceive('assertAppointmentCalendarAvailable')->once();
-        $calendar->shouldReceive('createAppointmentEvent')->once()->andReturn('google-event-delete-unknown');
-        $calendar->shouldReceive('deleteAppointmentEvent')->once()->andThrow(new \RuntimeException('Google Calendar API request failed with HTTP 500.'));
+        $calendar = new FakeAppointmentGoogleCalendarService();
+        $calendar->createdEventId = 'google-event-delete-unknown';
+        $calendar->deleteFailure = new RuntimeException('Google Calendar API request failed with HTTP 500.');
         $this->app->instance(GoogleCalendarService::class, $calendar);
 
         TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->confirm($appointment->id));
@@ -146,7 +167,7 @@ class AppointmentCalendarOrchestrationTest extends TestCase
         try {
             TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->cancel($appointment->id));
             $this->fail('An ambiguous calendar deletion must not mark the appointment cancelled.');
-        } catch (\RuntimeException $exception) {
+        } catch (RuntimeException $exception) {
             $this->assertStringContainsString('HTTP 500', $exception->getMessage());
         }
 
