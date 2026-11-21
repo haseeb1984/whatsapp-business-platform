@@ -38,6 +38,11 @@ class AppointmentCalendarOrchestrator
 
             return $this->lifecycle->confirmAfterCalendarSync($pending->id, $eventId);
         } catch (Throwable $exception) {
+            if ($pending->calendar_sync_status === 'unknown') {
+                $this->lifecycle->markCalendarSyncUnknown($pending->id, 'calendar_reconciliation_still_ambiguous');
+                throw $exception;
+            }
+
             if ($exception instanceof GoogleCalendarBusyException) {
                 $this->lifecycle->failCalendarSync($pending->id, 'calendar_busy');
                 throw ValidationException::withMessages(['appointment' => 'The staff Google Calendar is busy at this time. The temporary hold has been released.']);
