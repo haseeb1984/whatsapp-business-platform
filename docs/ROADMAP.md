@@ -38,7 +38,7 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Implement tenant-scoped repositories/policies and composite tenant-aware foreign keys.
 - [ ] Add cross-tenant negative authorization tests for read, update, delete and background jobs.
 
-**Status:** Initial authentication, password recovery and workspace selection foundations committed. Configure production SMTP before using reset emails. Applying role restrictions to each business module, database constraints and full isolation acceptance tests remain outstanding. Configure production SMTP before sending verification or password-reset emails. Automated tests have been authored but are not yet executed in a working Laravel runtime.
+**Status:** Initial authentication, password recovery and workspace selection foundations committed. Applying role restrictions to each business module, database constraints and full isolation acceptance tests remain outstanding. Configure production SMTP before sending verification or password-reset emails. Automated tests have been authored but are not yet executed in a working Laravel runtime.
 
 **Exit gate:** A user from tenant A cannot read, update, delete or infer tenant B data through any tested route or job.
 
