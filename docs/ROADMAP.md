@@ -46,7 +46,7 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Implement tenant-scoped repositories/policies and composite tenant-aware foreign keys.
 - [ ] Add cross-tenant negative authorization tests for read, update, delete and background jobs.
 
-**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks committed. Applying role restrictions to each business module, database constraints and full isolation acceptance tests remain outstanding. Configure production SMTP before sending verification or password-reset emails. The current CI run executes the Laravel suite successfully (56 tests / 199 assertions); broader production isolation acceptance remains.
+**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. Current business modules use business-admin role middleware. Remaining work is broader tenant-model coverage, composite foreign keys for all cross-entity references and end-to-end queued-job isolation. Configure production SMTP before sending verification or password-reset emails. The current CI run passes (56 tests / 199 assertions).
 
 **Exit gate:** A user from tenant A cannot read, update, delete or infer tenant B data through any tested route or job.
 
@@ -55,14 +55,14 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Business profile edit form, server-side validation and business-admin-only route protection.
 - [x] Keep tenant timezone and locale synchronized with the business profile in one database transaction.
 - [x] Add profile isolation and staff-access feature tests (CI passing).
-- [x] Add weekly-hours validation, tenant-isolation and staff-access feature tests (authored; execution pending).
+- [x] Add weekly-hours validation, tenant-isolation and staff-access feature tests (CI passing).
 - [x] Add holiday CRUD, duplicate-date, special-hours validation and tenant-isolation tests (authored; execution pending).
 - [x] Add service CRUD, price/duration/buffer validation, tenant-isolation and staff-access tests (authored; execution pending).
 - [x] Add staff CRUD, service assignment, cross-tenant assignment rejection and staff-access tests (authored; execution pending).
 - [x] Add staff weekly availability and tenant-isolation feature tests (authored; execution pending).
 - [x] Add FAQ publication lifecycle, validation and tenant-isolation tests (authored; execution pending).
 - [x] Weekly business hours editor with seven-day validation, tenant isolation and database constraints (CI passing).
-- [x] Holiday and special-hours CRUD for a business-local date, with tenant isolation and validation (tests authored; execution pending).
+- [x] Holiday and special-hours CRUD for a business-local date, with tenant isolation and validation (CI passing).
 - [x] Service and pricing CRUD with currency code, duration, scheduling buffers, active status and tenant isolation (tests authored; execution pending).
 - [x] Staff CRUD and service assignment with composite tenant-aware foreign keys (tests authored; execution pending).
 - [x] Staff-specific weekly working hours editor with tenant-aware foreign key and validation (tests authored; execution pending).
@@ -70,7 +70,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] FAQ CRUD, draft/published/archived lifecycle, locale validation and tenant-scoped search (tests authored; execution pending).
 - [ ] Dashboard forms and validation.
 
-**Status:** Business profile, weekly hours, holiday/special-hours management, service/pricing CRUD, staff/service assignments, staff weekly availability and FAQ management are committed with admin-only routes and passing CI tests. Runtime verification remains pending; holidays, services, staff, FAQs and full dashboards remain in progress.
+**Status:** Business profile, weekly hours, holiday/special-hours management, service/pricing CRUD, staff/service assignments, staff weekly availability and FAQ management are committed with admin-only routes. The current CI suite passes (56 tests / 199 assertions). Staff date-specific exceptions, business policies and full dashboard workflows remain in progress.
 
 ## Milestone 4 — WhatsApp Cloud API foundation
 - [ ] Meta webhook GET verification.
