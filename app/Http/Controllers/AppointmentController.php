@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use App\Models\BookingPolicy;
 use App\Models\Customer;
+use App\Models\GoogleCalendarConnection;
+use App\Jobs\SyncAppointmentCalendarEvent;
 use App\Models\Service;
 use App\Models\Staff;
 use App\Services\Booking\AppointmentAvailabilityService;
@@ -66,6 +68,7 @@ class AppointmentController extends Controller
                 'hold_minutes' => $policy?->hold_minutes ?? 10,
             ],
             'current_user_role' => app(TenantContext::class)->role(),
+            'calendar_connected' => GoogleCalendarConnection::query()->where('status', 'connected')->exists(),
         ]);
     }
 
@@ -81,6 +84,7 @@ class AppointmentController extends Controller
         return response()->json([
             'slots' => $availability->availableSlots($validated['service_id'], $validated['date'], $validated['staff_id'] ?? null),
             'timezone' => app(TenantContext::class)->tenant()->timezone ?: 'UTC',
+            'calendar_connected' => GoogleCalendarConnection::query()->where('status', 'connected')->exists(),
         ]);
     }
 
@@ -110,6 +114,11 @@ class AppointmentController extends Controller
             $validated['idempotency_key'],
             $validated['source'] ?? 'dashboard',
         );
+
+        if (GoogleCalendarConnection::query()->where('status', 'connected')->exists()
+            && $appointment->status === 'pending_hold') {
+            SyncAppointmentCalendarEvent::dispatch(app(TenantContext::class)->id(), $appointment->id);
+        }
 
         if ($request->expectsJson()) {
             return response()->json([
