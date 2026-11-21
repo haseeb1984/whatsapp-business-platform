@@ -37,7 +37,7 @@ Access tokens are encrypted at rest and omitted from dashboard props. App secret
 4. If already present, treat it as a duplicate and do not repeat side effects (`insertOrIgnore`, implemented).
 5. Commit durable storage before acknowledgement (implemented).
 6. Return a successful acknowledgement promptly (implemented).
-7. Process the event asynchronously through a bounded database-queue job (pending; durable event rows currently await processing).
+7. Dispatch `ProcessMetaWebhookEvent` after commit; it runs with five attempts and bounded backoff, uses a row lock plus a transaction, restores tenant context, and marks the event processed only after normalized writes commit.
 8. Persist normalized message/status records and update conversation state.
 9. Recheck tenant status and human handover before generating/sending any automated response.
 
