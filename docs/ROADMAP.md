@@ -46,7 +46,7 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Implement tenant-scoped repositories/policies and composite tenant-aware foreign keys.
 - [ ] Add cross-tenant negative authorization tests for read, update, delete and background jobs.
 
-**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. Current business modules use business-admin role middleware. Remaining work is broader tenant-model coverage, composite foreign keys for all cross-entity references and end-to-end queued-job isolation. Configure production SMTP before sending verification or password-reset emails. The current CI run passes (70 tests / 255 assertions).
+**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. Current business modules use business-admin role middleware. Remaining work is broader tenant-model coverage, composite foreign keys for all cross-entity references and end-to-end queued-job isolation. Configure production SMTP before sending verification or password-reset emails. The current CI run passes (81 tests / 295 assertions).
 
 **Exit gate:** A user from tenant A cannot read, update, delete or infer tenant B data through any tested route or job.
 
@@ -59,18 +59,18 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Add holiday CRUD, duplicate-date, special-hours validation and tenant-isolation tests (CI passing).
 - [x] Add service CRUD, price/duration/buffer validation, tenant-isolation and staff-access tests (CI passing).
 - [x] Add staff CRUD, service assignment, cross-tenant assignment rejection and staff-access tests (CI passing).
-- [x] Add staff weekly availability and tenant-isolation feature tests (authored; execution pending).
-- [x] Add FAQ publication lifecycle, validation and tenant-isolation tests (authored; execution pending).
+- [x] Add staff weekly availability and tenant-isolation feature tests (CI passing).
+- [x] Add FAQ publication lifecycle, validation and tenant-isolation tests (CI passing).
 - [x] Weekly business hours editor with seven-day validation, tenant isolation and database constraints (CI passing).
 - [x] Holiday and special-hours CRUD for a business-local date, with tenant isolation and validation (CI passing).
 - [x] Service and pricing CRUD with currency code, duration, scheduling buffers, active status and tenant isolation (CI passing).
 - [x] Staff CRUD and service assignment with composite tenant-aware foreign keys (CI passing).
-- [x] Staff-specific weekly working hours editor with tenant-aware foreign key and validation (tests authored; execution pending).
+- [x] Staff-specific weekly working hours editor with tenant-aware foreign key and validation (CI passing).
 - [ ] Staff-specific holidays/exceptions and business policies.
-- [x] FAQ CRUD, draft/published/archived lifecycle, locale validation and tenant-scoped search (tests authored; execution pending).
+- [x] FAQ CRUD, draft/published/archived lifecycle, locale validation and tenant-scoped search (CI passing).
 - [ ] Dashboard forms and validation.
 
-**Status:** Business profile, weekly hours, holiday/special-hours management, service/pricing CRUD, staff/service assignments, staff weekly availability and FAQ management are committed with admin-only routes. The current CI suite passes (56 tests / 199 assertions). Staff date-specific exceptions, business policies and full dashboard workflows remain in progress.
+**Status:** Business profile, weekly hours, holiday/special-hours management, service/pricing CRUD, staff/service assignments, staff weekly availability and FAQ management are committed with admin-only routes. The current CI suite passes (81 tests / 295 assertions). Staff date-specific exceptions, business policies and full dashboard workflows remain in progress.
 
 ## Milestone 4 — WhatsApp Cloud API foundation
 - [x] Automated webhook and connection tests for challenge verification, signatures, tenant mapping, encryption, duplicate delivery and Graph API verification (CI passing).
@@ -94,10 +94,11 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Staff release and controlled automation resume.
 
 ## Milestone 6 — AI and grounded FAQ assistant
-- [ ] AI provider interface and Groq adapter.
-- [ ] Intent routing, retrieval, response validation and allowlisted tools.
-- [ ] Rate-limit/timeout handling and deterministic fallback.
-- [ ] Prompt-injection and tenant-isolation tests.
+- [x] Provider-independent AI interface and Groq adapter.
+- [x] Published FAQ retrieval, candidate ID validation and exact approved-answer output.
+- [ ] Intent routing, structured business-fact retrieval and allowlisted tools.
+- [x] Groq rate-limit/timeout handling with deterministic high-confidence fallback and handoff.
+- [x] Prompt-injection-safe FAQ selection and tenant-isolation tests (CI passing).
 
 ## Milestone 7 — Booking domain
 - [ ] Availability engine and timezone-aware slot calculation.
