@@ -5,7 +5,6 @@ namespace App\Services\Booking;
 use App\Models\Appointment;
 use App\Models\AppointmentEvent;
 use App\Support\Tenancy\TenantContext;
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -13,8 +12,11 @@ class AppointmentLifecycleService
 {
     public function markCalendarPending(string $appointmentId): Appointment
     {
-        return DB::transaction(function () use ($appointmentId): Appointment {
+        $result = DB::transaction(function () use ($appointmentId): array {
             $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointmentId);
+            if ($appointment->status === 'calendar_pending') {
+                return ['expired' => false, 'appointment' => $appointment];
+            }
             if ($appointment->status !== 'pending_hold') {
                 throw ValidationException::withMessages(['appointment' => 'Only an active pending hold can be sent to calendar synchronization.']);
             }
@@ -22,7 +24,7 @@ class AppointmentLifecycleService
             if (! $appointment->hold_expires_at || $appointment->hold_expires_at->lessThanOrEqualTo(now())) {
                 $this->transition($appointment, 'expired', 'hold_expired', ['reason' => 'The temporary booking hold expired before calendar synchronization.']);
 
-                throw ValidationException::withMessages(['appointment' => 'The temporary booking hold has expired.']);
+                return ['expired' => true, 'appointment' => $appointment->refresh()];
             }
 
             $appointment->forceFill([
@@ -33,8 +35,14 @@ class AppointmentLifecycleService
 
             $this->event($appointment, 'calendar_sync_started');
 
-            return $appointment->refresh();
+            return ['expired' => false, 'appointment' => $appointment->refresh()];
         });
+
+        if ($result['expired']) {
+            throw ValidationException::withMessages(['appointment' => 'The temporary booking hold has expired.']);
+        }
+
+        return $result['appointment'];
     }
 
     /**
@@ -48,6 +56,9 @@ class AppointmentLifecycleService
 
         return DB::transaction(function () use ($appointmentId, $externalEventId): Appointment {
             $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointmentId);
+            if ($appointment->status === 'confirmed' && $appointment->external_event_id === $externalEventId) {
+                return $appointment;
+            }
             if ($appointment->status !== 'calendar_pending') {
                 throw ValidationException::withMessages(['appointment' => 'An appointment can only be confirmed after calendar synchronization has started.']);
             }
@@ -69,6 +80,9 @@ class AppointmentLifecycleService
     {
         return DB::transaction(function () use ($appointmentId, $reasonCode): Appointment {
             $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointmentId);
+            if ($appointment->status === 'failed') {
+                return $appointment;
+            }
             if (! in_array($appointment->status, ['pending_hold', 'calendar_pending'], true)) {
                 throw ValidationException::withMessages(['appointment' => 'This appointment is no longer awaiting calendar synchronization.']);
             }
@@ -92,6 +106,9 @@ class AppointmentLifecycleService
     {
         return DB::transaction(function () use ($appointmentId): Appointment {
             $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointmentId);
+            if ($appointment->status === 'cancelled') {
+                return $appointment;
+            }
             if ($appointment->status !== 'confirmed' || ! $appointment->external_event_id) {
                 throw ValidationException::withMessages(['appointment' => 'Only a calendar-confirmed appointment can be cancelled through calendar deletion.']);
             }
