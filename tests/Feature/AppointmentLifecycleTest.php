@@ -117,7 +117,7 @@ class AppointmentLifecycleTest extends TestCase
             $this->assertArrayHasKey('appointment', $exception->errors());
         }
 
-        $this->assertDatabaseHas('appointments', ['id' => $appointment->id, 'status' => 'expired']);
+        $this->assertDatabaseHas('appointments', ['id' => $appointment->id, 'status' => 'expired', 'calendar_sync_status' => 'not_required']);
         $this->assertDatabaseHas('appointment_events', ['appointment_id' => $appointment->id, 'event_type' => 'hold_expired']);
     }
 
