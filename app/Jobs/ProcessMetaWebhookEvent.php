@@ -167,8 +167,10 @@ class ProcessMetaWebhookEvent implements ShouldQueue
         }
 
         $message = Message::query()->where('provider_message_id', $providerMessageId)->lockForUpdate()->first();
-        if ($message) {
-            $message->forceFill(['delivery_status' => $status])->save();
+        if (! $message) {
+            throw new \UnexpectedValueException('Provider status arrived before the outbound message record was committed.');
         }
+
+        $message->forceFill(['delivery_status' => $status])->save();
     }
 }
