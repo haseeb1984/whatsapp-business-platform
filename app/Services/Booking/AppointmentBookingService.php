@@ -39,8 +39,17 @@ class AppointmentBookingService
             $tenantId = app(TenantContext::class)->id();
             Tenant::query()->lockForUpdate()->findOrFail($tenantId);
 
+            $timezone = app(TenantContext::class)->tenant()->timezone ?: 'UTC';
+            $requestedStart = $localStart->setTimezone($timezone)->utc();
             $existing = Appointment::query()->where('idempotency_key', $idempotencyKey)->first();
             if ($existing) {
+                if ($existing->customer_id !== $customerId
+                    || $existing->service_id !== $serviceId
+                    || $existing->staff_id !== $staffId
+                    || ! $existing->starts_at?->equalTo($requestedStart)) {
+                    throw ValidationException::withMessages(['idempotency_key' => 'This idempotency key was already used for a different booking request.']);
+                }
+
                 return $existing;
             }
 
@@ -53,8 +62,7 @@ class AppointmentBookingService
                 throw ValidationException::withMessages(['staff_id' => 'The selected staff member cannot provide this service.']);
             }
 
-            $timezone = app(TenantContext::class)->tenant()->timezone ?: 'UTC';
-            $start = $localStart->setTimezone($timezone);
+            $start = $requestedStart->setTimezone($timezone);
             if ($start->lessThanOrEqualTo(CarbonImmutable::now($timezone))) {
                 throw ValidationException::withMessages(['starts_at' => 'Choose a future appointment time.']);
             }
