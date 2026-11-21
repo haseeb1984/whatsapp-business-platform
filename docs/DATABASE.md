@@ -36,7 +36,7 @@
 - `webhook_events`: UUID id, nullable tenant_id until resolved, provider, SHA-256 provider_event_key, phone_number_id, event_type, encrypted payload text, received_at, processed_at, status, attempts and sanitized error summary; unique `(provider, provider_event_key)`. Unmatched phone IDs are quarantined with status `unmatched`.
 - `customers`: UUID id, tenant_id, whatsapp_wa_id, display_name, encrypted profile_metadata; unique `(tenant_id, whatsapp_wa_id)` and `(tenant_id, id)`.
 - `conversations`: UUID id, tenant_id, customer_id, status, automation_state (default `AUTO_ACTIVE`), nullable `assigned_user_id` (FK to users), handover_requested_at, handover_reason, last_message_at; composite tenant-aware FK to customers.
-- `messages`: UUID id, tenant_id, conversation_id, direction, message_type, encrypted body, provider_message_id, delivery_status (`pending`, `sent`, `delivered`, `read`, `failed`, `unknown`, `received`), encrypted metadata, sent_at; unique `(tenant_id, provider_message_id)`; nullable `reply_to_message_id` with a same-tenant composite self-FK and unique `(tenant_id, reply_to_message_id)` for automated reply idempotency and composite tenant-aware FK to conversations.
+- `messages`: UUID id, tenant_id, conversation_id, direction, message_type, encrypted body, provider_message_id, delivery_status (`pending`, `sent`, `delivered`, `read`, `failed`, `unknown`, `received`), encrypted metadata, sent_at, nullable `reminder_id`; unique `(tenant_id, provider_message_id)` and `(tenant_id, reminder_id)`; nullable `reply_to_message_id` with a same-tenant composite self-FK and unique `(tenant_id, reply_to_message_id)` for automated reply idempotency and composite tenant-aware FK to conversations.
 - `conversation_assignments`: tenant_id, conversation_id, user_id, assigned_at, released_at.
 - `conversation_notes`: UUID id, tenant_id, conversation_id, created_by_user_id, encrypted body; composite tenant-aware FK to conversations and user FK.
 
@@ -48,13 +48,13 @@
 - `conversation_contexts`: tenant_id, conversation_id, context JSONB, expires_at.
 
 ### Calendar and appointments
-- `google_calendar_connections`: UUID id, unique tenant_id, Google account email, Laravel-encrypted access/refresh tokens, token expiry, granted scopes, default calendar ID, status and connected timestamp. One Google account connection is currently supported per tenant.
+- `google_calendar_connections`: UUID id, unique tenant_id, Google account email, connected_by_user_id, Laravel-encrypted access/refresh tokens, token expiry, granted scopes, default calendar ID, status, connected/last-sync timestamps. One Google account connection is currently supported per tenant.
 - `staff_calendars`: tenant_id, staff_id, calendar_connection_id, external_calendar_id, active.
 - `appointments`: UUID id, tenant_id, customer_id, service_id, staff_id, service/price/duration snapshots, starts_at/ends_at UTC, reserved_starts_at/reserved_ends_at UTC (including service buffers), status (`pending_hold`, `calendar_pending`, `confirmed`, `cancelled`, `expired`, `failed`), source, idempotency_key, calendar_sync_status, external_event_id, hold_expires_at. The current migration uses same-tenant composite FKs to customers/services/staff, unique `(tenant_id, idempotency_key)`, and a staff/time/status lookup index. `pending_hold` lasts 10 minutes; `calendar_pending` and `confirmed` block availability. The app confirms only through a calendar-success lifecycle method.
 - `appointment_events`: UUID id, tenant_id, appointment_id, event_type, actor_type, actor_id nullable, encrypted metadata, created_at; composite tenant-aware FK to appointments.
 - `booking_policies`: UUID id, tenant_id (unique), minimum_notice_minutes, booking_horizon_days, slot_interval_minutes and hold_minutes; tenant FK and bounded PostgreSQL checks.
 - `staff_availability_exceptions`: UUID id, tenant_id, staff_id, local date, is_closed, optional opens_at/closes_at and reason; unique `(tenant_id, staff_id, date)` and composite same-tenant staff FK.
-- `appointment_reminders`: tenant_id, appointment_id, channel, scheduled_at, status, sent_at, idempotency_key.
+- `appointment_reminders`: UUID id, tenant_id, appointment_id, channel, reminder_type (`24_hours`, `2_hours`), scheduled_at, status (`pending`, `queued`, `processing`, `sent`, `unknown`, `failed`, `blocked_template_required`, `blocked_handover`, `cancelled`), unique idempotency_key, queued_at, attempts, sent_at, provider_message_id and sanitized last_error. Reminders are created only after Calendar confirmation; messages link to reminders through a same-tenant composite foreign key and unique `(tenant_id, reminder_id)` to prevent duplicate outbound sends.
 
 ### Platform operations
 - `jobs`, `job_batches`, `failed_jobs`: Laravel database queue tables.
