@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\AppointmentEvent;
 use App\Models\BookingPolicy;
 use App\Models\Customer;
+use App\Models\GoogleCalendarConnection;
 use App\Models\Service;
 use App\Models\Staff;
 use App\Models\Tenant;
@@ -36,22 +37,24 @@ class AppointmentBookingService
             throw ValidationException::withMessages(['source' => 'The booking source is invalid.']);
         }
 
-        return DB::transaction(function () use ($customerId, $serviceId, $staffId, $localStart, $idempotencyKey, $source): Appointment {
-            $tenantId = app(TenantContext::class)->id();
+        $tenantId = app(TenantContext::class)->id();
+        $timezone = app(TenantContext::class)->tenant()->timezone ?: 'UTC';
+        $requestedStart = $localStart->setTimezone($timezone)->utc();
+
+        $existing = Appointment::query()->where('idempotency_key', $idempotencyKey)->first();
+        if ($existing) {
+            return $this->returnIdempotentMatch($existing, $customerId, $serviceId, $staffId, $requestedStart);
+        }
+
+        // External FreeBusy is checked before the local transaction so no DB lock is held during Google API I/O.
+        $this->availability->assertSlotAvailable($serviceId, $staffId, $requestedStart->setTimezone($timezone), true);
+
+        return DB::transaction(function () use ($tenantId, $timezone, $requestedStart, $customerId, $serviceId, $staffId, $idempotencyKey, $source): Appointment {
             Tenant::query()->lockForUpdate()->findOrFail($tenantId);
 
-            $timezone = app(TenantContext::class)->tenant()->timezone ?: 'UTC';
-            $requestedStart = $localStart->setTimezone($timezone)->utc();
             $existing = Appointment::query()->where('idempotency_key', $idempotencyKey)->first();
             if ($existing) {
-                if ($existing->customer_id !== $customerId
-                    || $existing->service_id !== $serviceId
-                    || $existing->staff_id !== $staffId
-                    || ! $existing->starts_at?->equalTo($requestedStart)) {
-                    throw ValidationException::withMessages(['idempotency_key' => 'This idempotency key was already used for a different booking request.']);
-                }
-
-                return $existing;
+                return $this->returnIdempotentMatch($existing, $customerId, $serviceId, $staffId, $requestedStart);
             }
 
             $customer = Customer::query()->findOrFail($customerId);
@@ -68,7 +71,8 @@ class AppointmentBookingService
                 throw ValidationException::withMessages(['starts_at' => 'Choose a future appointment time.']);
             }
 
-            $this->availability->assertSlotAvailable($service->id, $staff->id, $start);
+            // Recheck local holds under the tenant lock; do not perform external HTTP inside this transaction.
+            $this->availability->assertSlotAvailable($service->id, $staff->id, $start, false);
 
             $end = $start->addMinutes((int) $service->duration_minutes);
             $reservedStart = $start->subMinutes((int) $service->buffer_before_minutes);
@@ -106,5 +110,22 @@ class AppointmentBookingService
 
             return $appointment;
         });
+    }
+
+    private function returnIdempotentMatch(
+        Appointment $existing,
+        string $customerId,
+        string $serviceId,
+        string $staffId,
+        CarbonImmutable $requestedStart,
+    ): Appointment {
+        if ($existing->customer_id !== $customerId
+            || $existing->service_id !== $serviceId
+            || $existing->staff_id !== $staffId
+            || ! $existing->starts_at?->equalTo($requestedStart)) {
+            throw ValidationException::withMessages(['idempotency_key' => 'This idempotency key was already used for a different booking request.']);
+        }
+
+        return $existing;
     }
 }
