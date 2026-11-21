@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Jobs\GenerateAutomatedFaqReply;
+use App\Jobs\ProcessBookingConversationReply;
 use App\Jobs\ProcessMetaWebhookEvent;
 use App\Models\Conversation;
 use App\Models\Customer;
@@ -45,7 +45,7 @@ class MetaWebhookEventProcessingTest extends TestCase
             $this->assertSame('received', $message->delivery_status);
             $this->assertStringNotContainsString('Hello from WhatsApp', (string) $message->getRawOriginal('body'));
         });
-        Queue::assertPushed(GenerateAutomatedFaqReply::class, 1);
+        Queue::assertPushed(ProcessBookingConversationReply::class, 1);
     }
 
     public function test_processing_the_same_provider_message_twice_does_not_duplicate_it(): void
@@ -62,7 +62,7 @@ class MetaWebhookEventProcessingTest extends TestCase
         $this->assertDatabaseCount('conversations', 1);
         $this->assertDatabaseCount('messages', 1);
         $this->assertDatabaseHas('webhook_events', ['id' => $second->id, 'status' => 'processed']);
-        Queue::assertPushed(GenerateAutomatedFaqReply::class, 1);
+        Queue::assertPushed(ProcessBookingConversationReply::class, 1);
     }
 
     public function test_message_status_event_updates_existing_message_delivery_state(): void
