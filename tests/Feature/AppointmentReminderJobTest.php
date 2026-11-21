@@ -22,6 +22,7 @@ use App\Jobs\ProcessAppointmentReminder;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class AppointmentReminderJobTest extends TestCase
@@ -100,6 +101,25 @@ class AppointmentReminderJobTest extends TestCase
             'status' => 'sent',
             'provider_message_id' => 'wamid.reminder.123',
         ]);
+    }
+
+
+    public function test_scheduler_dispatches_due_reminders_in_a_tenant_scoped_batch(): void
+    {
+        [$tenant, $appointment, $reminder] = $this->confirmedReminder('reminder-scheduler', 'AUTO_ACTIVE', 1);
+        TenantContext::runForTenant($tenant->id, function () use ($reminder): void {
+            $reminder->forceFill(['status' => 'pending', 'queued_at' => null, 'scheduled_at' => now()->subMinute()])->save();
+        });
+
+        Queue::fake();
+
+        $this->artisan('appointments:dispatch-reminders', ['--tenant' => $tenant->id])
+            ->expectsOutput('Dispatched 1 appointment reminder job(s).')
+            ->assertExitCode(0);
+
+        Queue::assertPushed(ProcessAppointmentReminder::class, fn (ProcessAppointmentReminder $job): bool => $job->tenantId === $tenant->id
+            && $job->reminderId === $reminder->id);
+        $this->assertDatabaseHas('appointment_reminders', ['id' => $reminder->id, 'status' => 'queued']);
     }
 
     private function confirmedReminder(string $slug, string $automationState, int $inboundAgeHours): array
