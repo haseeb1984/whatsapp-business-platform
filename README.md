@@ -88,7 +88,7 @@ Open `http://127.0.0.1:8000`. New users can register an account and create an in
 - `php artisan test`
 - `npm run build`
 
-GitHub Actions run [44930952609](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44930952609) passed on commit `af491d3d14a8504d4466669f62ee41d9dc0671a6`: Composer manifest validation, dependency installation, **81 Laravel tests (295 assertions)**, npm dependency installation and Vite production build. The tests use SQLite; a separate Neon PostgreSQL migration/constraint rehearsal is still required.
+GitHub Actions run [44944370620](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44944370620) passed on commit `51f0014e5cccb2d5cb01174f4d188be1b7e19e9d`: Composer manifest validation, dependency installation, **85 Laravel tests (311 assertions)**, npm dependency installation and Vite production build. The tests use SQLite; a separate Neon PostgreSQL migration/constraint rehearsal is still required.
 
 ## Development principles
 
