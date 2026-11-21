@@ -14,7 +14,6 @@ use App\Models\Tenant;
 use App\Services\Booking\AppointmentAvailabilityService;
 use App\Services\Booking\AppointmentBookingService;
 use App\Support\Tenancy\TenantContext;
-use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -27,12 +26,12 @@ class AppointmentAvailabilityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Carbon::setTestNow(Carbon::parse('2026-11-22 06:00:00 UTC'));
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-11-22 06:00:00 UTC'));
     }
 
     protected function tearDown(): void
     {
-        Carbon::setTestNow();
+        CarbonImmutable::setTestNow();
         parent::tearDown();
     }
 
@@ -152,7 +151,7 @@ class AppointmentAvailabilityTest extends TestCase
         [$tenantA] = $this->schedule('availability-tenant-a');
         [$tenantB, $serviceB] = $this->schedule('availability-tenant-b');
 
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ValidationException::class);
         TenantContext::runForTenant($tenantA->id, fn () => app(AppointmentAvailabilityService::class)->availableSlots($serviceB->id, '2026-11-23'));
     }
 
