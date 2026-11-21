@@ -1,10 +1,10 @@
 <?php
 
-namespace App\\Models;
+namespace App\Models;
 
-use App\\Models\\Concerns\\BelongsToTenant;
-use Illuminate\\Database\\Eloquent\\Concerns\\HasUuids;
-use Illuminate\\Database\\Eloquent\\Model;
+use App\Models\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
 
 class BusinessProfile extends Model
 {
@@ -12,13 +12,7 @@ class BusinessProfile extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'display_name',
-        'description',
-        'email',
-        'phone',
-        'website',
-        'address',
-        'timezone',
-        'locale',
+        'display_name', 'description', 'email', 'phone',
+        'website', 'address', 'timezone', 'locale',
     ];
 }
