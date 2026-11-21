@@ -52,6 +52,8 @@
 - `staff_calendars`: tenant_id, staff_id, calendar_connection_id, external_calendar_id, active.
 - `appointments`: UUID id, tenant_id, customer_id, service_id, staff_id, service/price/duration snapshots, starts_at/ends_at UTC, reserved_starts_at/reserved_ends_at UTC (including service buffers), status (`pending_hold`, `calendar_pending`, `confirmed`, `cancelled`, `expired`, `failed`), source, idempotency_key, calendar_sync_status, external_event_id, hold_expires_at. The current migration uses same-tenant composite FKs to customers/services/staff, unique `(tenant_id, idempotency_key)`, and a staff/time/status lookup index. `pending_hold` lasts 10 minutes; `calendar_pending` and `confirmed` block availability. The app confirms only through a calendar-success lifecycle method.
 - `appointment_events`: UUID id, tenant_id, appointment_id, event_type, actor_type, actor_id nullable, encrypted metadata, created_at; composite tenant-aware FK to appointments.
+- `booking_policies`: UUID id, tenant_id (unique), minimum_notice_minutes, booking_horizon_days, slot_interval_minutes and hold_minutes; tenant FK and bounded PostgreSQL checks.
+- `staff_availability_exceptions`: UUID id, tenant_id, staff_id, local date, is_closed, optional opens_at/closes_at and reason; unique `(tenant_id, staff_id, date)` and composite same-tenant staff FK.
 - `appointment_reminders`: tenant_id, appointment_id, channel, scheduled_at, status, sent_at, idempotency_key.
 
 ### Platform operations
