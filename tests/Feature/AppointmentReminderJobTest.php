@@ -19,7 +19,6 @@ use App\Services\Booking\AppointmentBookingService;
 use App\Services\Booking\AppointmentLifecycleService;
 use App\Services\Messaging\WhatsAppMessageService;
 use App\Support\Tenancy\TenantContext;
-use App\Jobs\ProcessAppointmentReminder;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
