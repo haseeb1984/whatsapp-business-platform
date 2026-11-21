@@ -58,7 +58,6 @@ class StaffWorkingHoursController extends Controller
             $weekdays = array_map(static fn ($day) => is_array($day) ? ($day['weekday'] ?? null) : null, $days);
             if (count(array_unique($weekdays, SORT_REGULAR)) !== 7 || array_diff(range(0, 6), $weekdays) !== []) {
                 $validator->errors()->add('days', 'Provide each weekday exactly once.');
-                return;
             }
 
             foreach ($days as $index => $day) {
