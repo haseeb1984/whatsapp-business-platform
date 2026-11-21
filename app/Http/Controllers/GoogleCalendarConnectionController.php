@@ -100,7 +100,7 @@ class GoogleCalendarConnectionController extends Controller
             ]);
         }
 
-        if (! $userInfo->successful() || ! is_string($userInfo->json('email'))) {
+        if (! $userInfo->successful() || ! is_string($userInfo->json('email')) || $userInfo->json('verified_email') !== true) {
             throw new RuntimeException('Google account identity could not be verified.');
         }
 
