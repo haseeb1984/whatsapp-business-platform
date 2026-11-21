@@ -51,6 +51,7 @@ class TenantRoleAuthorizationTest extends TestCase
             'email' => $role.'@example.test',
             'password' => 'StrongPassword123',
         ]);
+        $user->forceFill(['email_verified_at' => now()])->save();
         $tenant = Tenant::query()->create([
             'name' => 'Test Business',
             'slug' => 'test-'.$role,
