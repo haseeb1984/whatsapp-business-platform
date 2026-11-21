@@ -39,7 +39,7 @@ class GoogleCalendarConnectionTest extends TestCase
                 'expires_in' => 3600,
                 'scope' => implode(' ', GoogleCalendarService::SCOPES),
             ]),
-            'www.googleapis.com/oauth2/v2/userinfo' => Http::response(['email' => 'calendar-owner@example.test']),
+            'www.googleapis.com/oauth2/v2/userinfo' => Http::response(['email' => 'calendar-owner@example.test', 'verified_email' => true]),
         ]);
 
         $this->get('/business/calendar/callback?state='.$state.'&code=authorization-code')
