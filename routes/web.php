@@ -16,7 +16,7 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1')->name('password.update');
 });
 
-Route::get('/', fn () => auth()->check() ? redirect()->route('dashboard') : redirect()->route('login'));
+Route::get('/', function (\\Illuminate\\Http\\Request $request) {\n    if (! $request->user()) {\n        return redirect()->route('login');\n    }\n\n    return $request->session()->has('current_tenant_id')\n        ? redirect()->route('dashboard')\n        : redirect()->route('workspaces.index');\n});
 
 Route::middleware('auth')->group(function (): void {
     Route::get('/workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
