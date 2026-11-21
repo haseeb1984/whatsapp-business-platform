@@ -184,7 +184,7 @@ class GoogleCalendarService
         try {
             $response = $this->apiRequest($connection, $token, 'post', '/calendars/'.rawurlencode($calendarId).'/events', $payload);
             return $response['id'];
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             // A retry after an ambiguous response must look up the deterministic event ID before creating another.
             try {
                 $existing = $this->getEvent($connection, $token, $calendarId, $eventId);
@@ -192,7 +192,7 @@ class GoogleCalendarService
                     && ($existing['extendedProperties']['private']['platformTenantId'] ?? null) === $appointment->tenant_id) {
                     return $existing['id'];
                 }
-            } catch (\\Throwable) {
+            } catch (\Throwable) {
                 // Preserve the original create failure; reconciliation can retry later.
             }
 
