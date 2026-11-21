@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration {
     public function up(): void
@@ -21,8 +22,11 @@ return new class extends Migration {
             $table->unique(['tenant_id', 'locale', 'question']);
             $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnDelete();
             $table->index(['tenant_id', 'status', 'locale']);
-            $table->check("status IN ('draft', 'published', 'archived')");
         });
+
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE faqs ADD CONSTRAINT faqs_status_check CHECK (status IN ('draft', 'published', 'archived'))");
+        }
     }
 
     public function down(): void
