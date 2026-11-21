@@ -4,7 +4,7 @@
 
 - Use Laravel's supported authentication/session protections. Initial email/password registration, login/logout, password reset and signed email verification are implemented; keep runtime acceptance pending until the automated suite runs.
 - Enforce RBAC on every backend action; frontend visibility is not authorization.
-- Scope business roles to tenant membership. The request tenant context now carries the verified membership role, and role-restricted middleware is available; apply it to each module route as those modules are implemented.
+- Scope business roles to tenant membership. The request tenant context now carries the verified membership role, and role-restricted middleware protects the business profile and weekly-hours configuration routes. Continue applying it to every future module route.
 - Protect platform administration with separate privileged permissions and audit logging.
 - Rate-limit login, password reset, public endpoints, and sensitive operations.
 - Use secure, HTTP-only, SameSite cookies and HTTPS in production.
@@ -13,9 +13,9 @@
 
 - Resolve tenant from authenticated membership or verified WhatsApp/Calendar integration ownership. Current web dashboard tenancy is resolved from the authenticated user's active membership; webhook/integration tenant resolution is still pending.
 - Never trust client-supplied tenant identifiers.
-- Scope all reads, writes, exports, jobs, and integration calls. A `BelongsToTenant` Eloquent concern now provides a fail-closed tenant global scope, context-derived tenant assignment, tenant ID immutability for model saves, and a custom builder that blocks bulk Eloquent tenant-ID updates for models that opt in.
+- Scope all reads, writes, exports, jobs, and integration calls. A `BelongsToTenant` Eloquent concern now provides a fail-closed tenant global scope, context-derived tenant assignment, tenant ID immutability for model saves, and a custom builder that blocks bulk Eloquent tenant-ID updates for models that opt in. `BusinessProfile` and `BusinessHour` currently opt in; other tenant-owned models must do so when introduced.
 - Use composite foreign keys and unique constraints to prevent cross-tenant references.
-- Add automated tests proving cross-tenant access is denied. The tenant-owned model contract now has tests for read/update/delete isolation, tenant ID assignment/tampering, and missing-context failure. Request middleware now restores/clears the tenant context in `finally`, and workspace selection/login exclude suspended tenants. A `TenantContext::runForTenant()` helper now provides explicit tenant scoping for background work and restores the previous context; tests cover restoration and suspended-tenant rejection. Full production model coverage, tenant-aware foreign keys and end-to-end queued-job isolation tests are still required.
+- Add automated tests proving cross-tenant access is denied. The tenant-owned model contract now has tests for read/update/delete isolation, tenant ID assignment/tampering, and missing-context failure. Request middleware now restores/clears the tenant context in `finally`, and workspace selection/login exclude suspended tenants. A `TenantContext::runForTenant()` helper now provides explicit tenant scoping for background work and restores the previous context; tests cover restoration and suspended-tenant rejection. Full production model coverage, tenant-aware foreign keys for cross-entity references and end-to-end queued-job isolation tests are still required. Profile and weekly-hours feature tests cover tenant separation and staff denial, but execution remains pending.
 - Audit platform staff cross-tenant access.
 
 ## 3. Secrets and encryption
