@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\BusinessHour;
 use App\Models\Customer;
+use App\Models\GoogleCalendarConnection;
 use App\Models\Service;
 use App\Models\Staff;
 use App\Models\StaffService;
@@ -56,6 +57,38 @@ class AppointmentControllerTest extends TestCase
             'status' => 'pending_hold',
             'calendar_sync_status' => 'pending',
         ]);
+    }
+
+
+    public function test_google_calendar_sync_job_is_dispatched_after_a_hold_commits_when_connected(): void
+    {
+        [$user, $tenant, $service, $staff, $customer] = $this->workspace('appointment-api-calendar-job@example.test', 'business_admin');
+        TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->create([
+            'access_token' => 'calendar-access',
+            'refresh_token' => 'calendar-refresh',
+            'token_expires_at' => now()->addHour(),
+            'status' => 'connected',
+            'default_calendar_id' => 'primary',
+        ]));
+        Http::fake([
+            'www.googleapis.com/calendar/v3/freeBusy' => Http::response([
+                'calendars' => ['primary' => ['busy' => []]],
+            ]),
+        ]);
+        Queue::fake();
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id])
+            ->postJson('/business/appointments/holds', [
+                'customer_id' => $customer->id,
+                'service_id' => $service->id,
+                'staff_id' => $staff->id,
+                'starts_at' => '2026-11-23T04:00:00+00:00',
+                'idempotency_key' => 'calendar-job-hold-1',
+                'source' => 'whatsapp',
+            ])->assertStatus(202);
+
+        $appointmentId = TenantContext::runForTenant($tenant->id, fn () => \App\Models\Appointment::query()->value('id'));
+        Queue::assertPushed(SyncAppointmentCalendarEvent::class, fn (SyncAppointmentCalendarEvent $job): bool => $job->tenantId === $tenant->id && $job->appointmentId === $appointmentId);
     }
 
     public function test_cross_tenant_service_id_is_rejected_by_availability_endpoint(): void
