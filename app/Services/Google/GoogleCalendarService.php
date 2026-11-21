@@ -117,6 +117,24 @@ class GoogleCalendarService
     }
 
 
+
+    public function findAppointmentEvent(Appointment $appointment): ?string
+    {
+        $connection = $this->connectedConnection();
+        $token = $this->accessToken($connection);
+        $staff = Staff::query()->findOrFail($appointment->staff_id);
+        $calendarId = $staff->google_calendar_id ?: $connection->default_calendar_id;
+        $eventId = substr(hash('sha256', 'appointment:'.$appointment->id), 0, 32);
+        $existing = $this->getEvent($connection, $token, $calendarId, $eventId);
+
+        if ($existing && ($existing['extendedProperties']['private']['platformAppointmentId'] ?? null) === $appointment->id
+            && ($existing['extendedProperties']['private']['platformTenantId'] ?? null) === $appointment->tenant_id) {
+            return $existing['id'];
+        }
+
+        return null;
+    }
+
     public function assertAppointmentCalendarAvailable(Appointment $appointment): void
     {
         $connection = $this->connectedConnection();
@@ -166,11 +184,16 @@ class GoogleCalendarService
         try {
             $response = $this->apiRequest($connection, $token, 'post', '/calendars/'.rawurlencode($calendarId).'/events', $payload);
             return $response['id'];
-        } catch (RuntimeException $exception) {
+        } catch (\\Throwable $exception) {
             // A retry after an ambiguous response must look up the deterministic event ID before creating another.
-            $existing = $this->getEvent($connection, $token, $calendarId, $eventId);
-            if ($existing && ($existing['extendedProperties']['private']['platformAppointmentId'] ?? null) === $appointment->id) {
-                return $existing['id'];
+            try {
+                $existing = $this->getEvent($connection, $token, $calendarId, $eventId);
+                if ($existing && ($existing['extendedProperties']['private']['platformAppointmentId'] ?? null) === $appointment->id
+                    && ($existing['extendedProperties']['private']['platformTenantId'] ?? null) === $appointment->tenant_id) {
+                    return $existing['id'];
+                }
+            } catch (\\Throwable) {
+                // Preserve the original create failure; reconciliation can retry later.
             }
 
             throw $exception;
