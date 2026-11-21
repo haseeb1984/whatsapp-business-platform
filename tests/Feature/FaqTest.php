@@ -97,7 +97,7 @@ class FaqTest extends TestCase
             'name' => 'FAQ User',
             'email' => $email,
             'password' => 'StrongPassword123',
-                    ]);
+        ]);
         $user->forceFill(['email_verified_at' => now()])->save();
         $tenant = Tenant::query()->create([
             'name' => 'FAQ Workspace',
