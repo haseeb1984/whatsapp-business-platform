@@ -1,4 +1,4 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 type ServiceOption = { id: string; name: string };
@@ -11,11 +11,13 @@ type Appointment = {
 };
 type Props = {
     appointments: Appointment[]; services: ServiceOption[]; customers: CustomerOption[]; staff: StaffOption[];
-    today_local: string; timezone: string;
+    today_local: string; timezone: string; current_user_role: string;
+    booking_policy: { minimum_notice_minutes: number; booking_horizon_days: number; slot_interval_minutes: number; hold_minutes: number };
 };
 
 export default function AppointmentManagement() {
-    const { appointments, services, customers, staff, today_local, timezone } = usePage<Props>().props;
+    const { appointments, services, customers, staff, today_local, timezone, booking_policy, current_user_role } = usePage<Props>().props;
+    const policy = useForm(booking_policy);
     const [serviceId, setServiceId] = useState(services[0]?.id ?? '');
     const [customerId, setCustomerId] = useState(customers[0]?.id ?? '');
     const [staffId, setStaffId] = useState('');
@@ -68,6 +70,11 @@ export default function AppointmentManagement() {
         }, { onSuccess: () => { setSlots([]); } });
     }
 
+    function savePolicy(event: React.FormEvent) {
+        event.preventDefault();
+        policy.put('/business/appointments/policy');
+    }
+
     const field = 'mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900';
     return (
         <main className="min-h-screen bg-slate-50 px-5 py-8 sm:px-8">
@@ -75,6 +82,17 @@ export default function AppointmentManagement() {
             <div className="mx-auto max-w-6xl">
                 <a href="/dashboard" className="text-sm text-blue-700 hover:underline">← Dashboard</a>
                 <div className="mt-4"><h1 className="text-3xl font-bold text-slate-900">Appointments</h1><p className="mt-2 text-slate-600">Check live staff availability and create temporary booking holds. Holds are not confirmed until Calendar synchronization succeeds.</p><p className="mt-1 text-xs text-slate-500">Business timezone: {timezone}</p></div>
+                {current_user_role === 'business_admin' && <form onSubmit={savePolicy} className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
+                    <h2 className="text-lg font-semibold text-slate-900">Booking policy</h2>
+                    <p className="mt-1 text-sm text-slate-500">Control notice time, how far ahead customers can book, slot spacing and temporary hold duration.</p>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-4">
+                        <label className="text-sm font-medium text-slate-700">Minimum notice (minutes)<input type="number" min={0} max={10080} className={field} value={policy.data.minimum_notice_minutes} onChange={event => policy.setData('minimum_notice_minutes', Number(event.target.value))} /></label>
+                        <label className="text-sm font-medium text-slate-700">Booking horizon (days)<input type="number" min={1} max={365} className={field} value={policy.data.booking_horizon_days} onChange={event => policy.setData('booking_horizon_days', Number(event.target.value))} /></label>
+                        <label className="text-sm font-medium text-slate-700">Slot interval (minutes)<select className={field} value={policy.data.slot_interval_minutes} onChange={event => policy.setData('slot_interval_minutes', Number(event.target.value))}><option value={5}>5</option><option value={10}>10</option><option value={15}>15</option><option value={20}>20</option><option value={30}>30</option><option value={60}>60</option></select></label>
+                        <label className="text-sm font-medium text-slate-700">Hold duration (minutes)<input type="number" min={1} max={60} className={field} value={policy.data.hold_minutes} onChange={event => policy.setData('hold_minutes', Number(event.target.value))} /></label>
+                    </div>
+                    <button disabled={policy.processing} className="mt-4 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Save booking policy</button>
+                </form>}
                 <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
                     <h2 className="text-lg font-semibold text-slate-900">Find available times</h2>
                     <div className="mt-4 grid gap-3 sm:grid-cols-4">
