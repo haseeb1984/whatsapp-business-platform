@@ -64,7 +64,12 @@ class AppointmentCalendarOrchestrator
             throw ValidationException::withMessages(['appointment' => 'Only a confirmed calendar appointment can be cancelled here.']);
         }
 
-        $this->calendar->deleteAppointmentEvent($appointment);
+        try {
+            $this->calendar->deleteAppointmentEvent($appointment);
+        } catch (Throwable $exception) {
+            $this->lifecycle->markCalendarDeletionUnknown($appointment->id, 'calendar_delete_ambiguous');
+            throw $exception;
+        }
 
         return $this->lifecycle->cancelAfterCalendarDeletion($appointment->id);
     }
