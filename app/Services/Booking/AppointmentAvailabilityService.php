@@ -85,8 +85,8 @@ class AppointmentAvailabilityService
                     try {
                         $calendarData = $calendarService->freeBusy(
                             [$calendarId],
-                            $opensAt->utc()->toIso8601String(),
-                            $closesAt->utc()->toIso8601String(),
+                            $businessWindow['opens_at']->utc()->toIso8601String(),
+                            $businessWindow['closes_at']->utc()->toIso8601String(),
                         );
                     } catch (Throwable $exception) {
                         throw ValidationException::withMessages(['calendar' => 'Google Calendar availability could not be verified. Please retry or reconnect the calendar.']);
