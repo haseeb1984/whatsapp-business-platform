@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\BusinessProfile;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -32,13 +34,21 @@ class BusinessProfileController extends Controller
             'locale' => ['required', 'string', 'max:12', 'regex:/^[a-z]{2}(?:-[A-Z]{2})?$/'],
         ]);
 
-        $profile = BusinessProfile::query()->first();
+        DB::transaction(function () use ($validated): void {
+            $profile = BusinessProfile::query()->first();
 
-        if ($profile) {
-            $profile->fill($validated)->save();
-        } else {
-            BusinessProfile::query()->create($validated);
-        }
+            if ($profile) {
+                $profile->fill($validated)->save();
+            } else {
+                BusinessProfile::query()->create($validated);
+            }
+
+            $tenant = app(TenantContext::class)->tenant();
+            $tenant->forceFill([
+                'timezone' => $validated['timezone'],
+                'locale' => $validated['locale'],
+            ])->save();
+        });
 
         return back()->with('success', 'Business profile saved.');
     }
