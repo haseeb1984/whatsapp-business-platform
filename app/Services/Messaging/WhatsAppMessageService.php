@@ -47,6 +47,7 @@ class WhatsAppMessageService
                 ->where('conversation_id', $lockedConversation->id)
                 ->where('direction', 'inbound')
                 ->orderByDesc('sent_at')
+                ->orderByDesc('created_at')
                 ->first();
 
             if ($replyToMessageId !== null) {
