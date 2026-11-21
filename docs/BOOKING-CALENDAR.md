@@ -62,12 +62,11 @@ PostgreSQL and Google Calendar do not share a transaction. Use an explicit saga/
 
 ## 7. Reminders
 
-- Store scheduled reminder rows with unique idempotency keys.
-- Cron processes due reminders in bounded batches.
-- Recheck appointment status immediately before sending.
-- Use permitted WhatsApp templates when outside the customer service window or otherwise required by Meta policy.
-- Cancel pending reminders on reschedule/cancellation and schedule replacements.
-- Track attempts, outcomes, and provider message IDs.
+**Implemented:** confirmed appointments create idempotent 24-hour and 2-hour reminder rows when those offsets are still in the future. A bounded `appointments:dispatch-reminders` scheduler queues due work; jobs recheck appointment status, customer-service window and automation/human handover. Reminder sends use a unique message correlation key and lock appointment/reminder state before sending, preventing duplicate sends and cancellation races. Appointment cancellation cancels pending and blocked reminders. Delivery status, attempts and provider message IDs are recorded and shown in the appointment dashboard.
+
+**Policy limitation:** reminders are sent as free-form text only when the 24-hour customer-service window is open and automation is active. Outside that window, reminders are held as `blocked_template_required`; approved WhatsApp template sending is not implemented yet, so those reminders are not sent until template support is added.
+
+**Still pending:** reminder templates, reminder retry/reconciliation UI, locale-specific reminder content and full end-to-end delivery-status reconciliation.
 
 ## 8. Acceptance tests
 
