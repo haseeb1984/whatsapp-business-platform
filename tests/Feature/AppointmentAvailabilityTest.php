@@ -180,7 +180,7 @@ class AppointmentAvailabilityTest extends TestCase
     public function test_minimum_notice_and_booking_horizon_are_applied_from_tenant_policy(): void
     {
         [$tenant, $service, $staff] = $this->schedule('availability-booking-policy');
-        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-11-23 03:00:00 UTC'));
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-11-23 04:00:00 UTC'));
 
         TenantContext::runForTenant($tenant->id, fn () => BookingPolicy::query()->create([
             'minimum_notice_minutes' => 120,
