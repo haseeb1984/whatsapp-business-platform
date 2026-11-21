@@ -40,11 +40,11 @@ A `calendar_pending` appointment blocks the slot. If the Calendar outcome is amb
 
 ## 5. Google Calendar connection
 
-- OAuth authorization uses validated state, exact redirect URI, and least-privilege scopes.
-- Encrypt access and refresh tokens at rest.
-- Support a tenant connection and multiple staff calendar mappings.
-- Refresh access tokens safely and handle revoked/expired authorization.
-- Use FreeBusy for availability and event create/update/delete for appointment lifecycle.
+**Implemented foundation:** tenant-bound OAuth state validation, account identity lookup, encrypted access/refresh tokens, token refresh, FreeBusy request service, deterministic event creation with lookup after ambiguous create responses, and event deletion. A business-admin connection screen is available. Per-staff calendar ID storage is present.
+
+**Still pending:** per-staff calendar mapping UI, FreeBusy integration into availability, event update/reschedule orchestration, revocation handling, and full booking saga integration. Google API behavior must be exercised against a dedicated test account before production use.
+
+- Use exact configured redirect URI and least-privilege scopes.
 - Store calendar ID, external event ID, ETag/version if available, sync state, and last sync time.
 - Do not expose OAuth tokens to the frontend.
 
