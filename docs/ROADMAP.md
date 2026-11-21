@@ -1,38 +1,39 @@
 # Implementation Roadmap
 
-This roadmap distinguishes planned work from implemented work. At repository initialization, all application features below are **planned**, not implemented.
+This roadmap distinguishes planned work from implemented work.
 
 ## Milestone 0 — Specification and repository foundation
 - [x] Create private repository and document product requirements.
 - [x] Record Hostinger Business + Neon architecture and exclude Vercel.
-- [ ] Review exact Hostinger plan limits and Neon project configuration.
-- [ ] Agree initial service-level expectations for response latency and throughput.
+- [x] Add system, database, integration, security and deployment specifications.
+- [ ] Verify actual Hostinger and Neon account limits.
 
-**Exit gate:** technical design reviewed; deployment constraints understood; no paid upgrade required without approval.
+**Status:** Documentation foundation committed.
 
 ## Milestone 1 — Laravel application bootstrap
-- [ ] Initialize Laravel application with compatible PHP/Laravel versions.
-- [ ] Configure PostgreSQL/Neon connection and migrations.
-- [ ] Add React + TypeScript + Inertia frontend build.
-- [ ] Add health endpoint, structured logging, environment example, CI checks.
-- [ ] Add baseline feature/unit tests.
+- [x] Add Laravel 13 project manifest and application entry points.
+- [x] Add React + TypeScript + Inertia application shell and Vite build configuration.
+- [x] Add Neon PostgreSQL environment/configuration placeholders.
+- [x] Add initial users, jobs and tenant/membership migrations.
+- [x] Add health endpoints and starter CI workflow.
+- [ ] Install Composer and npm dependencies in a runtime environment.
+- [ ] Run migrations against a disposable PostgreSQL database.
+- [ ] Obtain a passing CI run and fix any build/runtime errors.
 
-**Exit gate:** clean install, migrations, frontend build, health check, and tests pass locally.
+**Status:** Source scaffold committed; runtime verification is pending. Do not treat this milestone as accepted until the unchecked items pass.
 
 ## Milestone 2 — Identity, tenancy, and authorization
-- [ ] Implement tenants, users, memberships, roles, and permissions.
-- [ ] Implement tenant resolution and scoped data access.
-- [ ] Add composite tenant-aware foreign keys and indexes.
+- [ ] Implement authentication and account recovery.
+- [ ] Implement tenant membership, roles, permissions and tenant context.
+- [ ] Implement tenant-scoped repositories/policies and composite tenant-aware foreign keys.
 - [ ] Add cross-tenant negative authorization tests.
 
-**Exit gate:** a user from tenant A cannot read, update, delete, or infer tenant B data through any tested route/job.
+**Exit gate:** A user from tenant A cannot read, update, delete or infer tenant B data through any tested route or job.
 
 ## Milestone 3 — Business configuration and FAQ
-- [ ] Business profile, timezone, hours, holidays, services, staff, policies.
-- [ ] FAQ CRUD, publish/archive lifecycle, tenant-scoped search.
+- [ ] Business profile, timezone, hours, holidays, services, staff and policies.
+- [ ] FAQ CRUD, publish/archive lifecycle and tenant-scoped search.
 - [ ] Dashboard forms and validation.
-
-**Exit gate:** business facts can be configured and retrieved with tenant isolation.
 
 ## Milestone 4 — WhatsApp Cloud API foundation
 - [ ] Meta webhook GET verification.
@@ -42,31 +43,23 @@ This roadmap distinguishes planned work from implemented work. At repository ini
 - [ ] Outbound text/template adapter and status webhooks.
 - [ ] Integration tests using Meta test assets.
 
-**Exit gate:** duplicate webhooks do not duplicate messages/actions; valid/invalid signatures behave correctly.
-
 ## Milestone 5 — Conversations and human handover
 - [ ] Customer/conversation/message persistence.
-- [ ] Staff assignment, notes, and conversation states.
+- [ ] Staff assignment, notes and conversation states.
 - [ ] Human-active hard gate before every automated send.
 - [ ] Staff release and controlled automation resume.
 
-**Exit gate:** queued bot replies cannot send after a staff takeover.
-
 ## Milestone 6 — AI and grounded FAQ assistant
 - [ ] AI provider interface and Groq adapter.
-- [ ] Intent routing, retrieval, response validation, allowlisted tools.
+- [ ] Intent routing, retrieval, response validation and allowlisted tools.
 - [ ] Rate-limit/timeout handling and deterministic fallback.
 - [ ] Prompt-injection and tenant-isolation tests.
 
-**Exit gate:** unsupported facts are not fabricated; provider failure does not break deterministic flows.
-
 ## Milestone 7 — Booking domain
 - [ ] Availability engine and timezone-aware slot calculation.
-- [ ] Staff/service eligibility, hours, exceptions, buffers.
-- [ ] Pending holds, concurrency locks, idempotency.
+- [ ] Staff/service eligibility, hours, exceptions and buffers.
+- [ ] Pending holds, concurrency locks and idempotency.
 - [ ] Booking/reschedule/cancel state machine.
-
-**Exit gate:** concurrency tests prove overlapping reservations are prevented.
 
 ## Milestone 8 — Google Calendar integration
 - [ ] OAuth flow and encrypted token storage.
@@ -75,15 +68,11 @@ This roadmap distinguishes planned work from implemented work. At repository ini
 - [ ] Reconciliation for ambiguous/partial failures.
 - [ ] Reminder scheduling and cancellation-aware processing.
 
-**Exit gate:** no false booking confirmation; partial Calendar failures recover safely.
-
-## Milestone 9 — Dashboards, usage, and platform administration
+## Milestone 9 — Dashboards, usage and platform administration
 - [ ] Business dashboard and role-based screens.
 - [ ] Platform admin tenant/integration/queue views.
-- [ ] Usage metrics, audit log, integration health.
-- [ ] Search, filtering, pagination, export controls.
-
-**Exit gate:** all actions are backend-authorized and audited where sensitive.
+- [ ] Usage metrics, audit log and integration health.
+- [ ] Search, filtering, pagination and export controls.
 
 ## Milestone 10 — Production hardening and deployment
 - [ ] Automated tests across critical workflows.
@@ -93,14 +82,12 @@ This roadmap distinguishes planned work from implemented work. At repository ini
 - [ ] Backup/restore drill and rollback plan.
 - [ ] Meta production onboarding readiness review.
 
-**Exit gate:** operational limits meet measured requirements; production launch checklist is complete.
-
 ## Development rules
 
-- Work milestone-by-milestone; do not silently skip acceptance gates.
-- Prefer small reviewable commits.
+- Work milestone-by-milestone and do not skip acceptance gates.
+- Prefer small, reviewable commits.
 - Never overwrite unrelated projects or credentials.
 - Do not add Vercel.
 - Do not add paid infrastructure/providers without approval.
 - Keep README and docs updated with actual implementation status.
-- After each milestone, report changed files, tests run, results, known limitations, and next milestone.
+- After each milestone, report changed files, tests run, results, limitations and next milestone.
