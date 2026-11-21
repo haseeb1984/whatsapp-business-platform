@@ -34,9 +34,8 @@ class AuthController extends Controller
         $request->validate(['email' => ['required', 'email']]);
         $status = Password::sendResetLink($request->only('email'));
 
-        return $status === Password::RESET_LINK_SENT
-            ? back()->with('status', __($status))
-            : back()->withErrors(['email' => __($status)]);
+        // Keep the response identical for existing and unknown email addresses.
+        return back()->with('status', 'If an account matches that email address, a password reset link has been sent.');
     }
 
     public function resetPassword(Request $request): RedirectResponse
