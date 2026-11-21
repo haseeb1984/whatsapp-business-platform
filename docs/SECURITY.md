@@ -11,7 +11,7 @@
 
 ## 2. Tenant isolation
 
-- Resolve tenant from authenticated membership or verified WhatsApp/Calendar integration ownership. Current web dashboard tenancy is resolved from the authenticated user's active membership; WhatsApp webhook events now resolve a configured phone_number_id to its tenant; unknown/disabled connections are quarantined. Calendar integration tenant resolution remains pending.
+- Resolve tenant from authenticated membership or verified WhatsApp/Calendar integration ownership. Current web dashboard tenancy is resolved from the authenticated user's active membership; WhatsApp webhook events now resolve a configured active phone_number_id to its tenant; unknown/disabled connections are quarantined. Calendar integration tenant resolution remains pending.
 - Never trust client-supplied tenant identifiers.
 - Scope all reads, writes, exports, jobs, and integration calls. A `BelongsToTenant` Eloquent concern now provides a fail-closed tenant global scope, context-derived tenant assignment, tenant ID immutability for model saves, and a custom builder that blocks bulk Eloquent tenant-ID updates for models that opt in. `BusinessProfile`, `BusinessHour`, `BusinessHoliday`, `Service`, `Staff`, `StaffService`, `StaffWorkingHour` and `Faq` currently opt in; other tenant-owned models must do so when introduced. Staff-service assignments and staff working hours use composite tenant-aware foreign keys to their parent records.
 - Use composite foreign keys and unique constraints to prevent cross-tenant references.
@@ -32,7 +32,7 @@
 - Meta webhook POST now verifies HMAC-SHA256 over the raw request body with constant-time comparison, enforces a 1 MiB payload limit, and rejects invalid signatures before parsing.
 - Use constant-time signature comparison.
 - Apply payload size limits and strict parsing.
-- Persist encrypted webhook payloads before acknowledgement and deduplicate using a unique provider/event hash before any side effects. Event processing and replay are still pending.
+- Persist encrypted webhook payloads before acknowledgement and deduplicate using a unique provider/event hash before any side effects. Event processing and replay are still pending. Current webhook tests verify signatures, idempotency, tenant routing and encrypted storage.
 - Quarantine unknown integration identifiers.
 - Do not expose webhook verification secrets in responses or logs.
 
