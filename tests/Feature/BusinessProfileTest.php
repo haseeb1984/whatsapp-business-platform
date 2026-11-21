@@ -67,7 +67,7 @@ class BusinessProfileTest extends TestCase
 
     private function workspace(string $email, string $role = 'business_admin'): array
     {
-        $user = User::query()->create(['name' => 'Profile User', 'email' => $email, 'password' => 'StrongPassword123']);
+        $user = User::query()->create(['name' => 'Profile User', 'email' => $email, 'password' => 'StrongPassword123', 'email_verified_at' => now()]);
         $tenant = Tenant::query()->create(['name' => 'Profile Workspace', 'slug' => str_replace(['@', '.'], '-', $email)]);
         $tenant->users()->attach($user->id, ['role' => $role, 'status' => 'active']);
 
