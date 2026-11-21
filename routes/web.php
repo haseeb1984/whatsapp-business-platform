@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\WorkspaceController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -16,7 +17,15 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1')->name('password.update');
 });
 
-Route::get('/', function (\\Illuminate\\Http\\Request $request) {\n    if (! $request->user()) {\n        return redirect()->route('login');\n    }\n\n    return $request->session()->has('current_tenant_id')\n        ? redirect()->route('dashboard')\n        : redirect()->route('workspaces.index');\n});
+Route::get('/', function (Request $request) {
+    if (! $request->user()) {
+        return redirect()->route('login');
+    }
+
+    return $request->session()->has('current_tenant_id')
+        ? redirect()->route('dashboard')
+        : redirect()->route('workspaces.index');
+});
 
 Route::middleware('auth')->group(function (): void {
     Route::get('/workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
