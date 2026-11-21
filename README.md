@@ -1,84 +1,107 @@
 # WhatsApp Business Platform
 
-A reusable, multi-tenant WhatsApp Business automation platform for businesses using the official Meta WhatsApp Business Cloud API.
+A reusable multi-tenant WhatsApp Business automation platform using the official Meta WhatsApp Business Cloud API.
 
-## Project status
+## Current implementation status
 
-**Current stage:** Foundation and technical specification  
-**Deployment target:** Hostinger Business shared hosting + Neon PostgreSQL  
-**AI provider:** Groq first, behind a provider-independent interface  
-**WhatsApp integration:** Official Meta Cloud API only  
-**Frontend:** React + TypeScript + Inertia.js (built assets served by Laravel)  
-**Backend:** Laravel / PHP  
-**Queue strategy:** Database-backed jobs processed by scheduled cron batches on shared hosting
+**Milestone 0:** Technical specification committed.  
+**Milestone 1:** Laravel 13 / React / Inertia application shell and initial tenant schema committed; dependency installation and runtime tests are still pending.  
+**Not implemented yet:** Meta integration, AI workflows, human handover, appointment booking, Google Calendar OAuth, production authentication screens, and business dashboards.
 
-> Vercel is intentionally not part of this project. Redis, Docker, always-on workers, and WebSockets are not assumed to be available on Hostinger Business shared hosting.
+## Approved stack
+
+- Backend: Laravel 13, PHP 8.3+
+- Frontend: React 19, TypeScript, Inertia.js, Vite and Tailwind CSS
+- Database: Neon PostgreSQL
+- Queue: Laravel database queue, processed in bounded cron-triggered batches on Hostinger shared hosting
+- AI: Groq through a provider-independent adapter (planned)
+- Messaging: Official Meta WhatsApp Cloud API only
+- Calendar: Google Calendar API (planned)
+- Hosting: Hostinger Business
+- Vercel: explicitly excluded
+
+Redis, Docker, WebSockets and always-running queue workers are not assumed to be available on Hostinger Business shared hosting.
 
 ## Product goal
 
-One codebase serves multiple independent businesses. Each business configures its own WhatsApp connection, business profile, FAQs, services, staff, calendars, business hours, automation settings, and users. Tenant-specific behavior is configuration-driven; a separate bot or deployment is not required per business.
-
-## Core capabilities
-
-- Multi-tenant business accounts with strict tenant isolation and role-based access.
-- Official Meta WhatsApp Cloud API webhooks and outbound messaging.
-- FAQ assistant grounded in each business's approved knowledge and structured data.
-- Human handover that reliably pauses automated replies until staff releases the conversation.
-- Appointment discovery, availability checks, booking, rescheduling, cancellation, and reminders.
-- Google Calendar integration with conflict checks and reconciliation.
-- Platform administration, business dashboards, usage tracking, audit logs, and operational visibility.
-- Provider-independent AI integration with Groq as the initial provider and deterministic fallbacks.
-
-## Architecture at a glance
-
-`WhatsApp user → Meta Cloud API → Laravel webhook → durable event/job storage → tenant-aware conversation workflow → FAQ / booking / human handover → Meta Cloud API`
-
-Laravel uses Neon PostgreSQL as the system of record. Scheduled cron invocations process bounded batches of queued work and reminders. Webhook requests should verify, persist, and acknowledge quickly; they must not wait for a full AI or calendar workflow.
+One application and one codebase serve multiple independent businesses. Each tenant configures its own WhatsApp connection, business profile, FAQs, services, staff, calendars, hours, policies and users. Onboarding is configuration-driven; separate bot codebases or deployments are not required.
 
 ## Documentation
 
 | Document | Purpose |
 |---|---|
-| [Requirements](docs/REQUIREMENTS.md) | Product scope, actors, functional and non-functional requirements |
-| [Architecture](docs/ARCHITECTURE.md) | Components, deployment topology, runtime constraints and key decisions |
-| [Database design](docs/DATABASE.md) | Tenant model, entities, constraints and indexing |
-| [WhatsApp integration](docs/WHATSAPP.md) | Webhook verification, signatures, idempotency and messaging |
-| [AI design](docs/AI.md) | Provider abstraction, grounded FAQ behavior and safe tool execution |
-| [Booking and Calendar](docs/BOOKING-CALENDAR.md) | Availability, booking lifecycle and Google Calendar consistency |
-| [Security](docs/SECURITY.md) | Tenant isolation, secrets, access control and operational safeguards |
-| [Deployment](docs/DEPLOYMENT.md) | Hostinger + Neon deployment approach and environment configuration |
-| [Roadmap](docs/ROADMAP.md) | Milestones, dependencies and acceptance criteria |
+| [Requirements](docs/REQUIREMENTS.md) | Product scope and acceptance requirements |
+| [Architecture](docs/ARCHITECTURE.md) | Components, deployment topology and runtime constraints |
+| [Database](docs/DATABASE.md) | Tenant model, entities, constraints and indexes |
+| [WhatsApp](docs/WHATSAPP.md) | Meta webhooks, signatures, idempotency and messaging |
+| [AI](docs/AI.md) | Groq abstraction, grounded FAQ and safe tool execution |
+| [Booking and Calendar](docs/BOOKING-CALENDAR.md) | Availability, appointment lifecycle and reconciliation |
+| [Security](docs/SECURITY.md) | Tenant isolation, secrets and privacy |
+| [Deployment](docs/DEPLOYMENT.md) | Hostinger + Neon deployment |
+| [Roadmap](docs/ROADMAP.md) | Milestones and acceptance gates |
+
+## Local development setup
+
+Prerequisites: PHP 8.3+, Composer, Node.js 22+, npm, and a PostgreSQL database. The app can use SQLite for isolated tests, but Neon PostgreSQL is the intended application database.
+
+1. Install PHP dependencies:
+
+   ```bash
+   composer install
+   ```
+
+2. Create the local environment file and key:
+
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+
+3. Configure `DB_URL` with your Neon connection string and keep `DB_SSLMODE=require`. Never commit the connection string.
+
+4. Install and build frontend dependencies:
+
+   ```bash
+   npm install
+   npm run build
+   ```
+
+5. Run database migrations:
+
+   ```bash
+   php artisan migrate
+   ```
+
+6. Start the local development server:
+
+   ```bash
+   php artisan serve
+   ```
+
+Open `http://127.0.0.1:8000`. The initial dashboard is a foundation screen, not a completed business dashboard.
+
+## Verification
+
+- `composer validate`
+- `php artisan test`
+- `npm run build`
+
+A GitHub Actions workflow runs these checks on pushes and pull requests. The first CI run is the first actual dependency/build/test verification; no successful CI result is claimed until GitHub reports it.
 
 ## Development principles
 
-1. Official APIs only; never automate WhatsApp Web.
-2. Tenant isolation is enforced server-side on every request, job, query, and integration.
-3. Never invent business facts, prices, policies, staff availability, or booking confirmations.
-4. Never tell a customer an appointment is confirmed until the calendar operation and local persistence have succeeded.
+1. Use official APIs only; never automate WhatsApp Web.
+2. Enforce tenant isolation on every request, job, query and integration.
+3. Never invent business facts, prices, policies, availability or booking confirmations.
+4. Never confirm a booking until calendar synchronization and local persistence succeed.
 5. Persist inbound webhook events before acknowledging them; deduplicate retries.
-6. Human handover is a hard automation gate, not merely a prompt instruction.
-7. Keep integrations behind interfaces and make failures observable and recoverable.
+6. Human handover is a hard automation gate.
+7. Keep integrations behind interfaces and make failures observable.
 8. No paid services or plan upgrades without explicit approval.
-9. Document implemented behavior separately from planned behavior; do not claim unbuilt features as complete.
+9. Keep documentation aligned with implemented behavior; label planned work clearly.
 
-## Local setup
+## Hostinger shared-hosting constraints
 
-The repository currently contains the technical specification. Application code and exact dependency versions will be added in implementation milestones.
+The initial runtime uses short HTTP requests and bounded database-queue processing invoked by cron. Cron-based processing introduces response latency and has finite throughput; it is not equivalent to a persistent worker. Load and latency testing will determine whether the Hostinger plan can meet the agreed operating requirements. Any VPS or paid infrastructure change requires approval.
 
-Expected prerequisites for the planned Laravel application:
-
-- PHP version and extensions compatible with the selected Laravel release
-- Composer
-- Node.js and npm for frontend asset builds
-- PostgreSQL-compatible database access (Neon)
-- Meta developer app and WhatsApp Cloud API test credentials for integration testing
-- Google Cloud OAuth credentials for Calendar integration tests
-- Groq API key for AI integration tests
-
-Never commit real credentials. Use a local `.env` file and keep `.env.example` limited to placeholder values.
-
-## Current limitations to design around
-
-Hostinger Business shared hosting is not treated as an environment for always-running queue workers, Redis services, Docker, or WebSockets. The initial deployment therefore uses bounded database-queue processing triggered by cron. This introduces scheduling latency and must be load-tested. If measured throughput or latency cannot meet the product's service goals, move the worker/API runtime to a VPS or another explicitly approved compute service while retaining the same application and Neon database architecture.
-
-Neon plan limits, Hostinger plan-specific resource limits, PHP version, cron availability, process limits, and outbound network access must be verified in the actual accounts before production launch.
+The actual Hostinger plan limits, PHP extensions, cron frequency, outbound connectivity, and Neon account limits must be verified before production deployment.
