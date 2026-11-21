@@ -82,7 +82,7 @@ class AppointmentCalendarOrchestrator
 
         if ($exception instanceof RuntimeException
             && preg_match('/HTTP ([45][0-9]{2})/', $exception->getMessage(), $matches) === 1) {
-            return (int) $matches[1] < 500;
+            return (int) $matches[1] < 500 && ! in_array((int) $matches[1], [408, 429], true);
         }
 
         return false;
