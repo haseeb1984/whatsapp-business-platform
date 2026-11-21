@@ -9,6 +9,7 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StaffWorkingHoursController;
 use App\Http\Controllers\FaqController;
 use App\Http\Controllers\WhatsAppConnectionController;
+use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Http\Request;
@@ -90,6 +91,20 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::put('/business/whatsapp/{connection}', [WhatsAppConnectionController::class, 'update'])->name('business.whatsapp.update');
         Route::post('/business/whatsapp/{connection}/verify', [WhatsAppConnectionController::class, 'verify'])->name('business.whatsapp.verify');
         Route::delete('/business/whatsapp/{connection}', [WhatsAppConnectionController::class, 'destroy'])->name('business.whatsapp.destroy');
+    });
+    Route::middleware('tenant.role:business_admin,staff')->group(function (): void {
+        Route::get('/conversations', [ConversationController::class, 'index'])->name('conversations.index');
+        Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])->name('conversations.show');
+        Route::post('/conversations/{conversation}/take', [ConversationController::class, 'take'])->name('conversations.take');
+        Route::post('/conversations/{conversation}/release', [ConversationController::class, 'release'])->name('conversations.release');
+        Route::post('/conversations/{conversation}/handover', [ConversationController::class, 'requestHandover'])->name('conversations.handover');
+        Route::post('/conversations/{conversation}/reply', [ConversationController::class, 'reply'])->name('conversations.reply');
+        Route::post('/conversations/{conversation}/notes', [ConversationController::class, 'addNote'])->name('conversations.notes.store');
+        Route::middleware('tenant.role:business_admin')->group(function (): void {
+            Route::put('/conversations/{conversation}/assign', [ConversationController::class, 'assign'])->name('conversations.assign');
+            Route::post('/conversations/{conversation}/close', [ConversationController::class, 'close'])->name('conversations.close');
+            Route::post('/conversations/{conversation}/reopen', [ConversationController::class, 'reopen'])->name('conversations.reopen');
+        });
     });
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
