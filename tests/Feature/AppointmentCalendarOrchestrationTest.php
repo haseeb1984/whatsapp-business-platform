@@ -165,6 +165,12 @@ class AppointmentCalendarOrchestrationTest extends TestCase
             return [$service, $staff, $customer];
         });
 
+        Http::fake([
+            'www.googleapis.com/calendar/v3/freeBusy' => Http::response([
+                'calendars' => ['primary' => ['busy' => []]],
+            ]),
+        ]);
+
         $appointment = TenantContext::runForTenant($tenant->id, fn () => app(AppointmentBookingService::class)->createHold(
             $customer->id,
             $service->id,
