@@ -15,7 +15,17 @@ class ServiceController extends Controller
     public function index(): Response
     {
         return Inertia::render('Business/Services/Index', [
-            'services' => Service::query()->orderBy('name')->get(),
+            'services' => Service::query()->orderBy('name')->get()->map(fn (Service $service): array => [
+                'id' => $service->id,
+                'name' => $service->name,
+                'description' => $service->description,
+                'price_amount' => $service->price_amount,
+                'currency' => $service->currency,
+                'duration_minutes' => $service->duration_minutes,
+                'buffer_before_minutes' => $service->buffer_before_minutes,
+                'buffer_after_minutes' => $service->buffer_after_minutes,
+                'active' => $service->active,
+            ])->all(),
         ]);
     }
 
