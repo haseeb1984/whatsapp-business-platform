@@ -16,6 +16,7 @@ class GroundedFaqAssistantTest extends TestCase
 
     public function test_exact_published_faq_returns_the_approved_answer_without_calling_groq(): void
     {
+        Http::fake();
         $tenant = $this->tenant('faq-ai-exact');
         $faq = $this->faq($tenant->id, 'What time do you open?', 'We open at 9 AM.');
 
@@ -33,6 +34,7 @@ class GroundedFaqAssistantTest extends TestCase
 
     public function test_unpublished_and_other_tenant_faqs_are_never_retrieved(): void
     {
+        Http::fake();
         $tenantA = $this->tenant('faq-ai-tenant-a');
         $tenantB = $this->tenant('faq-ai-tenant-b');
         $this->faq($tenantA->id, 'What are your prices?', 'Our service starts at 1000.', 'draft');
