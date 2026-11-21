@@ -108,7 +108,7 @@ class BusinessHolidayTest extends TestCase
             'name' => 'Holiday User',
             'email' => $email,
             'password' => 'StrongPassword123',
-                    ]);
+        ]);
         $user->forceFill(['email_verified_at' => now()])->save();
         $tenant = Tenant::query()->create([
             'name' => 'Holiday Workspace',
