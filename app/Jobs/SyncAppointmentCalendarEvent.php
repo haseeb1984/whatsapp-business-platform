@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Services\Booking\AppointmentCalendarOrchestrator;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -15,7 +16,7 @@ use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Throwable;
 
-class SyncAppointmentCalendarEvent implements ShouldQueue
+class SyncAppointmentCalendarEvent implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable;
     use InteractsWithQueue;
@@ -25,6 +26,13 @@ class SyncAppointmentCalendarEvent implements ShouldQueue
     public int $tries = 3;
 
     public array $backoff = [30, 120, 300];
+
+    public int $uniqueFor = 600;
+
+    public function uniqueId(): string
+    {
+        return $this->tenantId.':'.$this->appointmentId;
+    }
 
     public function __construct(
         public readonly string $tenantId,
