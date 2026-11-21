@@ -34,12 +34,12 @@ Access tokens are encrypted at rest and omitted from dashboard props. App secret
 1. Validate signature and basic payload shape (implemented).
 2. Extract stable provider event/message identifiers and integration routing identifiers.
 3. Insert the event into `webhook_events` with a unique SHA-256 idempotency key and encrypted payload (implemented).
-4. If already present, treat it as a duplicate and do not repeat side effects (`insertOrIgnore`, implemented).
+4. If already present, do not create another event row; if it is still pending, safely re-dispatch its job so a prior queue-dispatch interruption can recover (implemented).
 5. Commit durable storage before acknowledgement (implemented).
 6. Return a successful acknowledgement promptly (implemented).
 7. Dispatch `ProcessMetaWebhookEvent` after commit; it runs with five attempts and bounded backoff, uses a row lock plus a transaction, restores tenant context, and marks the event processed only after normalized writes commit.
-8. Persist normalized message/status records and update conversation state.
-9. Recheck tenant status and human handover before generating/sending any automated response.
+8. Persist normalized customer, conversation and encrypted message/status records; duplicate provider message IDs do not create duplicate messages (implemented).
+9. Recheck tenant status and human handover before generating/sending any automated response (human handover gate remains pending).
 
 Do not call Groq, Google Calendar, or other slow remote services before acknowledging a webhook.
 
