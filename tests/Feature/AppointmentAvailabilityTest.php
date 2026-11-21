@@ -7,6 +7,7 @@ use App\Models\BusinessHoliday;
 use App\Models\BookingPolicy;
 use App\Models\BusinessHour;
 use App\Models\Customer;
+use App\Models\GoogleCalendarConnection;
 use App\Models\Service;
 use App\Models\Staff;
 use App\Models\StaffAvailabilityException;
@@ -19,6 +20,7 @@ use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class AppointmentAvailabilityTest extends TestCase
@@ -195,6 +197,51 @@ class AppointmentAvailabilityTest extends TestCase
 
         $outsideHorizon = TenantContext::runForTenant($tenant->id, fn () => app(AppointmentAvailabilityService::class)->availableSlots($service->id, '2026-11-25', $staff->id));
         $this->assertSame([], $outsideHorizon);
+    }
+
+
+    public function test_connected_google_calendar_busy_periods_are_removed_from_local_slots(): void
+    {
+        [$tenant, $service, $staff] = $this->schedule('availability-google-busy');
+        TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->create([
+            'access_token' => 'calendar-access',
+            'refresh_token' => 'calendar-refresh',
+            'token_expires_at' => now()->addHour(),
+            'status' => 'connected',
+            'default_calendar_id' => 'primary',
+        ]));
+
+        Http::fake([
+            'www.googleapis.com/calendar/v3/freeBusy' => Http::response([
+                'calendars' => ['primary' => ['busy' => [[
+                    'start' => '2026-11-23T05:00:00Z',
+                    'end' => '2026-11-23T05:30:00Z',
+                ]]]],
+            ]),
+        ]);
+
+        $slots = TenantContext::runForTenant($tenant->id, fn () => app(AppointmentAvailabilityService::class)->availableSlots($service->id, '2026-11-23', $staff->id));
+        $this->assertTrue($slots[0]['calendar_checked']);
+        $this->assertSame('10:45', $slots[0]['local_start']);
+    }
+
+    public function test_calendar_freebusy_failure_fails_closed_instead_of_returning_unverified_slots(): void
+    {
+        [$tenant, $service, $staff] = $this->schedule('availability-google-error');
+        TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->create([
+            'access_token' => 'calendar-access',
+            'refresh_token' => 'calendar-refresh',
+            'token_expires_at' => now()->addHour(),
+            'status' => 'connected',
+            'default_calendar_id' => 'primary',
+        ]));
+
+        Http::fake([
+            'www.googleapis.com/calendar/v3/freeBusy' => Http::response(['error' => 'unavailable'], 503),
+        ]);
+
+        $this->expectException(ValidationException::class);
+        TenantContext::runForTenant($tenant->id, fn () => app(AppointmentAvailabilityService::class)->availableSlots($service->id, '2026-11-23', $staff->id));
     }
 
     public function test_a_service_from_another_tenant_cannot_be_used_for_availability(): void
