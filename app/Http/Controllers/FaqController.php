@@ -30,7 +30,14 @@ class FaqController extends Controller
             ->get();
 
         return Inertia::render('Business/Faqs/Index', [
-            'faqs' => $faqs,
+            'faqs' => $faqs->map(fn (Faq $faq): array => [
+                'id' => $faq->id,
+                'question' => $faq->question,
+                'answer' => $faq->answer,
+                'locale' => $faq->locale,
+                'status' => $faq->status,
+                'published_at' => $faq->published_at?->toIso8601String(),
+            ])->all(),
             'filters' => [
                 'search' => $filters['search'] ?? '',
                 'status' => $filters['status'] ?? 'all',
