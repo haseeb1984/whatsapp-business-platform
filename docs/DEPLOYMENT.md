@@ -82,7 +82,7 @@ Never commit real values. Keep `.env` outside the public web root and ensure the
 
 ## 8. Cron-backed queue processing
 
-The initial shared-hosting strategy is a database queue, not a persistent daemon. After queue jobs are introduced and the worker command has been tested, configure a Hostinger cron job to run a bounded worker invocation at the supported cadence. Laravel's scheduler also expires temporary appointment holds once per minute. Proposed command:
+The initial shared-hosting strategy is a database queue, not a persistent daemon. After queue jobs are introduced and the worker command has been tested, configure a Hostinger cron job to run a bounded worker invocation at the supported cadence. Laravel's scheduler expires temporary appointment holds and dispatches due appointment reminders once per minute. Proposed command:
 
 ```bash
 cd /home/ACCOUNT/domains/DOMAIN/public_html/APP_ROOT && php artisan queue:work database --stop-when-empty --max-time=20 --tries=3 --sleep=1
@@ -96,7 +96,7 @@ Configure Laravel's scheduler with a separate cron entry (after confirming the r
 * * * * * cd /home/ACCOUNT/domains/DOMAIN/public_html/APP_ROOT && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-This runs the scheduled `appointments:expire-holds` task. The queue worker and scheduler are separate concerns; both need monitoring and bounded execution. The 20-second limit is a starting value to validate, not a guaranteed Hostinger allowance.
+This runs the scheduled `appointments:expire-holds` and `appointments:dispatch-reminders` tasks. The queue worker and scheduler are separate concerns; both need monitoring and bounded execution. Reminder jobs send free-form WhatsApp text only inside the 24-hour customer-service window; outside-window reminders remain blocked until approved template sending is implemented. The 20-second limit is a starting value to validate, not a guaranteed Hostinger allowance.
 
 ## 9. Rollback and recovery
 
