@@ -18,12 +18,17 @@ class Conversation extends Model
         'status',
         'automation_state',
         'assigned_user_id',
+        'handover_requested_at',
+        'handover_reason',
         'last_message_at',
     ];
 
     protected function casts(): array
     {
-        return ['last_message_at' => 'immutable_datetime'];
+        return [
+            'last_message_at' => 'immutable_datetime',
+            'handover_requested_at' => 'immutable_datetime',
+        ];
     }
 
     public function customer(): BelongsTo
@@ -34,5 +39,20 @@ class Conversation extends Model
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class);
+    }
+
+    public function notes(): HasMany
+    {
+        return $this->hasMany(ConversationNote::class);
+    }
+
+    public function assignedUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_user_id');
+    }
+
+    public function latestMessage(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Message::class)->latestOfMany('created_at');
     }
 }
