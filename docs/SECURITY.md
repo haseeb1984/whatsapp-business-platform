@@ -55,7 +55,7 @@
 
 ## 7. Reliability as a security property
 
-- Idempotency for webhooks, outbound actions, bookings, and reminders. Appointment holds use a tenant-unique idempotency key and a transactionally locked availability recheck; ambiguous Calendar outcomes remain reserved pending reconciliation.
+- Idempotency for webhooks, outbound actions, bookings, and reminders. Appointment holds use a tenant-unique idempotency key and a tenant-row transaction lock before availability recheck; staff date exceptions and booking policies are tenant-scoped; ambiguous Calendar outcomes remain reserved pending reconciliation.
 - Bounded retries with backoff; no infinite retry loops.
 - Failed-job and integration error visibility.
 - Database constraints for important invariants.
