@@ -31,6 +31,5 @@ class PasswordRecoveryTest extends TestCase
             'password_confirmation' => 'NewPassword123',
         ])->assertSessionHasErrors('email');
 
-        $this->assertSame(Password::INVALID_TOKEN, Password::INVALID_TOKEN);
     }
 }
