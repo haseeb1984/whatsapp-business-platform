@@ -3,6 +3,7 @@
 namespace App\Support\Tenancy;
 
 use App\Models\Tenant;
+use Closure;
 use LogicException;
 
 final class TenantContext
