@@ -1,16 +1,16 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Models\\Tenant;
-use App\\Support\\Tenancy\\TenantContext;
-use Illuminate\\Database\\Eloquent\\Model;
-use Illuminate\\Database\\Eloquent\\Concerns\\HasUuids;
-use Illuminate\\Database\\Schema\\Blueprint;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Support\\Facades\\Schema;
+use App\Models\Tenant;
+use App\Support\Tenancy\TenantContext;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use LogicException;
-use Tests\\TestCase;
+use Tests\TestCase;
 
 class TenantOwnedModelTest extends TestCase
 {
@@ -75,7 +75,7 @@ class TenantOwnedModelTest extends TestCase
 class TenantOwnedTestRecord extends Model
 {
     use HasUuids;
-    use \\App\\Models\\Concerns\\BelongsToTenant;
+    use \App\Models\Concerns\BelongsToTenant;
 
     protected $table = 'tenant_owned_test_records';
     protected $fillable = ['tenant_id', 'value'];
