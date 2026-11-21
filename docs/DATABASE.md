@@ -36,7 +36,7 @@
 - `webhook_events`: UUID id, nullable tenant_id until resolved, provider, SHA-256 provider_event_key, phone_number_id, event_type, encrypted payload text, received_at, processed_at, status, attempts and sanitized error summary; unique `(provider, provider_event_key)`. Unmatched phone IDs are quarantined with status `unmatched`.
 - `customers`: UUID id, tenant_id, whatsapp_wa_id, display_name, encrypted profile_metadata; unique `(tenant_id, whatsapp_wa_id)` and `(tenant_id, id)`.
 - `conversations`: UUID id, tenant_id, customer_id, status, automation_state (default `AUTO_ACTIVE`), assigned_user_id, last_message_at; composite tenant-aware FK to customers.
-- `messages`: UUID id, tenant_id, conversation_id, direction, message_type, encrypted body, provider_message_id, delivery_status (`pending`, `sent`, `delivered`, `read`, `failed`, `unknown`, `received`), encrypted metadata, sent_at; unique `(tenant_id, provider_message_id)` and composite tenant-aware FK to conversations.
+- `messages`: UUID id, tenant_id, conversation_id, direction, message_type, encrypted body, provider_message_id, delivery_status (`pending`, `sent`, `delivered`, `read`, `failed`, `unknown`, `received`), encrypted metadata, sent_at; unique `(tenant_id, provider_message_id)`; nullable `reply_to_message_id` with a same-tenant composite self-FK and unique `(tenant_id, reply_to_message_id)` for automated reply idempotency and composite tenant-aware FK to conversations.
 - `conversation_assignments`: tenant_id, conversation_id, user_id, assigned_at, released_at.
 - `conversation_notes`: tenant_id, conversation_id, user_id, body.
 
