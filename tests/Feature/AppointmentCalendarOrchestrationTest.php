@@ -121,6 +121,31 @@ class AppointmentCalendarOrchestrationTest extends TestCase
     }
 
 
+
+    public function test_google_rate_limit_keeps_calendar_pending_for_retry_instead_of_releasing_slot(): void
+    {
+        [$tenant, $appointment] = $this->booking('calendar-rate-limit');
+        $eventId = substr(hash('sha256', 'appointment:'.$appointment->id), 0, 32);
+
+        Http::fake([
+            'www.googleapis.com/calendar/v3/calendars/primary/events/'.$eventId => Http::response([], 404),
+            'www.googleapis.com/calendar/v3/freeBusy' => Http::response(['error' => 'rate limit'], 429),
+        ]);
+
+        try {
+            TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->confirm($appointment->id));
+            $this->fail('A rate-limited calendar request must remain pending.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('HTTP 429', $exception->getMessage());
+        }
+
+        $this->assertDatabaseHas('appointments', [
+            'id' => $appointment->id,
+            'status' => 'calendar_pending',
+            'calendar_sync_status' => 'unknown',
+        ]);
+    }
+
     public function test_ambiguous_calendar_deletion_keeps_appointment_confirmed_and_reserved(): void
     {
         [$tenant, $appointment] = $this->booking('calendar-delete-unknown');
