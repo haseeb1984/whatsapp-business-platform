@@ -72,7 +72,7 @@ class AuthController extends Controller
         }
 
         $request->session()->regenerate();
-        $memberships = $request->user()->tenants()->wherePivot('status', 'active')->get();
+        $memberships = $request->user()->tenants()->wherePivot('status', 'active')->where('tenants.status', 'active')->get();
 
         if ($memberships->count() === 1) {
             $request->session()->put('current_tenant_id', (string) $memberships->first()->getKey());
