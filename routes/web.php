@@ -8,6 +8,7 @@ use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StaffWorkingHoursController;
 use App\Http\Controllers\FaqController;
+use App\Http\Controllers\WhatsAppConnectionController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Http\Request;
@@ -84,6 +85,10 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::post('/business/faqs', [FaqController::class, 'store'])->name('business.faqs.store');
         Route::put('/business/faqs/{faq}', [FaqController::class, 'update'])->name('business.faqs.update');
         Route::delete('/business/faqs/{faq}', [FaqController::class, 'destroy'])->name('business.faqs.destroy');
+        Route::get('/business/whatsapp', [WhatsAppConnectionController::class, 'index'])->name('business.whatsapp.index');
+        Route::post('/business/whatsapp', [WhatsAppConnectionController::class, 'store'])->name('business.whatsapp.store');
+        Route::put('/business/whatsapp/{connection}', [WhatsAppConnectionController::class, 'update'])->name('business.whatsapp.update');
+        Route::delete('/business/whatsapp/{connection}', [WhatsAppConnectionController::class, 'destroy'])->name('business.whatsapp.destroy');
     });
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
