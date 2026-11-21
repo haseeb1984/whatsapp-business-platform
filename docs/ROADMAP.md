@@ -70,7 +70,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] FAQ CRUD, draft/published/archived lifecycle, locale validation and tenant-scoped search (CI passing).
 - [ ] Dashboard forms and validation.
 
-**Status:** Business profile, weekly hours, holiday/special-hours management, service/pricing CRUD, staff/service assignments, staff weekly availability and FAQ management are committed with admin-only routes. The current CI suite passes (81 tests / 295 assertions). Staff date-specific exceptions, business policies and full dashboard workflows remain in progress.
+**Status:** Business profile, weekly hours, holiday/special-hours management, service/pricing CRUD, staff/service assignments, staff weekly availability and FAQ management are committed with admin-only routes. The current CI suite passes (90 tests / 329 assertions). Staff date-specific exceptions, business policies and full dashboard workflows remain in progress.
 
 ## Milestone 4 — WhatsApp Cloud API foundation
 - [x] Automated webhook and connection tests for challenge verification, signatures, tenant mapping, encryption, duplicate delivery and Graph API verification (CI passing).
@@ -88,11 +88,15 @@ This roadmap distinguishes planned work from implemented work.
 
 ## Milestone 5 — Conversations and human handover
 - [x] Customer/conversation/message persistence for inbound WhatsApp events with encrypted message content.
-- [ ] Staff assignment, notes and conversation states.
+- [x] Tenant-scoped inbox and conversation detail screens with state/search filters.
+- [x] Staff assignment to active users in the same tenant; only business admins can assign or close/reopen conversations.
+- [x] Staff take ownership, send manual WhatsApp replies, and save encrypted internal notes.
 - [x] Outbound sender blocks automation unless the conversation is `AUTO_ACTIVE`; staff sends require a human-controlled state.
 - [x] Initial automatic handover transition to `WAITING_FOR_STAFF` when approved FAQ evidence is insufficient.
-- [ ] Staff assignment, notes, notifications, staff reply UI and controlled release/resume workflow.
-- [ ] Staff release and controlled automation resume.
+- [x] Staff reply UI and backend authorization require an assigned staff user and `HUMAN_ACTIVE` state.
+- [x] Explicit staff release returns an open conversation to `AUTO_ACTIVE`; reopening a closed conversation returns it to `WAITING_FOR_STAFF`.
+- [ ] Staff notifications, invitations, real-time updates and audit history.
+- [x] Staff release and explicit automation resume are implemented; only future inbound messages may trigger a new automated reply.
 
 ## Milestone 6 — AI and grounded FAQ assistant
 - [x] Provider-independent AI interface and Groq adapter.
