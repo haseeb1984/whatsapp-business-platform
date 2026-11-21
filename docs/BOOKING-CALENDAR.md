@@ -6,21 +6,15 @@ A booking request may require service, preferred date, preferred time range, sta
 
 ## 2. Availability calculation
 
-Candidate slots are calculated from:
-- tenant business hours and timezone;
-- business holidays and special closures;
-- staff working hours and staff-service eligibility;
-- service duration and pre/post buffers;
-- staff exceptions and leave;
-- active local appointments and temporary holds;
-- Google Calendar FreeBusy periods;
-- minimum notice and booking horizon configured by the business.
+**Implemented local availability:** candidate slots use tenant business hours/timezone, business holiday closure or special-hours overrides, staff weekly working hours, active staff/service assignments, service duration, pre/post buffers, and local appointment holds. Slots are generated on a bounded interval (15 minutes by default) and returned with UTC ISO timestamps plus the local UTC offset. Past local dates and invalid/nonexistent local wall-clock schedule times produce no slots.
 
-Convert local business times to UTC for storage and API operations. Handle daylight-saving transitions using IANA timezone identifiers.
+**Still pending:** staff date-specific exceptions and leave, business minimum-notice/booking-horizon settings, and Google Calendar FreeBusy periods. Availability must not be described as confirmed until both local and external calendar checks are complete.
+
+Convert local business times to UTC for storage and API operations. Slot results carry explicit UTC offsets so repeated daylight-saving wall times remain distinguishable; the hold endpoint accepts the selected ISO-8601 instant, not an ambiguous local string. Use IANA timezone identifiers.
 
 ## 3. Safe booking lifecycle
 
-Suggested states:
+The initial local lifecycle and temporary-hold transitions are implemented. Suggested states:
 
 - `draft`: collecting details.
 - `availability_checked`: candidate slot shown; not reserved.
@@ -32,13 +26,15 @@ Suggested states:
 - `cancelled`: cancellation completed and persisted.
 - `failed` / `expired`: operation failed or hold expired; not confirmed.
 
-Only `confirmed` may be communicated as a confirmed booking.
+Only `confirmed` may be communicated as a confirmed booking. The current application creates `pending_hold` records only; it does not confirm a booking until the Calendar integration successfully creates the external event and calls the guarded confirmation transition with its event ID.
 
 ## 4. Concurrency and double-booking prevention
 
-Availability shown to a customer can become stale. Recheck immediately after the customer selects a slot. Use a transaction plus resource/time locking and database constraints where supported. A unique idempotency key prevents duplicate booking creation from webhook retries or customer double taps.
+Availability shown to a customer can become stale. Recheck immediately after the customer selects a slot. Use the transaction and tenant-row lock in `AppointmentBookingService`, recheck the selected slot inside the transaction, and enforce unique `(tenant_id, idempotency_key)`. The tenant-level lock serializes hold creation for that workspace; consider finer-grained staff/time locks if measured throughput requires it.
 
-For shared-hosting deployment, database locking must be short-lived; never hold a PostgreSQL transaction open while waiting for Google API network calls.
+The current hold service locks the tenant row, rechecks availability, and writes the hold in a short transaction. The unique `(tenant_id, idempotency_key)` constraint prevents webhook retries from creating duplicate holds. Active pending holds expire after 10 minutes; the bounded `appointments:expire-holds` command runs every minute through Laravel scheduling. Calendar API calls must happen after the local transaction commits—never hold PostgreSQL locks while waiting for Google.
+
+A `calendar_pending` appointment blocks the slot. If the Calendar outcome is ambiguous, mark `calendar_sync_status=unknown` but keep the appointment in `calendar_pending` until reconciliation determines whether the external event exists. Only a definite failure may release the slot.
 
 ## 5. Google Calendar connection
 
