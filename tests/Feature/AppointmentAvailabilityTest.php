@@ -4,10 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\Appointment;
 use App\Models\BusinessHoliday;
+use App\Models\BookingPolicy;
 use App\Models\BusinessHour;
 use App\Models\Customer;
 use App\Models\Service;
 use App\Models\Staff;
+use App\Models\StaffAvailabilityException;
 use App\Models\StaffService;
 use App\Models\StaffWorkingHour;
 use App\Models\Tenant;
@@ -144,6 +146,55 @@ class AppointmentAvailabilityTest extends TestCase
         } catch (ValidationException $exception) {
             $this->assertArrayHasKey('idempotency_key', $exception->errors());
         }
+    }
+
+
+    public function test_staff_date_exception_can_close_or_override_weekly_hours(): void
+    {
+        [$tenant, $service, $staff] = $this->schedule('availability-staff-exception');
+
+        TenantContext::runForTenant($tenant->id, fn () => StaffAvailabilityException::query()->create([
+            'staff_id' => $staff->id,
+            'date' => '2026-11-23',
+            'is_closed' => true,
+            'reason' => 'Annual leave',
+        ]));
+
+        $closed = TenantContext::runForTenant($tenant->id, fn () => app(AppointmentAvailabilityService::class)->availableSlots($service->id, '2026-11-23', $staff->id));
+        $this->assertSame([], $closed);
+
+        TenantContext::runForTenant($tenant->id, function () use ($staff): void {
+            StaffAvailabilityException::query()->firstOrFail()->update([
+                'is_closed' => false,
+                'opens_at' => '12:00',
+                'closes_at' => '14:00',
+                'reason' => 'Special afternoon hours',
+            ]);
+        });
+
+        $special = TenantContext::runForTenant($tenant->id, fn () => app(AppointmentAvailabilityService::class)->availableSlots($service->id, '2026-11-23', $staff->id));
+        $this->assertNotEmpty($special);
+        $this->assertSame('12:15', $special[0]['local_start']);
+    }
+
+    public function test_minimum_notice_and_booking_horizon_are_applied_from_tenant_policy(): void
+    {
+        [$tenant, $service, $staff] = $this->schedule('availability-booking-policy');
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-11-23 03:00:00 UTC'));
+
+        TenantContext::runForTenant($tenant->id, fn () => BookingPolicy::query()->create([
+            'minimum_notice_minutes' => 120,
+            'booking_horizon_days' => 1,
+            'slot_interval_minutes' => 15,
+            'hold_minutes' => 20,
+        ]));
+
+        $slots = TenantContext::runForTenant($tenant->id, fn () => app(AppointmentAvailabilityService::class)->availableSlots($service->id, '2026-11-23', $staff->id));
+        $this->assertNotEmpty($slots);
+        $this->assertSame('10:00', $slots[0]['local_start']);
+
+        $outsideHorizon = TenantContext::runForTenant($tenant->id, fn () => app(AppointmentAvailabilityService::class)->availableSlots($service->id, '2026-11-25', $staff->id));
+        $this->assertSame([], $outsideHorizon);
     }
 
     public function test_a_service_from_another_tenant_cannot_be_used_for_availability(): void
