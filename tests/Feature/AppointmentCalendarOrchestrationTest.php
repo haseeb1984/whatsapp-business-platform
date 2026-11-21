@@ -18,6 +18,7 @@ use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class AppointmentCalendarOrchestrationTest extends TestCase
@@ -224,6 +225,7 @@ class AppointmentCalendarOrchestrationTest extends TestCase
             return [$service, $staff, $customer];
         });
 
+        Queue::fake();
         Http::fake([
             'www.googleapis.com/calendar/v3/freeBusy' => Http::response([
                 'calendars' => ['primary' => ['busy' => []]],
