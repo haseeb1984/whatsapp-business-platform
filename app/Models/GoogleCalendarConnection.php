@@ -12,6 +12,7 @@ class GoogleCalendarConnection extends Model
     use BelongsToTenant;
 
     protected $fillable = [
+        'connected_by_user_id',
         'google_account_email',
         'access_token',
         'refresh_token',
@@ -22,6 +23,11 @@ class GoogleCalendarConnection extends Model
         'connected_at',
     ];
 
+    public function connectedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'connected_by_user_id');
+    }
+
     protected function casts(): array
     {
         return [
@@ -29,6 +35,7 @@ class GoogleCalendarConnection extends Model
             'refresh_token' => 'encrypted',
             'token_expires_at' => 'immutable_datetime',
             'connected_at' => 'immutable_datetime',
+            'last_synced_at' => 'immutable_datetime',
         ];
     }
 }
