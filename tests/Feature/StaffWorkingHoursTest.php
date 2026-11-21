@@ -105,6 +105,20 @@ class StaffWorkingHoursTest extends TestCase
         $this->get('/business/staff/'.$staff->id.'/hours')->assertForbidden();
     }
 
+
+    public function test_staff_route_binding_cannot_resolve_another_tenants_member(): void
+    {
+        [, $tenantA] = $this->workspace('staff-hours-owner-a@example.test');
+        [$userB, $tenantB] = $this->workspace('staff-hours-owner-b@example.test');
+        $staffA = TenantContext::runForTenant($tenantA->id, fn () => Staff::query()->create([
+            'name' => 'Private staff member',
+            'active' => true,
+        ]));
+
+        $this->actingAs($userB)->withSession(['current_tenant_id' => $tenantB->id]);
+        $this->get('/business/staff/'.$staffA->id.'/hours')->assertNotFound();
+    }
+
     private function workspace(string $email, string $role = 'business_admin'): array
     {
         $user = User::query()->create([
