@@ -59,8 +59,10 @@ class AuthenticationTest extends TestCase
             'email' => 'owner@example.test',
             'password' => 'StrongPassword123',
         ]);
+        $user->forceFill(['email_verified_at' => now()])->save();
         $tenant = Tenant::query()->create(['name' => 'Example Studio', 'slug' => 'example-studio']);
         $tenant->users()->attach($user->id, ['role' => 'business_admin', 'status' => 'active']);
+        $user->forceFill(['email_verified_at' => now()])->save();
 
         $this->post('/login', [
             'email' => 'owner@example.test',
