@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BusinessProfileController;
+use App\Http\Controllers\BusinessHoursController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Http\Request;
@@ -58,6 +59,8 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
     Route::middleware('tenant.role:business_admin')->group(function (): void {
         Route::get('/business/profile', [BusinessProfileController::class, 'edit'])->name('business.profile.edit');
         Route::put('/business/profile', [BusinessProfileController::class, 'update'])->name('business.profile.update');
+        Route::get('/business/hours', [BusinessHoursController::class, 'edit'])->name('business.hours.edit');
+        Route::put('/business/hours', [BusinessHoursController::class, 'update'])->name('business.hours.update');
     });
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
