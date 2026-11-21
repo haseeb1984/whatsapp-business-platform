@@ -39,6 +39,7 @@ export default function EditBusinessHours() {
                             <label className="text-sm text-slate-600">Closes
                                 <input aria-label={day.label + ' closing time'} type="time" className={inputClass + ' mt-1 block w-full'} value={day.closes_at} disabled={day.is_closed} onChange={event => updateDay(index, 'closes_at', event.target.value)} />
                             </label>
+                            {errors[`days.${index}.closes_at`] && <p className="text-sm text-red-600 sm:col-span-4">{errors[`days.${index}.closes_at`]}</p>}
                         </div>
                     ))}
                     {errors.days && <p className="text-sm text-red-600">{errors.days}</p>}
