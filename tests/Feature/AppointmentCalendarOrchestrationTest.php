@@ -172,7 +172,7 @@ class AppointmentCalendarOrchestrationTest extends TestCase
             GoogleCalendarConnection::query()->create([
                 'access_token' => 'calendar-access',
                 'refresh_token' => 'calendar-refresh',
-                'token_expires_at' => now()->addHour(),
+                'token_expires_at' => CarbonImmutable::parse('2035-01-01 00:00:00 UTC'),
                 'status' => 'connected',
                 'default_calendar_id' => 'primary',
             ]);
