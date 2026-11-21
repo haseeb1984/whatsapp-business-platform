@@ -57,8 +57,8 @@ class BookingPolicyAndStaffExceptionsTest extends TestCase
         $this->assertDatabaseHas('staff_availability_exceptions', [
             'id' => $exception->id,
             'is_closed' => false,
-            'opens_at' => '12:00:00',
-            'closes_at' => '16:00:00',
+            'opens_at' => '12:00',
+            'closes_at' => '16:00',
         ]);
     }
 
