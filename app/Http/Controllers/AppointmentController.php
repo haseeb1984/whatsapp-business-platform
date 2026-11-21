@@ -9,6 +9,7 @@ use App\Models\Service;
 use App\Models\Staff;
 use App\Services\Booking\AppointmentAvailabilityService;
 use App\Services\Booking\AppointmentBookingService;
+use App\Services\Booking\AppointmentCalendarOrchestrator;
 use App\Services\Booking\AppointmentLifecycleService;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
@@ -123,6 +124,20 @@ class AppointmentController extends Controller
         }
 
         return back()->with('success', 'Temporary appointment hold created. It is not confirmed until Calendar sync succeeds.');
+    }
+
+    public function confirmCalendar(string $appointmentId, AppointmentCalendarOrchestrator $calendar): RedirectResponse
+    {
+        $calendar->confirm($appointmentId);
+
+        return back()->with('success', 'Appointment confirmed after Google Calendar synchronization.');
+    }
+
+    public function cancelConfirmed(string $appointmentId, AppointmentCalendarOrchestrator $calendar): RedirectResponse
+    {
+        $calendar->cancel($appointmentId);
+
+        return back()->with('success', 'Appointment cancelled after Google Calendar deletion.');
     }
 
     public function cancelHold(string $appointmentId, AppointmentLifecycleService $lifecycle): RedirectResponse
