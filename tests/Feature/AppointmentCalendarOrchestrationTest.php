@@ -47,9 +47,9 @@ class AppointmentCalendarOrchestrationTest extends TestCase
         $eventId = substr(hash('sha256', 'appointment:'.$appointment->id), 0, 32);
 
         Http::fake(function ($request) use ($eventId) {
-            if (str_ends_with($request->url(), '/events/'.$eventId)) return Http::response([], 404);
-            if (str_ends_with($request->url(), '/freeBusy')) return Http::response(['calendars' => ['primary' => ['busy' => []]]]);
-            if (str_ends_with($request->url(), '/events')) return Http::response(['id' => $eventId], 200);
+            if (str_contains($request->url(), '/events/'.$eventId)) return Http::response([], 404);
+            if (stripos($request->url(), 'freebusy') !== false) return Http::response(['calendars' => ['primary' => ['busy' => []]]]);
+            if (str_ends_with(parse_url($request->url(), PHP_URL_PATH), '/events')) return Http::response(['id' => $eventId], 200);
             return Http::response([], 500);
         });
 
