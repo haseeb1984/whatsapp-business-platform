@@ -46,7 +46,7 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Implement tenant-scoped repositories/policies and composite tenant-aware foreign keys.
 - [ ] Add cross-tenant negative authorization tests for read, update, delete and background jobs.
 
-**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. Current business modules use business-admin role middleware. Remaining work is broader tenant-model coverage, composite foreign keys for all cross-entity references and end-to-end queued-job isolation. Configure production SMTP before sending verification or password-reset emails. The current CI run passes (85 tests / 311 assertions).
+**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. Current business modules use business-admin role middleware. Remaining work is broader tenant-model coverage, composite foreign keys for all cross-entity references and end-to-end queued-job isolation. Configure production SMTP before sending verification or password-reset emails. Latest verified CI run passes (124 tests / 457 assertions); tests use SQLite and PostgreSQL rehearsal remains pending.
 
 **Exit gate:** A user from tenant A cannot read, update, delete or infer tenant B data through any tested route or job.
 
@@ -70,7 +70,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] FAQ CRUD, draft/published/archived lifecycle, locale validation and tenant-scoped search (CI passing).
 - [ ] Dashboard forms and validation.
 
-**Status:** Business profile, weekly hours, holiday/special-hours management, service/pricing CRUD, staff/service assignments, staff weekly availability and FAQ management are committed with admin-only routes. The current CI suite passes (90 tests / 329 assertions). Staff date-specific exceptions, business policies and full dashboard workflows remain in progress.
+**Status:** Business profile, weekly hours, holiday/special-hours management, service/pricing CRUD, staff/service assignments, staff weekly availability/date exceptions, booking policies and FAQ management are committed with tenant isolation and role controls. Full business dashboards and remaining UX polish are in progress.
 
 ## Milestone 4 — WhatsApp Cloud API foundation
 - [x] Automated webhook and connection tests for challenge verification, signatures, tenant mapping, encryption, duplicate delivery and Graph API verification (CI passing).
@@ -111,28 +111,29 @@ This roadmap distinguishes planned work from implemented work.
 ## Milestone 7 — Booking domain
 - [x] Timezone-aware availability from tenant business hours, holiday overrides, staff weekly schedules and service duration/buffers.
 - [x] Staff/service eligibility and intersection of business/staff working hours.
+- [x] Staff date-specific leave/special-hours exceptions, minimum notice, booking horizon, slot interval and hold-duration policies.
 - [x] Tenant-scoped appointment and appointment-event schema with composite customer/service/staff foreign keys.
-- [x] Temporary booking holds with service/price snapshots, UTC intervals and pre/post-buffer reservation windows.
-- [x] Tenant-row transactional serialization, unique tenant idempotency keys and overlap rechecks to prevent concurrent double holds.
+- [x] Temporary booking holds with service/price snapshots, UTC intervals, buffer reservation windows and tenant-unique idempotency.
+- [x] Tenant-row transactional serialization and overlap rechecks to prevent concurrent local double holds.
 - [x] Bounded hold expiry processor and every-minute Laravel scheduler command.
-- [x] Availability API and business appointment screen; temporary holds can be created and cancelled before Calendar side effects.
-- [x] Lifecycle gate requires calendar-pending state and an external event ID before confirmation; ambiguous Calendar outcomes keep the slot reserved for reconciliation.
-- [x] Staff date-specific leave/special-hours exceptions, minimum notice, booking horizon, slot interval and hold duration policies.
-- [ ] Google Calendar FreeBusy integration and real external event create/update/delete operations.
-- [ ] End-to-end WhatsApp booking conversation, rescheduling and confirmed-booking cancellation.
+- [x] Availability API and business appointment screen; temporary holds can be created/cancelled before Calendar side effects.
+- [x] Google FreeBusy checked during availability and again before event creation; failures fail closed.
+- [x] Calendar confirmation gate, deterministic event reconciliation, safe cancellation and ambiguous-outcome reservation.
+- [ ] End-to-end WhatsApp booking conversation and customer-facing booking confirmation flow.
+- [ ] Rescheduling, reminder scheduling and cancellation-aware reminder processing.
 
 ## Milestone 8 — Google Calendar integration
-- [x] Tenant-scoped OAuth connection with state validation bound to the signed-in user and selected workspace.
-- [x] Encrypt Google access and refresh tokens at rest; refresh expired access tokens and keep credentials out of frontend props.
-- [x] Request least-privilege identity, Calendar FreeBusy and Calendar Events scopes.
-- [x] Implement FreeBusy, deterministic appointment event creation/reconciliation lookup, and event deletion service operations.
-- [ ] Connect FreeBusy results to slot calculation and implement full create/confirm, update/reschedule, cancellation orchestration.
-- [ ] Add per-staff calendar mapping UI, OAuth revocation handling, and provider integration acceptance tests against a Google test account.
-- [ ] OAuth flow and encrypted token storage.
-- [ ] Multiple staff calendar mappings.
-- [ ] FreeBusy checks and event create/update/delete.
-- [ ] Reconciliation for ambiguous/partial failures.
-- [ ] Reminder scheduling and cancellation-aware processing.
+- [x] Tenant-scoped OAuth with session state, PKCE, current-user/workspace binding and expiry checks.
+- [x] Verify Google account identity and required Calendar scopes.
+- [x] Encrypt access/refresh tokens at rest, refresh expired tokens and revoke credentials on disconnect.
+- [x] List writable calendars and configure tenant default plus per-staff calendar mappings.
+- [x] FreeBusy service and local availability integration; fail closed if requested calendars cannot be checked.
+- [x] Deterministic appointment event creation and event lookup after ambiguous create outcomes.
+- [x] Calendar event deletion; local cancellation is persisted only after deletion succeeds.
+- [x] Keep slots reserved on rate limits or ambiguous create/delete outcomes.
+- [ ] Event update/reschedule orchestration and reconciliation worker for unknown outcomes.
+- [ ] Validate against a dedicated live Google test account and verify revocation/permission-loss behavior.
+
 
 ## Milestone 9 — Dashboards, usage and platform administration
 - [ ] Business dashboard and role-based screens.
