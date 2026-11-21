@@ -7,18 +7,20 @@ use LogicException;
 
 final class TenantContext
 {
-    public function __construct(private readonly Tenant $tenant)
-    {
+    public function __construct(
+        private readonly Tenant $tenant,
+        private readonly string $role,
+    ) {
     }
 
-    public function tenant(): Tenant
-    {
-        return $this->tenant;
-    }
+    public function tenant(): Tenant { return $this->tenant; }
+    public function id(): string { return (string) $this->tenant->getKey(); }
+    public function role(): string { return $this->role; }
 
-    public function id(): string
+    /** @param array<int, string> $roles */
+    public function hasAnyRole(array $roles): bool
     {
-        return (string) $this->tenant->getKey();
+        return in_array($this->role, $roles, true);
     }
 
     public function requireTenantId(string $tenantId): void
