@@ -31,7 +31,7 @@
 - `availability_exceptions`: tenant_id, staff_id nullable, starts_at, ends_at, type, reason.
 
 ### WhatsApp and conversations
-- `whatsapp_connections`: UUID id, tenant_id, globally unique phone_number_id, waba_id, display_phone_number, verified_name, encrypted access_token, status (`pending`/`disabled` initially; provider-verified active state is future work), verified_at.
+- `whatsapp_connections`: UUID id, tenant_id, globally unique phone_number_id, waba_id, display_phone_number, verified_name, encrypted access_token, status (`pending`, `active`, `disabled`); active is set only after Graph API phone-number and WABA membership verification, verified_at.
 - `whatsapp_templates`: tenant_id, provider_template_name, language, category, approval_status, components JSONB.
 - `webhook_events`: UUID id, nullable tenant_id until resolved, provider, SHA-256 provider_event_key, phone_number_id, event_type, encrypted payload text, received_at, processed_at, status, attempts and sanitized error summary; unique `(provider, provider_event_key)`. Unmatched phone IDs are quarantined with status `unmatched`.
 - `customers`: tenant_id, whatsapp_wa_id, display_name, profile metadata; unique tenant/wa_id.
