@@ -140,13 +140,6 @@ class AppointmentCalendarOrchestrationTest extends TestCase
         $tenant->users()->attach($user->id, ['role' => 'business_admin', 'status' => 'active']);
 
         [$service, $staff, $customer] = TenantContext::runForTenant($tenant->id, function (): array {
-            GoogleCalendarConnection::query()->create([
-                'access_token' => 'calendar-access',
-                'refresh_token' => 'calendar-refresh',
-                'token_expires_at' => now()->addHour(),
-                'status' => 'connected',
-                'default_calendar_id' => 'primary',
-            ]);
             $service = Service::query()->create([
                 'name' => 'Consultation',
                 'price_amount' => '100.00',
@@ -178,6 +171,16 @@ class AppointmentCalendarOrchestrationTest extends TestCase
             CarbonImmutable::parse('2026-11-23 10:00:00', 'Asia/Karachi'),
             'calendar-booking-'.$slug,
         ));
+
+        TenantContext::runForTenant($tenant->id, function (): void {
+            GoogleCalendarConnection::query()->create([
+                'access_token' => 'calendar-access',
+                'refresh_token' => 'calendar-refresh',
+                'token_expires_at' => now()->addHour(),
+                'status' => 'connected',
+                'default_calendar_id' => 'primary',
+            ]);
+        });
 
         return [$tenant, $appointment];
     }
