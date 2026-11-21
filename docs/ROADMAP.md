@@ -25,7 +25,7 @@ This roadmap distinguishes planned work from implemented work.
 ## Milestone 2 — Identity, tenancy, and authorization
 - [x] Implement email/password registration, login and logout with session regeneration/invalidation.
 - [x] Implement password reset request and token-based password update flow.
-- [ ] Implement email verification and verified-account enforcement.
+- [x] Implement signed email verification links, resend flow and verified-account enforcement.
 - [x] Create a business workspace and active owner membership transactionally during registration.
 - [x] Add a tenant context value object and middleware that resolves only active memberships.
 - [x] Automatically select a user's sole active tenant; require explicit selection for multiple tenants.
@@ -38,7 +38,7 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Implement tenant-scoped repositories/policies and composite tenant-aware foreign keys.
 - [ ] Add cross-tenant negative authorization tests for read, update, delete and background jobs.
 
-**Status:** Initial authentication, password recovery and workspace selection foundations committed. Configure production SMTP before using reset emails. Applying role restrictions to each business module, email verification, database constraints and full isolation acceptance tests remain outstanding. Automated tests have been authored but are not yet executed in a working Laravel runtime.
+**Status:** Initial authentication, password recovery and workspace selection foundations committed. Configure production SMTP before using reset emails. Applying role restrictions to each business module, database constraints and full isolation acceptance tests remain outstanding. Configure production SMTP before sending verification or password-reset emails. Automated tests have been authored but are not yet executed in a working Laravel runtime.
 
 **Exit gate:** A user from tenant A cannot read, update, delete or infer tenant B data through any tested route or job.
 
