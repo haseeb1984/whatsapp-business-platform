@@ -91,6 +91,9 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::put('/business/faqs/{faq}', [FaqController::class, 'update'])->name('business.faqs.update');
         Route::delete('/business/faqs/{faq}', [FaqController::class, 'destroy'])->name('business.faqs.destroy');
         Route::get('/business/calendar', [GoogleCalendarConnectionController::class, 'index'])->name('business.calendar.index');
+        Route::get('/business/calendar/calendars', [GoogleCalendarConnectionController::class, 'calendars'])->name('business.calendar.calendars');
+        Route::put('/business/calendar/default', [GoogleCalendarConnectionController::class, 'updateDefaultCalendar'])->name('business.calendar.default.update');
+        Route::put('/business/calendar/staff/{staff}', [GoogleCalendarConnectionController::class, 'updateStaffCalendar'])->name('business.calendar.staff.update');
         Route::get('/business/calendar/connect', [GoogleCalendarConnectionController::class, 'connect'])->middleware('throttle:5,1')->name('business.calendar.connect');
         Route::get('/business/calendar/callback', [GoogleCalendarConnectionController::class, 'callback'])->middleware('throttle:10,1')->name('business.calendar.callback');
         Route::delete('/business/calendar', [GoogleCalendarConnectionController::class, 'disconnect'])->name('business.calendar.disconnect');
