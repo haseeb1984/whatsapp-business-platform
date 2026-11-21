@@ -56,14 +56,14 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Keep tenant timezone and locale synchronized with the business profile in one database transaction.
 - [x] Add profile isolation and staff-access feature tests (CI passing).
 - [x] Add weekly-hours validation, tenant-isolation and staff-access feature tests (CI passing).
-- [x] Add holiday CRUD, duplicate-date, special-hours validation and tenant-isolation tests (authored; execution pending).
+- [x] Add holiday CRUD, duplicate-date, special-hours validation and tenant-isolation tests (CI passing).
 - [x] Add service CRUD, price/duration/buffer validation, tenant-isolation and staff-access tests (authored; execution pending).
 - [x] Add staff CRUD, service assignment, cross-tenant assignment rejection and staff-access tests (authored; execution pending).
 - [x] Add staff weekly availability and tenant-isolation feature tests (authored; execution pending).
 - [x] Add FAQ publication lifecycle, validation and tenant-isolation tests (authored; execution pending).
 - [x] Weekly business hours editor with seven-day validation, tenant isolation and database constraints (CI passing).
 - [x] Holiday and special-hours CRUD for a business-local date, with tenant isolation and validation (CI passing).
-- [x] Service and pricing CRUD with currency code, duration, scheduling buffers, active status and tenant isolation (tests authored; execution pending).
+- [x] Service and pricing CRUD with currency code, duration, scheduling buffers, active status and tenant isolation (CI passing).
 - [x] Staff CRUD and service assignment with composite tenant-aware foreign keys (tests authored; execution pending).
 - [x] Staff-specific weekly working hours editor with tenant-aware foreign key and validation (tests authored; execution pending).
 - [ ] Staff-specific holidays/exceptions and business policies.
@@ -73,14 +73,16 @@ This roadmap distinguishes planned work from implemented work.
 **Status:** Business profile, weekly hours, holiday/special-hours management, service/pricing CRUD, staff/service assignments, staff weekly availability and FAQ management are committed with admin-only routes. The current CI suite passes (56 tests / 199 assertions). Staff date-specific exceptions, business policies and full dashboard workflows remain in progress.
 
 ## Milestone 4 — WhatsApp Cloud API foundation
-- [x] Tenant admin connection setup with encrypted access-token storage; connections remain pending until Meta verification is added.
+- [x] Automated webhook and connection tests for challenge verification, signatures, tenant mapping, encryption, duplicate delivery and Graph API verification (CI passing).
+- [x] Tenant admin connection setup with encrypted access-token storage; tokens are never sent to the browser.
+- [x] Meta Graph API verification of the configured phone number and its WABA membership before activation.
 - [x] Meta webhook GET verification with constant-time verify-token comparison.
 - [x] POST raw-body HMAC-SHA256 signature validation with constant-time comparison and payload-size limit.
-- [x] Durable encrypted webhook event persistence with SHA-256 idempotency key.
-- [x] Tenant routing through globally unique configured phone_number_id; unknown/disabled connections are quarantined as unmatched.
+- [ ] Bounded webhook event processing job and normalized customer/conversation/message persistence.
 - [ ] Outbound text/template adapter and status webhooks.
 - [ ] Provider-side connection/token verification and activation.
-- [x] Automated webhook tests for challenge verification, invalid token/signature, tenant mapping, encryption and duplicate delivery (CI pending for this commit).
+- [x] Durable encrypted webhook event persistence with SHA-256 idempotency key and duplicate suppression.
+- [x] Tenant routing through verified active phone_number_id; unknown/disabled connections are quarantined as unmatched.
 
 ## Milestone 5 — Conversations and human handover
 - [ ] Customer/conversation/message persistence.
