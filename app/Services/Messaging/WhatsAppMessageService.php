@@ -18,7 +18,7 @@ class WhatsAppMessageService
     {
     }
 
-    public function sendText(Conversation $conversation, string $body, MessageActor $actor = MessageActor::Automation): Message
+    public function sendText(Conversation $conversation, string $body, MessageActor $actor = MessageActor::Automation, ?string $replyToMessageId = null): Message
     {
         $body = trim($body);
         if ($body === '' || mb_strlen($body) > 4096) {
@@ -27,7 +27,7 @@ class WhatsAppMessageService
             ]);
         }
 
-        return DB::transaction(function () use ($conversation, $body, $actor): Message {
+        return DB::transaction(function () use ($conversation, $body, $actor, $replyToMessageId): Message {
             $lockedConversation = Conversation::query()->lockForUpdate()->findOrFail($conversation->id);
             if ($lockedConversation->status !== 'open') {
                 throw ValidationException::withMessages(['conversation' => 'This conversation is closed.']);
@@ -49,6 +49,17 @@ class WhatsAppMessageService
                 ->orderByDesc('sent_at')
                 ->first();
 
+            if ($replyToMessageId !== null) {
+                if ($actor !== MessageActor::Automation || ! $lastInbound || $lastInbound->id !== $replyToMessageId) {
+                    throw ValidationException::withMessages(['message' => 'An automated reply must reference the latest inbound customer message.']);
+                }
+
+                $existingReply = Message::query()->where('reply_to_message_id', $replyToMessageId)->first();
+                if ($existingReply) {
+                    return $existingReply;
+                }
+            }
+
             if (! $lastInbound?->sent_at || $lastInbound->sent_at->lt(now()->subHours(24))) {
                 throw ValidationException::withMessages([
                     'message' => 'The 24-hour customer service window is closed. An approved WhatsApp template is required.',
@@ -68,6 +79,7 @@ class WhatsAppMessageService
             $customer = $lockedConversation->customer()->firstOrFail();
             $message = Message::query()->create([
                 'conversation_id' => $lockedConversation->id,
+                'reply_to_message_id' => $replyToMessageId,
                 'direction' => 'outbound',
                 'message_type' => 'text',
                 'body' => $body,
