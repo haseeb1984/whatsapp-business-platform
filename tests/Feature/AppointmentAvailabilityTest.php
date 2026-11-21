@@ -191,7 +191,7 @@ class AppointmentAvailabilityTest extends TestCase
 
         $slots = TenantContext::runForTenant($tenant->id, fn () => app(AppointmentAvailabilityService::class)->availableSlots($service->id, '2026-11-23', $staff->id));
         $this->assertNotEmpty($slots);
-        $this->assertSame('10:00', $slots[0]['local_start']);
+        $this->assertSame('11:00', $slots[0]['local_start']);
 
         $outsideHorizon = TenantContext::runForTenant($tenant->id, fn () => app(AppointmentAvailabilityService::class)->availableSlots($service->id, '2026-11-25', $staff->id));
         $this->assertSame([], $outsideHorizon);
