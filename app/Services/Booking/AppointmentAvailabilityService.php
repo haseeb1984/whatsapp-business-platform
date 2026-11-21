@@ -25,7 +25,7 @@ class AppointmentAvailabilityService
      *
      * @return array<int, array{staff_id: string, staff_name: string, starts_at: string, ends_at: string, local_start: string, local_end: string, utc_offset: string, timezone: string, calendar_checked: bool}>
      */
-    public function availableSlots(string $serviceId, string $localDate, ?string $staffId = null, ?int $intervalMinutes = null): array
+    public function availableSlots(string $serviceId, string $localDate, ?string $staffId = null, ?int $intervalMinutes = null, bool $checkExternalCalendar = true): array
     {
         $policy = BookingPolicy::query()->first();
         $intervalMinutes ??= $policy?->slot_interval_minutes ?? 15;
@@ -60,7 +60,7 @@ class AppointmentAvailabilityService
         }
 
         $staffMembers = $staffQuery->orderBy('name')->get();
-        $calendarConnection = GoogleCalendarConnection::query()->where('status', 'connected')->first();
+        $calendarConnection = $checkExternalCalendar ? GoogleCalendarConnection::query()->where('status', 'connected')->first() : null;
         $calendarService = app(GoogleCalendarService::class);
         $slots = [];
 
@@ -145,7 +145,7 @@ class AppointmentAvailabilityService
     {
         $timezone = app(TenantContext::class)->tenant()->timezone ?: 'UTC';
         $localStart = $localStart->setTimezone($timezone);
-        $slots = $this->availableSlots($serviceId, $localStart->format('Y-m-d'), $staffId, $checkExternalCalendar ? null : 5);
+        $slots = $this->availableSlots($serviceId, $localStart->format('Y-m-d'), $staffId, null, $checkExternalCalendar);
         $requestedUtc = $localStart->utc()->getTimestamp();
 
         foreach ($slots as $slot) {
