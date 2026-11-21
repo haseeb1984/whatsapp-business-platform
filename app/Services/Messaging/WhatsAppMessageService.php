@@ -4,6 +4,8 @@ namespace App\Services\Messaging;
 
 use App\Enums\MessageActor;
 use App\Exceptions\MetaWhatsAppApiException;
+use App\Models\Appointment;
+use App\Models\AppointmentReminder;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\WhatsAppConnection;
@@ -28,7 +30,6 @@ class WhatsAppMessageService
         }
 
         return DB::transaction(function () use ($conversation, $body, $actor, $replyToMessageId, $staffUserId, $reminderId): Message {
-            $lockedConversation = Conversation::query()->lockForUpdate()->findOrFail($conversation->id);
             if ($reminderId !== null) {
                 $existingReminderMessage = Message::query()->where('reminder_id', $reminderId)->first();
                 if ($existingReminderMessage) {
@@ -38,8 +39,15 @@ class WhatsAppMessageService
 
                     return $existingReminderMessage;
                 }
+
+                $reminder = AppointmentReminder::query()->lockForUpdate()->findOrFail($reminderId);
+                $appointment = Appointment::query()->lockForUpdate()->findOrFail($reminder->appointment_id);
+                if ($reminder->status !== 'processing' || $appointment->status !== 'confirmed') {
+                    throw ValidationException::withMessages(['reminder' => 'This appointment reminder is no longer eligible to send.']);
+                }
             }
 
+            $lockedConversation = Conversation::query()->lockForUpdate()->findOrFail($conversation->id);
             if ($lockedConversation->status !== 'open') {
                 throw ValidationException::withMessages(['conversation' => 'This conversation is closed.']);
             }
