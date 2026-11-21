@@ -6,7 +6,7 @@ A reusable multi-tenant WhatsApp Business automation platform using the official
 
 **Milestone 0:** Technical specification committed.  
 **Milestone 1:** Laravel 13 / React / Inertia application shell and initial tenant schema committed; dependency installation and runtime tests are still pending.  
-**Milestone 2 (in progress):** Registration, login/logout, password reset, signed email verification, workspace selection/switching, tenant context and role-gating foundations are committed. Full runtime verification and the remaining authorization/database isolation work are pending. A fail-closed tenant-owned model concern and explicit background-work tenant context helper are now committed; production tenant models and database constraints still need to adopt them.
+**Milestone 2 (in progress):** Registration, login/logout, password reset, signed email verification, workspace selection/switching, tenant context and role-gating foundations are committed. Full runtime verification and the remaining authorization/database isolation work are pending. A fail-closed tenant-owned model concern and explicit background-work tenant context helper are now committed. Request middleware also clears/restores tenant context after each request, and suspended tenants are excluded from workspace selection. Production tenant models and database constraints still need to adopt the concern.
 **Not implemented yet:** Meta integration, AI workflows, human handover, appointment booking, Google Calendar OAuth, and production business/platform dashboards.
 
 ## Approved stack
