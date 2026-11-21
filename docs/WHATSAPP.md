@@ -39,7 +39,8 @@ Access tokens are encrypted at rest and omitted from dashboard props. App secret
 6. Return a successful acknowledgement promptly (implemented).
 7. Dispatch `ProcessMetaWebhookEvent` after commit; it runs with five attempts and bounded backoff, uses a row lock plus a transaction, restores tenant context, and marks the event processed only after normalized writes commit.
 8. Persist normalized customer, conversation and encrypted message/status records; duplicate provider message IDs do not create duplicate messages (implemented).
-9. Recheck tenant status and human handover before generating/sending any automated response (human handover gate remains pending).
+9. Retry status events that arrive before the outbound message transaction commits; do not discard early provider status updates.
+10. Recheck tenant status and human handover before generating/sending any automated response; the outbound service enforces the actor/state gate, while full handover transitions and staff UI remain pending.
 
 Do not call Groq, Google Calendar, or other slow remote services before acknowledging a webhook.
 
