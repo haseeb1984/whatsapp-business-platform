@@ -187,12 +187,9 @@ class GoogleCalendarConnectionController extends Controller
     public function disconnect(GoogleCalendarService $calendar): RedirectResponse
     {
         $connection = GoogleCalendarConnection::query()->first();
+        $revoked = true;
         if ($connection) {
-            try {
-                $calendar->revoke($connection->refresh_token ?: $connection->access_token);
-            } catch (Throwable $exception) {
-                Log::warning('Google Calendar token revocation failed.', ['exception' => $exception::class]);
-            }
+            $revoked = $calendar->revokeConnection($connection);
             $connection->forceFill([
                 'connected_by_user_id' => null,
                 'access_token' => null,
