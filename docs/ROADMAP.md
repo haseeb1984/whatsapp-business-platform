@@ -90,12 +90,16 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Customer/conversation/message persistence for inbound WhatsApp events with encrypted message content.
 - [ ] Staff assignment, notes and conversation states.
 - [x] Outbound sender blocks automation unless the conversation is `AUTO_ACTIVE`; staff sends require a human-controlled state.
-- [ ] Human handover state transitions, staff assignment and release workflow.
+- [x] Initial automatic handover transition to `WAITING_FOR_STAFF` when approved FAQ evidence is insufficient.
+- [ ] Staff assignment, notes, notifications, staff reply UI and controlled release/resume workflow.
 - [ ] Staff release and controlled automation resume.
 
 ## Milestone 6 — AI and grounded FAQ assistant
 - [x] Provider-independent AI interface and Groq adapter.
 - [x] Published FAQ retrieval, candidate ID validation and exact approved-answer output.
+- [x] Connect inbound text events to a queued grounded FAQ response workflow; recheck latest inbound and human takeover before answering.
+- [x] Move unsupported/insufficient FAQ questions to `WAITING_FOR_STAFF` without generating unsupported claims.
+- [x] Add same-tenant unique inbound-to-outbound correlation to prevent duplicate automated sends.
 - [ ] Intent routing, structured business-fact retrieval and allowlisted tools.
 - [x] Groq rate-limit/timeout handling with deterministic high-confidence fallback and handoff.
 - [x] Prompt-injection-safe FAQ selection and tenant-isolation tests (CI passing).
