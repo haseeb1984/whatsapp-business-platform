@@ -18,13 +18,13 @@ A reusable multi-tenant WhatsApp Business automation platform using the official
 
 **Milestone 6:** Provider-independent Groq integration, published-FAQ grounding, approved-answer-only output, queued inbound reply workflow, rate-limit fallback, prompt-injection checks and safe human handover are implemented. Broader intent routing, structured business-fact retrieval and allowlisted booking tools remain pending.
 
-**Milestone 7:** Tenant-timezone availability, staff/service eligibility, business hours/holidays, staff schedules/date exceptions, booking policies, local and Google FreeBusy conflict checks, idempotent temporary holds, bounded expiry, and the appointment dashboard are implemented. Calendar-backed confirmation/cancellation orchestration is implemented; WhatsApp booking conversation, rescheduling and reminders remain pending.
+**Milestone 7:** Tenant-timezone availability, staff/service eligibility, business hours/holidays, staff schedules/date exceptions, booking policies, local and Google FreeBusy conflict checks, idempotent temporary holds, bounded expiry, and the appointment dashboard are implemented. Calendar-backed confirmation/cancellation, idempotent 24h/2h reminder scheduling, bounded cron dispatch and delivery-state tracking are implemented. Reminder text is sent only inside the 24-hour window and while automation is active; outside-window reminders are blocked pending approved template support. WhatsApp booking conversation and rescheduling remain pending.
 
 **Milestone 8:** Google OAuth with state + PKCE validation, encrypted access/refresh tokens, refresh/revocation, writable calendar listing, tenant default and per-staff calendar mapping, FreeBusy, deterministic event creation/reconciliation lookup and event deletion are implemented. Live Google test-account validation and event update/reschedule remain pending.
 
-**Current CI:** GitHub Actions run [44949967750](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44949967750) passed on commit `afa09a2e3d00d6cb29c2eca51b6dc01d5db8740e`: **124 Laravel tests (457 assertions)**, Composer manifest validation/dependency installation and Vite production build. Tests currently use SQLite; Neon/PostgreSQL migration and constraint rehearsal remains outstanding.
+**Current CI:** GitHub Actions run [44951430610](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44951430610) passed on commit `c898ab96b0f36f6e8a73a600b917ee346b4aa0f1`: **131 Laravel tests (481 assertions)**, Composer manifest validation/dependency installation and Vite production build. Tests currently use SQLite; Neon/PostgreSQL migration and constraint rehearsal remains outstanding.
 
-**Not production-ready yet:** WhatsApp approved templates, end-to-end WhatsApp booking and rescheduling, reminders, full platform/business administration dashboards, expanded tenant isolation and operational hardening, Neon rehearsal, Hostinger deployment validation, live Meta/Google acceptance tests, backup/restore and production onboarding.
+**Not production-ready yet:** WhatsApp approved templates (including out-of-window reminders), end-to-end WhatsApp booking and rescheduling, full platform/business administration dashboards, expanded tenant isolation and operational hardening, Neon rehearsal, Hostinger deployment validation, live Meta/Google acceptance tests, backup/restore and production onboarding.
 
 ## Approved stack
 
@@ -34,7 +34,7 @@ A reusable multi-tenant WhatsApp Business automation platform using the official
 - Queue: Laravel database queue, processed in bounded cron-triggered batches on Hostinger shared hosting
 - AI: Groq through a provider-independent adapter (grounded FAQ selection and queued inbound reply orchestration implemented)
 - Messaging: Official Meta WhatsApp Cloud API only
-- Calendar: Google Calendar API (OAuth, FreeBusy and create/delete primitives implemented; booking integration in progress)
+- Calendar: Google Calendar API (OAuth, FreeBusy, event create/delete and booking confirmation/cancellation orchestration implemented)
 - Hosting: Hostinger Business
 - Vercel: explicitly excluded
 
