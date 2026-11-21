@@ -63,7 +63,7 @@ class FaqTest extends TestCase
         });
     }
 
-    public function test_faq_validation_rejects_invalid_locale_and_status(): void
+    public function test_faq_validation_rejects_invalid_locale_status_and_duplicate_question(): void
     {
         [$user] = $this->workspace('faq-validation@example.test');
         $this->actingAs($user);
@@ -75,6 +75,11 @@ class FaqTest extends TestCase
             'status' => 'approved',
         ])->assertSessionHasErrors(['locale', 'status']);
         $this->assertDatabaseCount('faqs', 0);
+
+        $valid = ['question' => 'Hours?', 'answer' => '9 AM', 'locale' => 'en', 'status' => 'draft'];
+        $this->post('/business/faqs', $valid)->assertRedirect();
+        $this->post('/business/faqs', $valid)->assertSessionHasErrors('question');
+        $this->assertDatabaseCount('faqs', 1);
     }
 
     public function test_staff_cannot_manage_faqs(): void
