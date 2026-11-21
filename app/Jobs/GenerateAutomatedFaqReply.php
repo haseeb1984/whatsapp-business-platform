@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Enums\MessageActor;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Services\AI\GroundedFaqAssistant;
@@ -67,7 +68,7 @@ class GenerateAutomatedFaqReply implements ShouldQueue
                 return [
                     'conversation' => $conversation,
                     'inbound' => $inbound,
-                    'locale' => TenantContext::current()->tenant()->locale ?: 'en',
+                    'locale' => app(TenantContext::class)->tenant()->locale ?: 'en',
                 ];
             });
 
@@ -101,7 +102,7 @@ class GenerateAutomatedFaqReply implements ShouldQueue
             $messenger->sendText(
                 $context['conversation'],
                 $result->answer,
-                \App\Enums\MessageActor::Automation,
+                MessageActor::Automation,
                 $this->inboundMessageId,
             );
         });
