@@ -47,12 +47,11 @@ class AppointmentCalendarOrchestrationTest extends TestCase
         [$tenant, $appointment] = $this->booking('calendar-confirm');
         $eventId = substr(hash('sha256', 'appointment:'.$appointment->id), 0, 32);
 
-        Http::fake(function ($request) use ($eventId) {
-            if (str_contains($request->url(), '/events/'.$eventId)) return Http::response([], 404);
-            if (stripos($request->url(), 'freebusy') !== false) return Http::response(['calendars' => ['primary' => ['busy' => []]]]);
-            if (str_ends_with(parse_url($request->url(), PHP_URL_PATH), '/events')) return Http::response(['id' => $eventId], 200);
-            return Http::response([], 500);
-        });
+        Http::fake([
+            'www.googleapis.com/calendar/v3/calendars/primary/events/'.$eventId => Http::response([], 404),
+            'www.googleapis.com/calendar/v3/freeBusy' => Http::response(['calendars' => ['primary' => ['busy' => []]]]),
+            'www.googleapis.com/calendar/v3/calendars/primary/events' => Http::response(['id' => $eventId], 200),
+        ]);
 
         $confirmed = TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->confirm($appointment->id));
         $this->assertSame('confirmed', $confirmed->status);
@@ -72,13 +71,12 @@ class AppointmentCalendarOrchestrationTest extends TestCase
         [$tenant, $appointment] = $this->booking('calendar-busy');
         $eventId = substr(hash('sha256', 'appointment:'.$appointment->id), 0, 32);
 
-        Http::fake(function ($request) use ($eventId) {
-            if (str_ends_with($request->url(), '/events/'.$eventId)) return Http::response([], 404);
-            if (stripos($request->url(), 'freebusy') !== false) return Http::response(['calendars' => ['primary' => ['busy' => [[
+        Http::fake([
+            'www.googleapis.com/calendar/v3/calendars/primary/events/'.$eventId => Http::response([], 404),
+            'www.googleapis.com/calendar/v3/freeBusy' => Http::response(['calendars' => ['primary' => ['busy' => [[
                 'start' => '2026-11-23T04:55:00Z', 'end' => '2026-11-23T05:45:00Z',
-            ]]]]]);
-            return Http::response([], 500);
-        });
+            ]]]]]),
+        ]);
 
         try {
             TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->confirm($appointment->id));
@@ -100,12 +98,11 @@ class AppointmentCalendarOrchestrationTest extends TestCase
         [$tenant, $appointment] = $this->booking('calendar-unknown');
         $eventId = substr(hash('sha256', 'appointment:'.$appointment->id), 0, 32);
 
-        Http::fake(function ($request) use ($eventId) {
-            if (str_ends_with($request->url(), '/events/'.$eventId)) return Http::response([], 404);
-            if (stripos($request->url(), 'freebusy') !== false) return Http::response(['calendars' => ['primary' => ['busy' => []]]]);
-            if (str_ends_with($request->url(), '/events')) return Http::response(['error' => 'temporary'], 500);
-            return Http::response([], 500);
-        });
+        Http::fake([
+            'www.googleapis.com/calendar/v3/calendars/primary/events/'.$eventId => Http::response([], 404),
+            'www.googleapis.com/calendar/v3/freeBusy' => Http::response(['calendars' => ['primary' => ['busy' => []]]]),
+            'www.googleapis.com/calendar/v3/calendars/primary/events' => Http::response(['error' => 'temporary'], 500),
+        ]);
 
         try {
             TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->confirm($appointment->id));
@@ -128,16 +125,10 @@ class AppointmentCalendarOrchestrationTest extends TestCase
         [$tenant, $appointment] = $this->booking('calendar-rate-limit');
         $eventId = substr(hash('sha256', 'appointment:'.$appointment->id), 0, 32);
 
-        Http::fake(function ($request) use ($eventId) {
-            if ($request->method() === 'GET' && str_contains($request->url(), '/events/'.$eventId)) {
-                return Http::response([], 404);
-            }
-            if ($request->method() === 'POST' && stripos($request->url(), 'freebusy') !== false) {
-                return Http::response(['error' => 'rate limit'], 429);
-            }
-
-            return Http::response(['unexpected_request' => $request->url()], 500);
-        });
+        Http::fake([
+            'www.googleapis.com/calendar/v3/calendars/primary/events/'.$eventId => Http::response([], 404),
+            'www.googleapis.com/calendar/v3/freeBusy' => Http::response(['error' => 'rate limit'], 429),
+        ]);
 
         try {
             TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->confirm($appointment->id));
@@ -165,13 +156,9 @@ class AppointmentCalendarOrchestrationTest extends TestCase
         ]);
         TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->confirm($appointment->id));
 
-        Http::fake(function ($request) use ($eventId) {
-            if ($request->method() === 'DELETE' && str_contains($request->url(), '/events/'.$eventId)) {
-                return Http::response(['error' => 'timeout'], 500);
-            }
-
-            return Http::response(['unexpected_request' => $request->url()], 500);
-        });
+        Http::fake([
+            'www.googleapis.com/calendar/v3/calendars/primary/events/'.$eventId => Http::response(['error' => 'timeout'], 500),
+        ]);
 
         try {
             TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->cancel($appointment->id));
