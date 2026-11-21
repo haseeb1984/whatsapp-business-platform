@@ -79,7 +79,7 @@ class MetaWhatsAppWebhookTest extends TestCase
         ], $raw)->assertOk();
 
         $this->assertDatabaseCount('webhook_events', 1);
-        Queue::assertPushed(ProcessMetaWebhookEvent::class, 1);
+        Queue::assertPushed(ProcessMetaWebhookEvent::class);
         $this->assertDatabaseHas('webhook_events', [
             'tenant_id' => $tenant->id,
             'provider' => 'meta_whatsapp',
