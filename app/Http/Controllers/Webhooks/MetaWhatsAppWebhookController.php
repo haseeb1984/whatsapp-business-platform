@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Webhooks;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ProcessMetaWebhookEvent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -93,8 +94,12 @@ class MetaWhatsAppWebhookController extends Controller
                     $field = is_string($change['field'] ?? null) ? $change['field'] : 'unknown';
                     $items = [];
 
+                    $contactName = data_get($value, 'contacts.0.profile.name');
                     foreach (($value['messages'] ?? []) as $message) {
                         if (is_array($message)) {
+                            if (is_string($contactName) && $contactName !== '') {
+                                $message['_contact_name'] = $contactName;
+                            }
                             $items[] = ['type' => 'message.received', 'payload' => $message];
                         }
                     }
@@ -117,8 +122,9 @@ class MetaWhatsAppWebhookController extends Controller
                             'payload' => $item['payload'],
                         ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
-                        DB::table('webhook_events')->insertOrIgnore([
-                            'id' => (string) Str::uuid(),
+                        $eventId = (string) Str::uuid();
+                        $inserted = DB::table('webhook_events')->insertOrIgnore([
+                            'id' => $eventId,
                             'tenant_id' => $tenantId,
                             'provider' => 'meta_whatsapp',
                             'provider_event_key' => hash('sha256', $serialized),
@@ -131,6 +137,10 @@ class MetaWhatsAppWebhookController extends Controller
                             'created_at' => now(),
                             'updated_at' => now(),
                         ]);
+
+                        if ($inserted > 0 && $tenantId) {
+                            ProcessMetaWebhookEvent::dispatch($eventId)->afterCommit();
+                        }
                     }
                 }
             }
