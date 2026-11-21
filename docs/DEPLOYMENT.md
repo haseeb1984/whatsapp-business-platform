@@ -14,7 +14,7 @@ No additional paid hosting, database tier, queue service, or AI provider may be 
 
 ## 2. Current application runtime
 
-The repository contains a Laravel 13 application shell with React, TypeScript, Inertia, Vite, PostgreSQL configuration, an initial users/queue/tenant migration set, and health endpoints. It is not yet a complete SaaS product. Meta, Groq, Google Calendar and business workflows remain unimplemented. Basic registration/login/logout, password-reset flow, workspace selection and initial tenant-context middleware are committed, but runtime tests, email verification and complete tenant authorization are still pending.
+The repository contains a Laravel 13 / React / TypeScript / Inertia application with PostgreSQL configuration, tenant-aware business configuration, authentication and email verification, official Meta WhatsApp Cloud API connection/webhook processing, encrypted message storage, outbound text sending, a Groq-grounded FAQ assistant, queued inbound FAQ replies, a staff conversation inbox/handover workflow, and a timezone-aware appointment availability/temporary-hold foundation. Google Calendar OAuth and live event operations, approved WhatsApp templates, full intent orchestration, and production deployment remain pending. Latest CI passes 104 Laravel tests (382 assertions) and the Vite production build; tests currently use SQLite.
 
 Laravel 13 requires PHP 8.3 or higher. Hostinger's current PHP selector documentation lists PHP 8.2 and newer options, including 8.3–8.5. Select PHP 8.3+ for this application and verify required extensions in the actual site's PHP Info page. Do not assume the account's current PHP setting.
 
@@ -82,13 +82,21 @@ Never commit real values. Keep `.env` outside the public web root and ensure the
 
 ## 8. Cron-backed queue processing
 
-The initial shared-hosting strategy is a database queue, not a persistent daemon. After queue jobs are introduced and the worker command has been tested, configure a Hostinger cron job to run a bounded worker invocation at the supported cadence. Proposed command:
+The initial shared-hosting strategy is a database queue, not a persistent daemon. After queue jobs are introduced and the worker command has been tested, configure a Hostinger cron job to run a bounded worker invocation at the supported cadence. Laravel's scheduler also expires temporary appointment holds once per minute. Proposed command:
 
 ```bash
 cd /home/ACCOUNT/domains/DOMAIN/public_html/APP_ROOT && php artisan queue:work database --stop-when-empty --max-time=20 --tries=3 --sleep=1
 ```
 
-Replace the path with the real application path. The command must run outside the public directory. Confirm PHP CLI path, cron cadence, process limits, and logs in hPanel. Do not configure this cron until the application is deployed and queue migrations have succeeded. The 20-second limit is a starting value to validate, not a guaranteed Hostinger allowance.
+Replace the path with the real application path. The command must run outside the public directory. Confirm PHP CLI path, cron cadence, process limits, and logs in hPanel. Do not configure this cron until the application is deployed and queue migrations have succeeded.
+
+Configure Laravel's scheduler with a separate cron entry (after confirming the real application path and PHP CLI binary):
+
+```bash
+* * * * * cd /home/ACCOUNT/domains/DOMAIN/public_html/APP_ROOT && php artisan schedule:run >> /dev/null 2>&1
+```
+
+This runs the scheduled `appointments:expire-holds` task. The queue worker and scheduler are separate concerns; both need monitoring and bounded execution. The 20-second limit is a starting value to validate, not a guaranteed Hostinger allowance.
 
 ## 9. Rollback and recovery
 
