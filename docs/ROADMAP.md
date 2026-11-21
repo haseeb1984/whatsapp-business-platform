@@ -78,7 +78,8 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Meta Graph API verification of the configured phone number and its WABA membership before activation.
 - [x] Meta webhook GET verification with constant-time verify-token comparison.
 - [x] POST raw-body HMAC-SHA256 signature validation with constant-time comparison and payload-size limit.
-- [ ] Bounded webhook event processing job and normalized customer/conversation/message persistence.
+- [x] Bounded retryable webhook processing job with transactional tenant context and normalized customer/conversation/message persistence (tests authored; CI pending for latest commit).
+- [x] Inbound message and delivery-status event normalization with encrypted message content (tests authored; CI pending for latest commit).
 - [ ] Outbound text/template adapter and status webhooks.
 - [ ] Provider-side connection/token verification and activation.
 - [x] Durable encrypted webhook event persistence with SHA-256 idempotency key and duplicate suppression.
