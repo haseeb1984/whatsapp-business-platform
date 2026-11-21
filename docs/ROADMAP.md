@@ -60,16 +60,17 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Add service CRUD, price/duration/buffer validation, tenant-isolation and staff-access tests (authored; execution pending).
 - [x] Add staff CRUD, service assignment, cross-tenant assignment rejection and staff-access tests (authored; execution pending).
 - [x] Add staff weekly availability and tenant-isolation feature tests (authored; execution pending).
+- [x] Add FAQ publication lifecycle, validation and tenant-isolation tests (authored; execution pending).
 - [x] Weekly business hours editor with seven-day validation, tenant isolation and database constraints (tests authored; execution pending).
 - [x] Holiday and special-hours CRUD for a business-local date, with tenant isolation and validation (tests authored; execution pending).
 - [x] Service and pricing CRUD with currency code, duration, scheduling buffers, active status and tenant isolation (tests authored; execution pending).
 - [x] Staff CRUD and service assignment with composite tenant-aware foreign keys (tests authored; execution pending).
 - [x] Staff-specific weekly working hours editor with tenant-aware foreign key and validation (tests authored; execution pending).
-- [ ] Staff-specific holidays/exceptions and policies.
-- [ ] FAQ CRUD, publish/archive lifecycle and tenant-scoped search.
+- [ ] Staff-specific holidays/exceptions and business policies.
+- [x] FAQ CRUD, draft/published/archived lifecycle, locale validation and tenant-scoped search (tests authored; execution pending).
 - [ ] Dashboard forms and validation.
 
-**Status:** Business profile, weekly hours, holiday/special-hours management, service/pricing CRUD, staff/service assignments and staff weekly availability are committed, including admin-only routes and authored feature tests. Runtime verification remains pending; holidays, services, staff, FAQs and full dashboards remain in progress.
+**Status:** Business profile, weekly hours, holiday/special-hours management, service/pricing CRUD, staff/service assignments, staff weekly availability and FAQ management are committed, including admin-only routes and authored feature tests. Runtime verification remains pending; holidays, services, staff, FAQs and full dashboards remain in progress.
 
 ## Milestone 4 — WhatsApp Cloud API foundation
 - [ ] Meta webhook GET verification.
