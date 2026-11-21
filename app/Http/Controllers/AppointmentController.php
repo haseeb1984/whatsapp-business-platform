@@ -6,7 +6,6 @@ use App\Models\Appointment;
 use App\Models\BookingPolicy;
 use App\Models\Customer;
 use App\Models\GoogleCalendarConnection;
-use App\Jobs\SyncAppointmentCalendarEvent;
 use App\Models\Service;
 use App\Models\Staff;
 use App\Services\Booking\AppointmentAvailabilityService;
@@ -115,10 +114,6 @@ class AppointmentController extends Controller
             $validated['source'] ?? 'dashboard',
         );
 
-        if (GoogleCalendarConnection::query()->where('status', 'connected')->exists()
-            && $appointment->status === 'pending_hold') {
-            SyncAppointmentCalendarEvent::dispatch(app(TenantContext::class)->id(), $appointment->id);
-        }
         $appointment->refresh();
 
         $message = match ($appointment->status) {
