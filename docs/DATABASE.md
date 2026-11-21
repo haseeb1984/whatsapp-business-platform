@@ -60,7 +60,11 @@
 - `integration_logs`: tenant_id, integration, operation, correlation_id, status, sanitized_error, latency_ms.
 - `usage_records`: tenant_id, metric, quantity, period_start, period_end.
 
-## 3. Critical constraints and indexes
+## 3. Tenant-owned Eloquent model contract
+
+Use `App\Models\Concerns\BelongsToTenant` on every tenant-owned Eloquent model. The concern adds a fail-closed global tenant scope, assigns `tenant_id` from the active `TenantContext` on create, rejects a caller-supplied tenant mismatch, and prevents moving an existing model between tenants. It deliberately throws when a tenant-owned query runs without a context; background jobs and command handlers must explicitly establish and clear a tenant context for each unit of work. Do not use `withoutGlobalScope(s)` in tenant-facing code. This is an application guardrail, not a replacement for tenant-aware foreign keys and database constraints.
+
+## 4. Critical constraints and indexes
 
 - Unique `tenants.slug`.
 - Unique `tenant_user(tenant_id, user_id)`.
@@ -74,7 +78,7 @@
 - Add composite foreign keys such as `(tenant_id, customer_id)` referencing `customers(tenant_id, id)` to prevent cross-tenant references at database level.
 - Add exclusion constraints for overlapping confirmed appointments per staff/resource where feasible, using PostgreSQL range types and `btree_gist`; also enforce service buffers in availability logic. If extension availability is restricted, use transactional advisory locks or row locks with a deterministic resource key.
 
-## 4. Appointment overlap model
+## 5. Appointment overlap model
 
 A booking must reserve a staff/resource time range atomically. Candidate availability is advisory until a transaction rechecks it. Within a transaction:
 1. Acquire a lock for tenant + staff/resource + relevant time window.
@@ -87,10 +91,10 @@ A booking must reserve a staff/resource time range atomically. Candidate availab
 
 The database constraint is the final guard where supported; application checks alone are insufficient under concurrent requests.
 
-## 5. JSONB guidance
+## 6. JSONB guidance
 
 Use JSONB for provider payload fragments, flexible settings, and audit metadata—not as a substitute for relational columns used in joins, authorization, uniqueness, or scheduling. Validate JSON shapes and size limits.
 
-## 6. Data lifecycle
+## 7. Data lifecycle
 
 Define retention and deletion policies for message bodies, webhook payloads, AI context, audit logs, and OAuth tokens before production. Tenant offboarding must revoke integrations, stop scheduled jobs, and provide an auditable export/deletion workflow consistent with applicable legal obligations.
