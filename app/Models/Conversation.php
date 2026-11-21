@@ -51,6 +51,11 @@ class Conversation extends Model
         return $this->belongsTo(User::class, 'assigned_user_id');
     }
 
+    public function bookingSession(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ConversationBookingSession::class);
+    }
+
     public function latestMessage(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Message::class)->latestOfMany('created_at');
