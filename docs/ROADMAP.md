@@ -81,12 +81,12 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Bounded retryable webhook processing job with transactional tenant context and normalized customer/conversation/message persistence (CI passing).
 - [x] Inbound message and delivery-status event normalization with encrypted message content (CI passing).
 - [x] Text-only outbound adapter with 24-hour customer-service-window enforcement, actor/state gate, persisted send attempt and ambiguous-outcome handling (CI passing).
-- [ ] Approved template sending and template lifecycle management.
+- [x] Synchronize Meta message-template catalog (ID, name, language, category, approval status and components) into tenant-scoped storage; expose status in WhatsApp settings and restrict sync to verified active connections.\n- [ ] Send approved templates with validated parameter mapping, delivery-state tracking and out-of-window reminder integration.
 - [x] Provider-side phone-number and WABA membership verification; only verified connections can become active.
 - [x] Durable encrypted webhook event persistence with SHA-256 idempotency key and duplicate suppression.
 - [x] Tenant routing through verified active phone_number_id; unknown/disabled connections are quarantined as unmatched.
 
-## Milestone 5 — Conversations and human handover
+**Current checkpoint:** Template catalog retrieval, tenant-scoped persistence, manual sync action and settings UI are implemented. Automated template sending and appointment-reminder parameter mapping remain pending; a green CI run is required before treating this increment as verified.\n\n## Milestone 5 — Conversations and human handover
 - [x] Customer/conversation/message persistence for inbound WhatsApp events with encrypted message content.
 - [x] Tenant-scoped inbox and conversation detail screens with state/search filters.
 - [x] Staff assignment to active users in the same tenant; only business admins can assign or close/reopen conversations.
