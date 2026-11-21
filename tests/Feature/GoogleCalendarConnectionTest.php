@@ -160,6 +160,63 @@ class GoogleCalendarConnectionTest extends TestCase
             && $request->hasHeader('Authorization', 'Bearer fresh-access'));
     }
 
+
+    public function test_disconnect_revokes_google_token_and_clears_encrypted_credentials(): void
+    {
+        [$user, $tenant] = $this->workspace('google-disconnect@example.test');
+        TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->create([
+            'connected_by_user_id' => $user->id,
+            'access_token' => 'access-to-revoke',
+            'refresh_token' => 'refresh-to-revoke',
+            'token_expires_at' => now()->addHour(),
+            'status' => 'connected',
+        ]));
+
+        Http::fake([
+            'oauth2.googleapis.com/revoke' => Http::response([], 200),
+        ]);
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id])
+            ->delete('/business/calendar')
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $connection = TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->firstOrFail());
+        $this->assertSame('disconnected', $connection->status);
+        $this->assertNull($connection->access_token);
+        $this->assertNull($connection->refresh_token);
+        Http::assertSent(fn ($request) => $request->url() === 'https://oauth2.googleapis.com/revoke'
+            && $request['token'] === 'refresh-to-revoke');
+    }
+
+    public function test_read_only_google_calendar_cannot_be_selected_for_bookings(): void
+    {
+        [$user, $tenant] = $this->workspace('google-readonly@example.test');
+        TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->create([
+            'access_token' => 'calendar-access',
+            'refresh_token' => 'calendar-refresh',
+            'token_expires_at' => now()->addHour(),
+            'status' => 'connected',
+            'default_calendar_id' => 'primary',
+        ]));
+
+        Http::fake([
+            'www.googleapis.com/calendar/v3/users/me/calendarList*' => Http::response([
+                'items' => [
+                    ['id' => 'primary', 'summary' => 'Primary', 'primary' => true, 'accessRole' => 'owner'],
+                    ['id' => 'readonly@example.test', 'summary' => 'Read Only', 'accessRole' => 'reader'],
+                ],
+            ]),
+        ]);
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id])
+            ->put('/business/calendar/default', ['calendar_id' => 'readonly@example.test'])
+            ->assertStatus(422);
+
+        $connection = TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->firstOrFail());
+        $this->assertSame('primary', $connection->default_calendar_id);
+    }
+
     private function workspace(string $email, string $role = 'business_admin'): array
     {
         $user = User::query()->create([
