@@ -2,6 +2,7 @@
 
 namespace App\Services\Google;
 
+use App\Exceptions\GoogleCalendarBusyException;
 use App\Models\Appointment;
 use App\Models\GoogleCalendarConnection;
 use App\Models\Staff;
@@ -113,6 +114,33 @@ class GoogleCalendarService
         ]);
 
         return $response['calendars'] ?? [];
+    }
+
+
+    public function assertAppointmentCalendarAvailable(Appointment $appointment): void
+    {
+        $connection = $this->connectedConnection();
+        $staff = Staff::query()->findOrFail($appointment->staff_id);
+        $calendarId = $staff->google_calendar_id ?: $connection->default_calendar_id;
+        $busy = $this->freeBusy(
+            [$calendarId],
+            $appointment->reserved_starts_at->utc()->toIso8601String(),
+            $appointment->reserved_ends_at->utc()->toIso8601String(),
+        );
+
+        foreach (($busy[$calendarId]['busy'] ?? []) as $period) {
+            if (! is_string($period['start'] ?? null) || ! is_string($period['end'] ?? null)) {
+                continue;
+            }
+
+            $busyStart = strtotime($period['start']);
+            $busyEnd = strtotime($period['end']);
+            if ($busyStart !== false && $busyEnd !== false
+                && $busyStart < $appointment->reserved_ends_at->getTimestamp()
+                && $busyEnd > $appointment->reserved_starts_at->getTimestamp()) {
+                throw new GoogleCalendarBusyException('The selected staff calendar is busy during this appointment.');
+            }
+        }
     }
 
     public function createAppointmentEvent(Appointment $appointment): string
