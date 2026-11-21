@@ -203,6 +203,8 @@ class GoogleCalendarConnectionController extends Controller
             ])->save();
         }
 
-        return back()->with('success', 'Google Calendar disconnected.');
+        return back()->with('success', $revoked
+            ? 'Google Calendar disconnected and the token revocation request succeeded.'
+            : 'Google Calendar disconnected locally. Google could not confirm token revocation; review access in your Google Account security settings.');
     }
 }
