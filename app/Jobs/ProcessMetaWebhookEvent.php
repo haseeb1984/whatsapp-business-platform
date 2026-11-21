@@ -95,7 +95,7 @@ class ProcessMetaWebhookEvent implements ShouldQueue
         $waId = $payload['from'] ?? null;
         $providerMessageId = $payload['id'] ?? null;
 
-        if (! is_string($waId) || $waId === '' || ! is_string($providerMessageId) || $providerMessageId === '') {
+        if (! is_string($waId) || ! ctype_digit($waId) || ! is_string($providerMessageId) || $providerMessageId === '') {
             throw new \UnexpectedValueException('Inbound Meta message is missing its sender or provider ID.');
         }
 
