@@ -86,7 +86,7 @@ class MetaWhatsAppWebhookController extends Controller
                     $tenantId = $phoneNumberId
                         ? DB::table('whatsapp_connections')
                             ->where('phone_number_id', $phoneNumberId)
-                            ->where('status', '!=', 'disabled')
+                            ->where('status', 'active')
                             ->value('tenant_id')
                         : null;
 
