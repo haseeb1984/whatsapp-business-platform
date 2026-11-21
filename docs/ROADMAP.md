@@ -56,12 +56,14 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Keep tenant timezone and locale synchronized with the business profile in one database transaction.
 - [x] Add profile isolation and staff-access feature tests (authored; execution pending).
 - [x] Add weekly-hours validation, tenant-isolation and staff-access feature tests (authored; execution pending).
+- [x] Add holiday CRUD, duplicate-date, special-hours validation and tenant-isolation tests (authored; execution pending).
 - [x] Weekly business hours editor with seven-day validation, tenant isolation and database constraints (tests authored; execution pending).
-- [ ] Holidays, services, staff and policies.
+- [x] Holiday and special-hours CRUD for a business-local date, with tenant isolation and validation (tests authored; execution pending).
+- [ ] Services, staff and policies.
 - [ ] FAQ CRUD, publish/archive lifecycle and tenant-scoped search.
 - [ ] Dashboard forms and validation.
 
-**Status:** Business profile and weekly-hours configuration are committed, including admin-only editors and authored feature tests. Runtime verification remains pending; holidays, services, staff, FAQs and full dashboards remain in progress.
+**Status:** Business profile, weekly hours and holiday/special-hours management are committed, including admin-only routes and authored feature tests. Runtime verification remains pending; holidays, services, staff, FAQs and full dashboards remain in progress.
 
 ## Milestone 4 — WhatsApp Cloud API foundation
 - [ ] Meta webhook GET verification.
