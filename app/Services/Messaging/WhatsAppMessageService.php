@@ -18,7 +18,7 @@ class WhatsAppMessageService
     {
     }
 
-    public function sendText(Conversation $conversation, string $body, MessageActor $actor = MessageActor::Automation, ?string $replyToMessageId = null): Message
+    public function sendText(Conversation $conversation, string $body, MessageActor $actor = MessageActor::Automation, ?string $replyToMessageId = null, ?int $staffUserId = null): Message
     {
         $body = trim($body);
         if ($body === '' || mb_strlen($body) > 4096) {
@@ -27,7 +27,7 @@ class WhatsAppMessageService
             ]);
         }
 
-        return DB::transaction(function () use ($conversation, $body, $actor, $replyToMessageId): Message {
+        return DB::transaction(function () use ($conversation, $body, $actor, $replyToMessageId, $staffUserId): Message {
             $lockedConversation = Conversation::query()->lockForUpdate()->findOrFail($conversation->id);
             if ($lockedConversation->status !== 'open') {
                 throw ValidationException::withMessages(['conversation' => 'This conversation is closed.']);
@@ -36,6 +36,10 @@ class WhatsAppMessageService
             $allowedStates = $actor === MessageActor::Automation
                 ? ['AUTO_ACTIVE']
                 : ['HUMAN_ACTIVE', 'WAITING_FOR_STAFF'];
+
+            if ($actor === MessageActor::Staff && $staffUserId !== null && $lockedConversation->assigned_user_id !== $staffUserId) {
+                throw ValidationException::withMessages(['conversation' => 'Only the assigned team member may reply.']);
+            }
 
             if (! in_array($lockedConversation->automation_state, $allowedStates, true)) {
                 throw ValidationException::withMessages([
