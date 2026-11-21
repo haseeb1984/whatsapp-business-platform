@@ -80,7 +80,8 @@ This roadmap distinguishes planned work from implemented work.
 - [x] POST raw-body HMAC-SHA256 signature validation with constant-time comparison and payload-size limit.
 - [x] Bounded retryable webhook processing job with transactional tenant context and normalized customer/conversation/message persistence (CI passing).
 - [x] Inbound message and delivery-status event normalization with encrypted message content (CI passing).
-- [ ] Outbound text/template adapter and sending workflow.
+- [x] Text-only outbound adapter with 24-hour customer-service-window enforcement, actor/state gate, persisted send attempt and ambiguous-outcome handling (CI passing).
+- [ ] Approved template sending and template lifecycle management.
 - [x] Provider-side phone-number and WABA membership verification; only verified connections can become active.
 - [x] Durable encrypted webhook event persistence with SHA-256 idempotency key and duplicate suppression.
 - [x] Tenant routing through verified active phone_number_id; unknown/disabled connections are quarantined as unmatched.
@@ -88,7 +89,8 @@ This roadmap distinguishes planned work from implemented work.
 ## Milestone 5 — Conversations and human handover
 - [x] Customer/conversation/message persistence for inbound WhatsApp events with encrypted message content.
 - [ ] Staff assignment, notes and conversation states.
-- [ ] Human-active hard gate before every automated send.
+- [x] Outbound sender blocks automation unless the conversation is `AUTO_ACTIVE`; staff sends require a human-controlled state.
+- [ ] Human handover state transitions, staff assignment and release workflow.
 - [ ] Staff release and controlled automation resume.
 
 ## Milestone 6 — AI and grounded FAQ assistant
