@@ -78,7 +78,7 @@ Prerequisites: PHP 8.3+, Composer, Node.js 22+, npm, and a PostgreSQL database. 
    php artisan serve
    ```
 
-Open `http://127.0.0.1:8000`. The initial dashboard is a foundation screen, not a completed business dashboard.
+Open `http://127.0.0.1:8000`. New users can register an account and create an initial business workspace; existing users can sign in. The dashboard is still a foundation screen, not a completed business dashboard.
 
 ## Verification
 
@@ -86,7 +86,7 @@ Open `http://127.0.0.1:8000`. The initial dashboard is a foundation screen, not 
 - `php artisan test`
 - `npm run build`
 
-A GitHub Actions workflow runs these checks on pushes and pull requests. The first CI run is the first actual dependency/build/test verification; no successful CI result is claimed until GitHub reports it.
+A GitHub Actions workflow is configured to run these checks on pushes and pull requests. Recent runs are failing before any job steps are reported (the runner provides no step/log details), so no Composer install, Laravel test, or frontend build result is currently available. PHP syntax checks have been run locally on the new authentication and tenancy PHP files only.
 
 ## Development principles
 
