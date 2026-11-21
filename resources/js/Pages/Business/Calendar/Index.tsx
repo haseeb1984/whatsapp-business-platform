@@ -82,7 +82,7 @@ export default function GoogleCalendarSettings() {
                 <section className="mt-5 rounded-xl border border-slate-200 bg-white p-5">
                     <h2 className="font-semibold text-slate-900">Permissions requested</h2>
                     <ul className="mt-2 list-disc pl-5 text-sm text-slate-600"><li>Basic Google account identity and email</li><li>Read free/busy availability</li><li>Create, update and delete appointment events</li></ul>
-                    <p className="mt-3 text-xs text-slate-500">Google Calendar event synchronization and FreeBusy checks are being wired into booking orchestration. A local temporary hold is not a confirmed booking.</p>
+                    <p className="mt-3 text-xs text-slate-500">Google FreeBusy is checked when listing availability and again before event creation. Calendar confirmation and cancellation actions are available in the appointment dashboard; local holds remain unconfirmed until the external event is created and stored.</p>
                 </section>
             </div>
         </main>
