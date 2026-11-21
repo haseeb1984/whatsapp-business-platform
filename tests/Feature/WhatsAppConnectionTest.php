@@ -19,8 +19,8 @@ class WhatsAppConnectionTest extends TestCase
         $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id]);
 
         $this->post('/business/whatsapp', [
-            'phone_number_id' => 'PHONE-123',
-            'waba_id' => 'WABA-123',
+            'phone_number_id' => '123456789012345',
+            'waba_id' => '987654321098765',
             'display_phone_number' => '+1 555 0100',
             'verified_name' => 'Example Business',
             'access_token' => 'super-secret-meta-access-token',
@@ -34,7 +34,7 @@ class WhatsAppConnectionTest extends TestCase
         $this->get('/business/whatsapp')
             ->assertOk()
             ->assertDontSee('super-secret-meta-access-token')
-            ->assertSee('PHONE-123');
+            ->assertSee('123456789012345');
     }
 
     public function test_phone_number_id_cannot_be_claimed_by_another_tenant(): void
@@ -44,8 +44,8 @@ class WhatsAppConnectionTest extends TestCase
 
         TenantContext::runForTenant($tenantA->id, function (): void {
             WhatsAppConnection::query()->create([
-                'phone_number_id' => 'GLOBAL-PHONE-ID',
-                'waba_id' => 'WABA-A',
+                'phone_number_id' => '123450000000001',
+                'waba_id' => '987650000000001',
                 'access_token' => 'first-long-lived-access-token',
                 'status' => 'pending',
             ]);
@@ -53,8 +53,8 @@ class WhatsAppConnectionTest extends TestCase
 
         $this->actingAs($userB)->withSession(['current_tenant_id' => $tenantB->id]);
         $this->post('/business/whatsapp', [
-            'phone_number_id' => 'GLOBAL-PHONE-ID',
-            'waba_id' => 'WABA-B',
+            'phone_number_id' => '123450000000001',
+            'waba_id' => '987650000000002',
             'access_token' => 'second-long-lived-access-token',
         ])->assertSessionHasErrors('phone_number_id');
 
