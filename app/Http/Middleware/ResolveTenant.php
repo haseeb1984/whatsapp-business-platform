@@ -44,9 +44,19 @@ class ResolveTenant
         abort_unless($tenant->status === 'active', 403, 'This business workspace is not active.');
 
         $context = new TenantContext($tenant, (string) $tenant->pivot->role);
+        $hadPrevious = app()->bound(TenantContext::class);
+        $previous = $hadPrevious ? app(TenantContext::class) : null;
         app()->instance(TenantContext::class, $context);
         $request->attributes->set(TenantContext::class, $context);
 
-        return $next($request);
+        try {
+            return $next($request);
+        } finally {
+            if ($hadPrevious) {
+                app()->instance(TenantContext::class, $previous);
+            } else {
+                app()->forgetInstance(TenantContext::class);
+            }
+        }
     }
 }
