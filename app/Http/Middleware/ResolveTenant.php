@@ -21,6 +21,7 @@ class ResolveTenant
         if (! is_string($tenantId) || $tenantId === '') {
             $activeMemberships = $user->tenants()
                 ->wherePivot('status', 'active')
+                ->where('tenants.status', 'active')
                 ->orderBy('tenants.name')
                 ->get();
 
@@ -34,6 +35,7 @@ class ResolveTenant
 
         $tenant = $user->tenants()
             ->wherePivot('status', 'active')
+            ->where('tenants.status', 'active')
             ->where('tenants.id', $tenantId)
             ->first();
 
