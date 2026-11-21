@@ -62,6 +62,7 @@ class AppointmentAvailabilityService
         $staffMembers = $staffQuery->orderBy('name')->get();
         $calendarConnection = $checkExternalCalendar ? GoogleCalendarConnection::query()->where('status', 'connected')->first() : null;
         $calendarService = app(GoogleCalendarService::class);
+        $externalBusyByCalendar = [];
         $slots = [];
 
         foreach ($staffMembers as $staff) {
@@ -80,21 +81,25 @@ class AppointmentAvailabilityService
             $externalBusy = [];
             if ($calendarConnection) {
                 $calendarId = $staff->google_calendar_id ?: $calendarConnection->default_calendar_id;
-                try {
-                    $calendarData = $calendarService->freeBusy(
-                        [$calendarId],
-                        $opensAt->utc()->toIso8601String(),
-                        $closesAt->utc()->toIso8601String(),
-                    );
-                } catch (Throwable $exception) {
-                    throw ValidationException::withMessages(['calendar' => 'Google Calendar availability could not be verified. Please retry or reconnect the calendar.']);
+                if (! array_key_exists($calendarId, $externalBusyByCalendar)) {
+                    try {
+                        $calendarData = $calendarService->freeBusy(
+                            [$calendarId],
+                            $opensAt->utc()->toIso8601String(),
+                            $closesAt->utc()->toIso8601String(),
+                        );
+                    } catch (Throwable $exception) {
+                        throw ValidationException::withMessages(['calendar' => 'Google Calendar availability could not be verified. Please retry or reconnect the calendar.']);
+                    }
+
+                    if (! is_array($calendarData[$calendarId] ?? null) || isset($calendarData[$calendarId]['errors'])) {
+                        throw ValidationException::withMessages(['calendar' => 'The assigned Google Calendar is not accessible. Check the staff calendar mapping.']);
+                    }
+
+                    $externalBusyByCalendar[$calendarId] = $calendarData[$calendarId]['busy'] ?? [];
                 }
 
-                if (! is_array($calendarData[$calendarId] ?? null) || isset($calendarData[$calendarId]['errors'])) {
-                    throw ValidationException::withMessages(['calendar' => 'The assigned Google Calendar is not accessible. Check the staff calendar mapping.']);
-                }
-
-                $externalBusy = $calendarData[$calendarId]['busy'] ?? [];
+                $externalBusy = $externalBusyByCalendar[$calendarId];
             }
 
             $firstStart = $opensAt->addMinutes((int) $service->buffer_before_minutes);
