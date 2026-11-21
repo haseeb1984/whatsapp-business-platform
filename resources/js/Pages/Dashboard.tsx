@@ -25,7 +25,7 @@ export default function Dashboard() {
                         </div>
                         <span className="inline-flex w-fit rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-sm text-amber-200">Foundation stage</span>
                     </div>
-                    <div className="mt-8"><a href="/business/profile" className="inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">Configure business profile</a></div>
+                    <div className="mt-8 flex flex-wrap gap-3"><a href="/business/profile" className="inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">Configure business profile</a><a href="/business/hours" className="inline-flex rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800">Set business hours</a></div>
                     <section className="mt-10 grid gap-4 sm:grid-cols-2">
                         {[
                             ['Backend', 'Laravel 13 · PHP 8.3+'],
@@ -44,7 +44,7 @@ export default function Dashboard() {
                         <ul className="mt-5 grid gap-3 sm:grid-cols-2">
                             {modules.map((module) => <li key={module} className="flex items-center gap-3 text-slate-300"><span className="h-2 w-2 rounded-full bg-blue-400" />{module}</li>)}
                         </ul>
-                        <p className="mt-6 border-t border-slate-800 pt-4 text-sm text-slate-500">Initial application shell only. Product modules are not implemented yet.</p>
+                        <p className="mt-6 border-t border-slate-800 pt-4 text-sm text-slate-500">Business profile and weekly opening hours are implemented as the first configuration modules. Other product modules remain planned.</p>
                     </section>
                 </div>
             </main>
