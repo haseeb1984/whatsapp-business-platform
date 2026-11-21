@@ -46,7 +46,7 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Implement tenant-scoped repositories/policies and composite tenant-aware foreign keys.
 - [ ] Add cross-tenant negative authorization tests for read, update, delete and background jobs.
 
-**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. Current business modules use business-admin role middleware. Remaining work is broader tenant-model coverage, composite foreign keys for all cross-entity references and end-to-end queued-job isolation. Configure production SMTP before sending verification or password-reset emails. The current CI run passes (56 tests / 199 assertions).
+**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. Current business modules use business-admin role middleware. Remaining work is broader tenant-model coverage, composite foreign keys for all cross-entity references and end-to-end queued-job isolation. Configure production SMTP before sending verification or password-reset emails. The current CI run passes (70 tests / 255 assertions).
 
 **Exit gate:** A user from tenant A cannot read, update, delete or infer tenant B data through any tested route or job.
 
@@ -57,7 +57,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Add profile isolation and staff-access feature tests (CI passing).
 - [x] Add weekly-hours validation, tenant-isolation and staff-access feature tests (CI passing).
 - [x] Add holiday CRUD, duplicate-date, special-hours validation and tenant-isolation tests (CI passing).
-- [x] Add service CRUD, price/duration/buffer validation, tenant-isolation and staff-access tests (authored; execution pending).
+- [x] Add service CRUD, price/duration/buffer validation, tenant-isolation and staff-access tests (CI passing).
 - [x] Add staff CRUD, service assignment, cross-tenant assignment rejection and staff-access tests (authored; execution pending).
 - [x] Add staff weekly availability and tenant-isolation feature tests (authored; execution pending).
 - [x] Add FAQ publication lifecycle, validation and tenant-isolation tests (authored; execution pending).
@@ -78,15 +78,15 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Meta Graph API verification of the configured phone number and its WABA membership before activation.
 - [x] Meta webhook GET verification with constant-time verify-token comparison.
 - [x] POST raw-body HMAC-SHA256 signature validation with constant-time comparison and payload-size limit.
-- [x] Bounded retryable webhook processing job with transactional tenant context and normalized customer/conversation/message persistence (tests authored; CI pending for latest commit).
-- [x] Inbound message and delivery-status event normalization with encrypted message content (tests authored; CI pending for latest commit).
-- [ ] Outbound text/template adapter and status webhooks.
-- [ ] Provider-side connection/token verification and activation.
+- [x] Bounded retryable webhook processing job with transactional tenant context and normalized customer/conversation/message persistence (CI passing).
+- [x] Inbound message and delivery-status event normalization with encrypted message content (CI passing).
+- [ ] Outbound text/template adapter and sending workflow.
+- [x] Provider-side phone-number and WABA membership verification; only verified connections can become active.
 - [x] Durable encrypted webhook event persistence with SHA-256 idempotency key and duplicate suppression.
 - [x] Tenant routing through verified active phone_number_id; unknown/disabled connections are quarantined as unmatched.
 
 ## Milestone 5 — Conversations and human handover
-- [ ] Customer/conversation/message persistence.
+- [x] Customer/conversation/message persistence for inbound WhatsApp events with encrypted message content.
 - [ ] Staff assignment, notes and conversation states.
 - [ ] Human-active hard gate before every automated send.
 - [ ] Staff release and controlled automation resume.
