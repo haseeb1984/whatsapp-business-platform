@@ -120,6 +120,41 @@ class AppointmentCalendarOrchestrationTest extends TestCase
         ]);
     }
 
+
+    public function test_ambiguous_calendar_deletion_keeps_appointment_confirmed_and_reserved(): void
+    {
+        [$tenant, $appointment] = $this->booking('calendar-delete-unknown');
+        $eventId = substr(hash('sha256', 'appointment:'.$appointment->id), 0, 32);
+
+        Http::fake([
+            'www.googleapis.com/calendar/v3/calendars/primary/events/'.$eventId => Http::response([], 404),
+            'www.googleapis.com/calendar/v3/freeBusy' => Http::response(['calendars' => ['primary' => ['busy' => []]]]),
+            'www.googleapis.com/calendar/v3/calendars/primary/events' => Http::response(['id' => $eventId], 200),
+        ]);
+        TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->confirm($appointment->id));
+
+        Http::fake([
+            'www.googleapis.com/calendar/v3/calendars/primary/events/'.$eventId => Http::response(['error' => 'timeout'], 500),
+        ]);
+
+        try {
+            TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->cancel($appointment->id));
+            $this->fail('An ambiguous calendar deletion must not mark the appointment cancelled.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('HTTP 500', $exception->getMessage());
+        }
+
+        $this->assertDatabaseHas('appointments', [
+            'id' => $appointment->id,
+            'status' => 'confirmed',
+            'calendar_sync_status' => 'unknown',
+        ]);
+        $this->assertDatabaseHas('appointment_events', [
+            'appointment_id' => $appointment->id,
+            'event_type' => 'calendar_deletion_unknown',
+        ]);
+    }
+
     private function booking(string $slug): array
     {
         $user = User::query()->create([
