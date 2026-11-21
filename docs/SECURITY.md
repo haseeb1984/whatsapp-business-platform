@@ -2,7 +2,7 @@
 
 ## 1. Authentication and authorization
 
-- Use Laravel's supported authentication/session protections. Initial email/password registration, login/logout, password reset and signed email verification are implemented; keep runtime acceptance pending until the automated suite runs.
+- Use Laravel's supported authentication/session protections. Initial email/password registration, login/logout, password reset and signed email verification are implemented; the current automated CI suite passes.
 - Enforce RBAC on every backend action; frontend visibility is not authorization.
 - Scope business roles to tenant membership. The request tenant context now carries the verified membership role, and role-restricted middleware protects business profile, weekly hours, holidays, services, staff, staff working hours and FAQs. Continue applying it to every future module route.
 - Protect platform administration with separate privileged permissions and audit logging.
