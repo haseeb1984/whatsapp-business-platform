@@ -13,9 +13,9 @@
 
 - Resolve tenant from authenticated membership or verified WhatsApp/Calendar integration ownership. Current web dashboard tenancy is resolved from the authenticated user's active membership; webhook/integration tenant resolution is still pending.
 - Never trust client-supplied tenant identifiers.
-- Scope all reads, writes, exports, jobs, and integration calls.
+- Scope all reads, writes, exports, jobs, and integration calls. A `BelongsToTenant` Eloquent concern now provides a fail-closed tenant global scope, context-derived tenant assignment, and tenant ID immutability for models that opt in.
 - Use composite foreign keys and unique constraints to prevent cross-tenant references.
-- Add automated tests proving cross-tenant access is denied. Initial tests cover tenant selection and role gating; full data-operation and queued-job isolation tests are still required.
+- Add automated tests proving cross-tenant access is denied. The tenant-owned model contract now has tests for read/update/delete isolation, tenant ID assignment/tampering, and missing-context failure. Full production model coverage, tenant-aware foreign keys and queued-job isolation tests are still required.
 - Audit platform staff cross-tenant access.
 
 ## 3. Secrets and encryption
