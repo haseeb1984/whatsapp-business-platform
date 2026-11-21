@@ -7,7 +7,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -50,7 +49,11 @@ class BusinessHoursController extends Controller
 
         $validator->after(function ($validator) use ($request): void {
             $days = $request->input('days', []);
-            $weekdays = array_map(static fn ($day) => $day['weekday'] ?? null, $days);
+            if (! is_array($days)) {
+                return;
+            }
+
+            $weekdays = array_map(static fn ($day) => is_array($day) ? ($day['weekday'] ?? null) : null, $days);
 
             if (count(array_unique($weekdays, SORT_REGULAR)) !== 7 || array_diff(range(0, 6), $weekdays) !== []) {
                 $validator->errors()->add('days', 'Provide each weekday exactly once.');
