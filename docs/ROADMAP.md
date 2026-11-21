@@ -23,14 +23,19 @@ This roadmap distinguishes planned work from implemented work.
 **Status:** Source scaffold committed; runtime verification is pending. Do not treat this milestone as accepted until the unchecked items pass.
 
 ## Milestone 2 — Identity, tenancy, and authorization
-- [ ] Implement authentication and account recovery.
+- [x] Implement email/password registration, login and logout with session regeneration/invalidation.
+- [ ] Implement password reset and email verification.
+- [x] Create a business workspace and active owner membership transactionally during registration.
 - [x] Add a tenant context value object and middleware that resolves only active memberships.
 - [x] Automatically select a user's sole active tenant; require explicit selection for multiple tenants.
 - [x] Reject a session-selected tenant that the authenticated user does not belong to.
+- [x] Protect the dashboard with authentication and tenant-context middleware.
+- [x] Add feature tests for registration, login/logout, membership resolution and cross-tenant selection rejection.
+- [ ] Implement explicit tenant switching UI for users with multiple workspaces.
 - [ ] Implement tenant-scoped repositories/policies and composite tenant-aware foreign keys.
 - [ ] Add cross-tenant negative authorization tests for read, update, delete and background jobs.
 
-**Status:** Tenant-context foundation committed; it is not yet attached to business routes. Authentication, tenant switching UI, authorization policies, database constraints and full isolation tests remain outstanding.
+**Status:** Initial authentication and tenant-context foundation committed. Password recovery, email verification, multi-workspace switching, fine-grained authorization, database constraints and full isolation acceptance tests remain outstanding. Automated tests have been authored but are not yet executed in a working Laravel runtime.
 
 **Exit gate:** A user from tenant A cannot read, update, delete or infer tenant B data through any tested route or job.
 
