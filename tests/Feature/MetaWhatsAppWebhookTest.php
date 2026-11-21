@@ -43,7 +43,7 @@ class MetaWhatsAppWebhookTest extends TestCase
                 'phone_number_id' => '123456789012345',
                 'waba_id' => '987654321098765',
                 'access_token' => 'long-lived-access-token',
-                'status' => 'pending',
+                'status' => 'active',
             ]);
         });
 
