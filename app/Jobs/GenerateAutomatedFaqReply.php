@@ -92,7 +92,11 @@ class GenerateAutomatedFaqReply implements ShouldQueue
                         ->first();
 
                     if ($latestInbound?->id === $this->inboundMessageId) {
-                        $conversation->forceFill(['automation_state' => 'WAITING_FOR_STAFF'])->save();
+                        $conversation->forceFill([
+                            'automation_state' => 'WAITING_FOR_STAFF',
+                            'handover_requested_at' => now(),
+                            'handover_reason' => 'No sufficiently relevant approved FAQ answer was available.',
+                        ])->save();
                     }
                 });
 
