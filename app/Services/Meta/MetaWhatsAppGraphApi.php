@@ -67,6 +67,45 @@ class MetaWhatsAppGraphApi
         return $data;
     }
 
+    public function listMessageTemplates(WhatsAppConnection $connection): array
+    {
+        $version = $this->configuredVersion();
+        if ($version === null) {
+            throw ValidationException::withMessages([
+                'templates' => 'Configure a valid META_GRAPH_API_VERSION before synchronizing templates.',
+            ]);
+        }
+
+        $response = Http::withToken($connection->access_token)
+            ->acceptJson()
+            ->timeout(15)
+            ->get("https://graph.facebook.com/{$version}/{$connection->waba_id}/message_templates", [
+                'fields' => 'id,name,status,category,language,components',
+                'limit' => 100,
+            ]);
+
+        if (! $response->successful()) {
+            throw ValidationException::withMessages([
+                'templates' => 'Meta could not retrieve message templates. Check WhatsApp Business Account access and the whatsapp_business_management permission.',
+            ]);
+        }
+
+        $templates = $response->json('data');
+        if (! is_array($templates)) {
+            throw ValidationException::withMessages([
+                'templates' => 'Meta returned an invalid message-template response.',
+            ]);
+        }
+
+        return collect($templates)->filter(fn ($template): bool =>
+            is_array($template)
+            && is_string($template['id'] ?? null)
+            && is_string($template['name'] ?? null)
+            && is_string($template['language'] ?? null)
+            && is_string($template['status'] ?? null)
+        )->values()->all();
+    }
+
     public function sendText(WhatsAppConnection $connection, string $recipient, string $body): string
     {
         $version = $this->configuredVersion();
