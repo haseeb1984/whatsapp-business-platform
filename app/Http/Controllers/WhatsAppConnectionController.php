@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\WhatsAppConnection;
+use App\Models\WhatsAppTemplate;
 use App\Services\Meta\MetaWhatsAppGraphApi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,17 @@ class WhatsAppConnectionController extends Controller
     public function index(): Response
     {
         return Inertia::render('Business/WhatsApp/Index', [
+            'templates' => WhatsAppTemplate::query()->orderBy('name')->orderBy('language')->get()->map(
+                fn (WhatsAppTemplate $template): array => [
+                    'id' => $template->id,
+                    'provider_template_id' => $template->provider_template_id,
+                    'name' => $template->name,
+                    'language' => $template->language,
+                    'category' => $template->category,
+                    'status' => $template->status,
+                    'synced_at' => $template->synced_at?->toIso8601String(),
+                ],
+            )->all(),
             'connections' => WhatsAppConnection::query()->orderBy('created_at')->get()->map(
                 fn (WhatsAppConnection $connection): array => [
                     'id' => $connection->id,
@@ -77,6 +89,31 @@ class WhatsAppConnectionController extends Controller
         ])->save();
 
         return back()->with('success', 'Meta verified this WhatsApp phone number. The connection is active.');
+    }
+
+    public function syncTemplates(WhatsAppConnection $connection, MetaWhatsAppGraphApi $graphApi): RedirectResponse
+    {
+        abort_unless($connection->status === 'active', 403);
+
+        $templates = $graphApi->listMessageTemplates($connection);
+        $syncedAt = now();
+
+        foreach ($templates as $template) {
+            WhatsAppTemplate::query()->updateOrCreate(
+                ['provider_template_id' => $template['id']],
+                [
+                    'whatsapp_connection_id' => $connection->id,
+                    'name' => $template['name'],
+                    'language' => $template['language'],
+                    'category' => is_string($template['category'] ?? null) ? $template['category'] : null,
+                    'status' => $template['status'],
+                    'components' => is_array($template['components'] ?? null) ? $template['components'] : [],
+                    'synced_at' => $syncedAt,
+                ],
+            );
+        }
+
+        return back()->with('success', 'Meta template catalog synchronized: '.count($templates).' templates received.');
     }
 
     public function destroy(WhatsAppConnection $connection): RedirectResponse
