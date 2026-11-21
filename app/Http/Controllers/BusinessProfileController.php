@@ -1,22 +1,20 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Models\\BusinessProfile;
-use Illuminate\\Http\\RedirectResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Validation\\Rule;
-use Inertia\\Inertia;
-use Inertia\\Response;
+use App\Models\BusinessProfile;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class BusinessProfileController extends Controller
 {
     public function edit(): Response
     {
-        $profile = BusinessProfile::query()->first();
-
         return Inertia::render('Business/Profile/Edit', [
-            'profile' => $profile,
+            'profile' => BusinessProfile::query()->first(),
             'timezones' => timezone_identifiers_list(),
         ]);
     }
