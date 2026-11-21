@@ -36,7 +36,7 @@ class AppointmentReminderService
     {
         return AppointmentReminder::query()
             ->where('appointment_id', $appointment->id)
-            ->whereIn('status', ['pending', 'queued', 'processing'])
+            ->whereIn('status', ['pending', 'queued', 'processing', 'blocked_template_required', 'blocked_handover'])
             ->update([
                 'status' => 'cancelled',
                 'queued_at' => null,
