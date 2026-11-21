@@ -11,7 +11,7 @@ return new class extends Migration {
             $table->uuid('reminder_id')->nullable();
             $table->unique(['tenant_id', 'reminder_id']);
             $table->foreign(['tenant_id', 'reminder_id'])
-                ->references(['tenant_id', 'id'])->on('appointment_reminders')->nullOnDelete();
+                ->references(['tenant_id', 'id'])->on('appointment_reminders')->restrictOnDelete();
         });
     }
 
