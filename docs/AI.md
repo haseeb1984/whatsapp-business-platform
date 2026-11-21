@@ -26,10 +26,14 @@ If Groq is unavailable or rate-limited, only a high-confidence deterministic FAQ
 
 ## 3. Remaining processing pipeline
 
-The service is not yet wired into the inbound message job. Remaining steps:
+The FAQ service is now connected to a queued inbound-text workflow. Newly persisted inbound text messages enqueue one tenant-scoped reply job after the webhook transaction commits. The job checks that the conversation is still open, `AUTO_ACTIVE`, and that the triggering message is still the latest inbound message before invoking the assistant. If no approved FAQ evidence is available, it moves the conversation to `WAITING_FOR_STAFF` without inventing a response. If a grounded answer is available, it sends the exact approved answer through the official WhatsApp adapter.
+
+Automated outbound messages store a same-tenant `reply_to_message_id` with a unique constraint. Reprocessing the same job returns the existing outbound attempt instead of sending another message. Human takeover and a newer inbound message suppress stale queued replies.
+
+Remaining steps:
 1. detect intent (FAQ, booking, handover, greeting, unsupported);
 2. combine published FAQs with structured business facts such as hours, services and prices;
-3. apply human handover state before any AI call and recheck it before sending;
+3. expand staff handover workflow and notifications; the initial `AUTO_ACTIVE` gate and `WAITING_FOR_STAFF` fallback are implemented;
 4. execute only allowlisted application tools with schema-validated arguments and tenant authorization;
 5. add bounded usage metrics, provider latency and safe operational telemetry.
 
