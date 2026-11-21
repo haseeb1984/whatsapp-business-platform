@@ -111,7 +111,7 @@ class AuthController extends Controller
                 'name' => $validated['business_name'],
                 'slug' => $slug,
                 'timezone' => $validated['timezone'],
-                'status' => 'pending',
+                'status' => 'active',
             ]);
 
             $tenant->users()->attach($user->id, ['role' => 'business_admin', 'status' => 'active']);
@@ -123,7 +123,7 @@ class AuthController extends Controller
         $user->sendEmailVerificationNotification();
         $request->session()->put('current_tenant_id', (string) $tenant->getKey());
 
-        return redirect()->route('dashboard');
+        return redirect()->route('verification.notice');
     }
 
     public function logout(Request $request): RedirectResponse
