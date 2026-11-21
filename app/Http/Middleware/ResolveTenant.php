@@ -40,7 +40,7 @@ class ResolveTenant
         // Deliberately return 404 for unknown and non-member tenant IDs.
         abort_unless($tenant instanceof Tenant, 404);
 
-        $context = new TenantContext($tenant);
+        $context = new TenantContext($tenant, (string) $tenant->pivot->role);
         app()->instance(TenantContext::class, $context);
         $request->attributes->set(TenantContext::class, $context);
 
