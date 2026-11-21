@@ -117,7 +117,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Bounded hold expiry processor and every-minute Laravel scheduler command.
 - [x] Availability API and business appointment screen; temporary holds can be created and cancelled before Calendar side effects.
 - [x] Lifecycle gate requires calendar-pending state and an external event ID before confirmation; ambiguous Calendar outcomes keep the slot reserved for reconciliation.
-- [ ] Staff date-specific exceptions, minimum notice and booking horizon policies.
+- [x] Staff date-specific leave/special-hours exceptions, minimum notice, booking horizon, slot interval and hold duration policies.
 - [ ] Google Calendar FreeBusy integration and real external event create/update/delete operations.
 - [ ] End-to-end WhatsApp booking conversation, rescheduling and confirmed-booking cancellation.
 
