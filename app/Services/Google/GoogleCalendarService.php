@@ -113,7 +113,19 @@ class GoogleCalendarService
             'items' => array_values(array_unique($calendarIds)),
         ]);
 
-        return $response['calendars'] ?? [];
+        $calendars = $response['calendars'] ?? null;
+        if (! is_array($calendars)) {
+            throw new RuntimeException('Google Calendar FreeBusy returned an incomplete response.');
+        }
+
+        foreach (array_unique($calendarIds) as $calendarId) {
+            if (! isset($calendars[$calendarId]) || ! is_array($calendars[$calendarId]['busy'] ?? null)
+                || ! empty($calendars[$calendarId]['errors'])) {
+                throw new RuntimeException('Google Calendar FreeBusy could not verify every requested calendar.');
+            }
+        }
+
+        return $calendars;
     }
 
 
