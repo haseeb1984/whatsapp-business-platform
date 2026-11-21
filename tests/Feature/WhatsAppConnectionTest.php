@@ -1,0 +1,89 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Tenant;
+use App\Models\WhatsAppConnection;
+use App\Models\User;
+use App\Support\Tenancy\TenantContext;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class WhatsAppConnectionTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_business_admin_can_save_a_connection_with_an_encrypted_token(): void
+    {
+        [$user, $tenant] = $this->workspace('wa-admin@example.test');
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id]);
+
+        $this->post('/business/whatsapp', [
+            'phone_number_id' => 'PHONE-123',
+            'waba_id' => 'WABA-123',
+            'display_phone_number' => '+1 555 0100',
+            'verified_name' => 'Example Business',
+            'access_token' => 'super-secret-meta-access-token',
+        ])->assertRedirect();
+
+        $connection = TenantContext::runForTenant($tenant->id, fn () => WhatsAppConnection::query()->firstOrFail());
+        $this->assertSame('super-secret-meta-access-token', $connection->access_token);
+        $this->assertNotSame('super-secret-meta-access-token', $connection->getRawOriginal('access_token'));
+        $this->assertSame('pending', $connection->status);
+
+        $this->get('/business/whatsapp')
+            ->assertOk()
+            ->assertDontSee('super-secret-meta-access-token')
+            ->assertSee('PHONE-123');
+    }
+
+    public function test_phone_number_id_cannot_be_claimed_by_another_tenant(): void
+    {
+        [, $tenantA] = $this->workspace('wa-owner-a@example.test');
+        [$userB, $tenantB] = $this->workspace('wa-owner-b@example.test');
+
+        TenantContext::runForTenant($tenantA->id, function (): void {
+            WhatsAppConnection::query()->create([
+                'phone_number_id' => 'GLOBAL-PHONE-ID',
+                'waba_id' => 'WABA-A',
+                'access_token' => 'first-long-lived-access-token',
+                'status' => 'pending',
+            ]);
+        });
+
+        $this->actingAs($userB)->withSession(['current_tenant_id' => $tenantB->id]);
+        $this->post('/business/whatsapp', [
+            'phone_number_id' => 'GLOBAL-PHONE-ID',
+            'waba_id' => 'WABA-B',
+            'access_token' => 'second-long-lived-access-token',
+        ])->assertSessionHasErrors('phone_number_id');
+
+        $this->assertDatabaseCount('whatsapp_connections', 1);
+    }
+
+    public function test_staff_cannot_view_or_create_whatsapp_connections(): void
+    {
+        [$user, $tenant] = $this->workspace('wa-staff@example.test', 'staff');
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id]);
+
+        $this->get('/business/whatsapp')->assertForbidden();
+        $this->post('/business/whatsapp', [])->assertForbidden();
+    }
+
+    private function workspace(string $email, string $role = 'business_admin'): array
+    {
+        $user = User::query()->create([
+            'name' => 'WhatsApp User',
+            'email' => $email,
+            'password' => 'StrongPassword123',
+        ]);
+        $user->forceFill(['email_verified_at' => now()])->save();
+        $tenant = Tenant::query()->create([
+            'name' => 'WhatsApp Workspace',
+            'slug' => str_replace(['@', '.'], '-', $email),
+        ]);
+        $tenant->users()->attach($user->id, ['role' => $role, 'status' => 'active']);
+
+        return [$user, $tenant];
+    }
+}
