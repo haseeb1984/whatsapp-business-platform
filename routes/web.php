@@ -5,6 +5,7 @@ use App\Http\Controllers\BusinessProfileController;
 use App\Http\Controllers\BusinessHoursController;
 use App\Http\Controllers\BusinessHolidayController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\StaffController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\WorkspaceController;
@@ -72,6 +73,10 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::post('/business/services', [ServiceController::class, 'store'])->name('business.services.store');
         Route::put('/business/services/{service}', [ServiceController::class, 'update'])->name('business.services.update');
         Route::delete('/business/services/{service}', [ServiceController::class, 'destroy'])->name('business.services.destroy');
+        Route::get('/business/staff', [StaffController::class, 'index'])->name('business.staff.index');
+        Route::post('/business/staff', [StaffController::class, 'store'])->name('business.staff.store');
+        Route::put('/business/staff/{staff}', [StaffController::class, 'update'])->name('business.staff.update');
+        Route::delete('/business/staff/{staff}', [StaffController::class, 'destroy'])->name('business.staff.destroy');
         Route::get('/business/services', [ServiceController::class, 'index'])->name('business.services.index');
         Route::post('/business/services', [ServiceController::class, 'store'])->name('business.services.store');
         Route::put('/business/services/{service}', [ServiceController::class, 'update'])->name('business.services.update');
