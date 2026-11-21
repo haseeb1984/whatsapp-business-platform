@@ -50,8 +50,8 @@
 ### Calendar and appointments
 - `calendar_connections`: tenant_id, provider, google_account_email, encrypted_access_token, encrypted_refresh_token, token_expiry, status.
 - `staff_calendars`: tenant_id, staff_id, calendar_connection_id, external_calendar_id, active.
-- `appointments`: tenant_id, customer_id, service_id, staff_id nullable, calendar_connection_id nullable, starts_at, ends_at, status, source, idempotency_key, external_event_id, calendar_sync_status, hold_expires_at.
-- `appointment_events`: tenant_id, appointment_id, event_type, actor_id nullable, metadata JSONB, created_at.
+- `appointments`: UUID id, tenant_id, customer_id, service_id, staff_id, service/price/duration snapshots, starts_at/ends_at UTC, reserved_starts_at/reserved_ends_at UTC (including service buffers), status (`pending_hold`, `calendar_pending`, `confirmed`, `cancelled`, `expired`, `failed`), source, idempotency_key, calendar_sync_status, external_event_id, hold_expires_at. The current migration uses same-tenant composite FKs to customers/services/staff, unique `(tenant_id, idempotency_key)`, and a staff/time/status lookup index. `pending_hold` lasts 10 minutes; `calendar_pending` and `confirmed` block availability. The app confirms only through a calendar-success lifecycle method.
+- `appointment_events`: UUID id, tenant_id, appointment_id, event_type, actor_type, actor_id nullable, encrypted metadata, created_at; composite tenant-aware FK to appointments.
 - `appointment_reminders`: tenant_id, appointment_id, channel, scheduled_at, status, sent_at, idempotency_key.
 
 ### Platform operations
