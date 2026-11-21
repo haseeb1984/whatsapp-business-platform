@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\GoogleCalendarConnection;
+use App\Models\Staff;
 use App\Services\Google\GoogleCalendarService;
 use App\Support\Tenancy\TenantContext;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -27,6 +29,11 @@ class GoogleCalendarConnectionController extends Controller
                 'default_calendar_id' => $connection->default_calendar_id,
                 'connected_at' => $connection->connected_at?->toIso8601String(),
             ] : null,
+            'staff' => Staff::query()->orderBy('name')->get(['id', 'name', 'google_calendar_id'])->map(fn (Staff $member): array => [
+                'id' => $member->id,
+                'name' => $member->name,
+                'google_calendar_id' => $member->google_calendar_id,
+            ])->all(),
             'oauth_configured' => filled(config('services.google.client_id'))
                 && filled(config('services.google.client_secret'))
                 && filled(config('services.google.redirect_uri')),
@@ -118,6 +125,47 @@ class GoogleCalendarConnectionController extends Controller
         ])->save();
 
         return redirect()->route('business.calendar.index')->with('success', 'Google Calendar connected successfully.');
+    }
+
+
+    public function calendars(GoogleCalendarService $calendar): JsonResponse
+    {
+        return response()->json(['calendars' => $calendar->listCalendars()]);
+    }
+
+    public function updateDefaultCalendar(Request $request, GoogleCalendarService $calendar): RedirectResponse
+    {
+        $validated = $request->validate(['calendar_id' => ['required', 'string', 'max:255']]);
+        $this->assertCalendarExists($calendar, $validated['calendar_id']);
+
+        $connection = GoogleCalendarConnection::query()->firstOrFail();
+        $connection->forceFill(['default_calendar_id' => $validated['calendar_id']])->save();
+
+        return back()->with('success', 'Default Google Calendar updated.');
+    }
+
+    public function updateStaffCalendar(Request $request, string $staffId, GoogleCalendarService $calendar): RedirectResponse
+    {
+        $validated = $request->validate(['calendar_id' => ['nullable', 'string', 'max:255']]);
+        if (is_string($validated['calendar_id'] ?? null) && $validated['calendar_id'] !== '') {
+            $this->assertCalendarExists($calendar, $validated['calendar_id']);
+        }
+
+        $staff = Staff::query()->findOrFail($staffId);
+        $staff->forceFill(['google_calendar_id' => $validated['calendar_id'] ?: null])->save();
+
+        return back()->with('success', 'Staff calendar mapping updated.');
+    }
+
+    private function assertCalendarExists(GoogleCalendarService $calendar, string $calendarId): void
+    {
+        $exists = collect($calendar->listCalendars())->contains(
+            static fn (array $item): bool => $item['id'] === $calendarId,
+        );
+
+        if (! $exists) {
+            abort(422, 'Choose a writable calendar from the connected Google account.');
+        }
     }
 
     public function disconnect(GoogleCalendarService $calendar): RedirectResponse
