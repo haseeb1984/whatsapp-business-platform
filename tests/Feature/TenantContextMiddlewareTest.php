@@ -41,6 +41,8 @@ class TenantContextMiddlewareTest extends TestCase
             ->getJson('/_test/tenant-context')
             ->assertOk()
             ->assertJsonPath('tenant_id', $tenant->id);
+
+        $this->assertFalse(app()->bound(TenantContext::class), 'Tenant context must be cleared after the request.');
     }
 
     public function test_it_does_not_allow_a_user_to_select_another_tenants_context(): void
