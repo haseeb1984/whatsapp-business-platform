@@ -92,6 +92,7 @@ class AppointmentAvailabilityService
                     'ends_at' => $end->utc()->toIso8601String(),
                     'local_start' => $start->format('H:i'),
                     'local_end' => $end->format('H:i'),
+                    'utc_offset' => $start->format('P'),
                     'timezone' => $timezone,
                 ];
             }
