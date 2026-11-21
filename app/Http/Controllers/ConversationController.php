@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Conversation;
 use App\Models\ConversationNote;
 use App\Models\Message;
-use App\Models\Staff;
 use App\Services\Messaging\WhatsAppMessageService;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
@@ -209,7 +208,7 @@ class ConversationController extends Controller
         abort_unless($conversation->automation_state === 'HUMAN_ACTIVE', 409);
         abort_unless($conversation->assigned_user_id === $request->user()->id, 403);
 
-        $messenger->sendText($conversation, $validated['body'], MessageActor::Staff);
+        $messenger->sendText($conversation, $validated['body'], MessageActor::Staff, null, (int) $request->user()->id);
 
         return back()->with('success', 'Staff reply submitted to WhatsApp.');
     }
@@ -221,11 +220,17 @@ class ConversationController extends Controller
         abort_unless($conversation->automation_state === 'HUMAN_ACTIVE', 409);
         abort_unless($conversation->assigned_user_id === $request->user()->id, 403);
 
-        ConversationNote::query()->create([
-            'conversation_id' => $conversation->id,
-            'created_by_user_id' => $request->user()->id,
-            'body' => $validated['body'],
-        ]);
+        DB::transaction(function () use ($conversation, $request, $validated): void {
+            $locked = Conversation::query()->lockForUpdate()->findOrFail($conversation->id);
+            abort_unless($locked->automation_state === 'HUMAN_ACTIVE', 409);
+            abort_unless($locked->assigned_user_id === $request->user()->id, 403);
+
+            ConversationNote::query()->create([
+                'conversation_id' => $locked->id,
+                'created_by_user_id' => $request->user()->id,
+                'body' => $validated['body'],
+            ]);
+        });
 
         return back()->with('success', 'Internal note saved.');
     }
@@ -250,6 +255,7 @@ class ConversationController extends Controller
             $conversation->forceFill([
             'status' => 'open',
             'automation_state' => 'WAITING_FOR_STAFF',
+            'assigned_user_id' => null,
             'handover_requested_at' => now(),
             'handover_reason' => 'Conversation reopened by a team administrator',
             ])->save();
