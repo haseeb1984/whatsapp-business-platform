@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\GoogleCalendarConnection;
+use App\Models\Staff;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Google\GoogleCalendarService;
@@ -31,6 +32,12 @@ class GoogleCalendarConnectionTest extends TestCase
         $this->assertIsString($state);
         $this->assertStringContainsString('accounts.google.com/o/oauth2/v2/auth', $start->headers->get('Location'));
         $this->assertStringContainsString('calendar.events', $start->headers->get('Location'));
+        $query = [];
+        parse_str((string) parse_url($start->headers->get('Location'), PHP_URL_QUERY), $query);
+        $verifier = $start->getSession()->get('google_calendar_oauth.code_verifier');
+        $expectedChallenge = rtrim(strtr(base64_encode(hash('sha256', $verifier, true)), '+/', '-_'), '=');
+        $this->assertSame('S256', $query['code_challenge_method'] ?? null);
+        $this->assertSame($expectedChallenge, $query['code_challenge'] ?? null);
 
         Http::fake([
             'oauth2.googleapis.com/token' => Http::response([
@@ -48,12 +55,54 @@ class GoogleCalendarConnectionTest extends TestCase
 
         $connection = TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->firstOrFail());
         $this->assertSame('connected', $connection->status);
+        $this->assertSame($user->id, $connection->connected_by_user_id);
         $this->assertSame('calendar-owner@example.test', $connection->google_account_email);
         $this->assertSame('plain-access-secret', $connection->access_token);
         $this->assertSame('plain-refresh-secret', $connection->refresh_token);
         $storedToken = DB::table('google_calendar_connections')->where('id', $connection->id)->value('access_token');
         $this->assertNotSame('plain-access-secret', $storedToken);
         $this->assertNotSame('plain-refresh-secret', DB::table('google_calendar_connections')->where('id', $connection->id)->value('refresh_token'));
+        Http::assertSent(fn ($request) => $request->url() === 'https://oauth2.googleapis.com/token'
+            && $request['code_verifier'] === $verifier);
+    }
+
+
+    public function test_business_admin_can_list_writable_calendars_and_map_staff_calendar(): void
+    {
+        [$user, $tenant] = $this->workspace('google-calendar-mapping@example.test');
+        $staff = TenantContext::runForTenant($tenant->id, fn () => Staff::query()->create([
+            'name' => 'Mapped Staff',
+            'active' => true,
+        ]));
+        TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->create([
+            'access_token' => 'calendar-access',
+            'refresh_token' => 'calendar-refresh',
+            'token_expires_at' => now()->addHour(),
+            'status' => 'connected',
+            'default_calendar_id' => 'primary',
+        ]));
+
+        Http::fake([
+            'www.googleapis.com/calendar/v3/users/me/calendarList*' => Http::response([
+                'items' => [
+                    ['id' => 'primary', 'summary' => 'Primary', 'primary' => true, 'accessRole' => 'owner'],
+                    ['id' => 'staff-calendar@example.test', 'summary' => 'Staff Calendar', 'accessRole' => 'writer'],
+                ],
+            ]),
+        ]);
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id]);
+        $this->getJson('/business/calendar/calendars')
+            ->assertOk()
+            ->assertJsonCount(2, 'calendars');
+
+        $this->put('/business/calendar/default', ['calendar_id' => 'staff-calendar@example.test'])->assertRedirect();
+        $this->put('/business/calendar/staff/'.$staff->id, ['calendar_id' => 'primary'])->assertRedirect();
+
+        $connection = TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->firstOrFail());
+        $mappedStaff = TenantContext::runForTenant($tenant->id, fn () => Staff::query()->findOrFail($staff->id));
+        $this->assertSame('staff-calendar@example.test', $connection->default_calendar_id);
+        $this->assertSame('primary', $mappedStaff->google_calendar_id);
     }
 
     public function test_callback_rejects_invalid_or_replayed_oauth_state(): void
