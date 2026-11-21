@@ -15,7 +15,7 @@
 - Never trust client-supplied tenant identifiers.
 - Scope all reads, writes, exports, jobs, and integration calls. A `BelongsToTenant` Eloquent concern now provides a fail-closed tenant global scope, context-derived tenant assignment, and tenant ID immutability for models that opt in.
 - Use composite foreign keys and unique constraints to prevent cross-tenant references.
-- Add automated tests proving cross-tenant access is denied. The tenant-owned model contract now has tests for read/update/delete isolation, tenant ID assignment/tampering, and missing-context failure. Full production model coverage, tenant-aware foreign keys and queued-job isolation tests are still required.
+- Add automated tests proving cross-tenant access is denied. The tenant-owned model contract now has tests for read/update/delete isolation, tenant ID assignment/tampering, and missing-context failure. A `TenantContext::runForTenant()` helper now provides explicit tenant scoping for background work and restores the previous context; tests cover restoration and suspended-tenant rejection. Full production model coverage, tenant-aware foreign keys and end-to-end queued-job isolation tests are still required.
 - Audit platform staff cross-tenant access.
 
 ## 3. Secrets and encryption
