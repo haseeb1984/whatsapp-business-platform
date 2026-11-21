@@ -11,7 +11,6 @@ use App\Models\StaffService;
 use App\Models\StaffWorkingHour;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
 class AppointmentAvailabilityService
@@ -157,11 +156,14 @@ class AppointmentAvailabilityService
     private function window(CarbonImmutable $date, string $opensAt, string $closesAt): ?array
     {
         $timezone = $date->getTimezone();
-        $open = CarbonImmutable::parse($date->toDateString().' '.substr($opensAt, 0, 8), $timezone);
-        $close = CarbonImmutable::parse($date->toDateString().' '.substr($closesAt, 0, 8), $timezone);
+        $openTime = substr($opensAt, 0, 5);
+        $closeTime = substr($closesAt, 0, 5);
+        $open = CarbonImmutable::createFromFormat('!Y-m-d H:i', $date->toDateString().' '.$openTime, $timezone);
+        $close = CarbonImmutable::createFromFormat('!Y-m-d H:i', $date->toDateString().' '.$closeTime, $timezone);
 
-        if ($open->format('Y-m-d H:i:s') !== $date->toDateString().' '.substr($opensAt, 0, 8)
-            || $close->format('Y-m-d H:i:s') !== $date->toDateString().' '.substr($closesAt, 0, 8)
+        if (! $open || ! $close
+            || $open->format('Y-m-d H:i') !== $date->toDateString().' '.$openTime
+            || $close->format('Y-m-d H:i') !== $date->toDateString().' '.$closeTime
             || $open->greaterThanOrEqualTo($close)) {
             return null;
         }
