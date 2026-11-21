@@ -4,7 +4,7 @@
 
 - Use Laravel's supported authentication/session protections. Initial email/password registration, login/logout, password reset and signed email verification are implemented; the current automated CI suite passes.
 - Enforce RBAC on every backend action; frontend visibility is not authorization.
-- Scope business roles to tenant membership. The request tenant context now carries the verified membership role, and role-restricted middleware protects business profile, weekly hours, holidays, services, staff, staff working hours, FAQs and conversation inbox/handover actions. Continue applying it to every future module route.
+- Scope business roles to tenant membership. The request tenant context now carries the verified membership role, and role-restricted middleware protects business profile, weekly hours, holidays, services, staff, staff working hours, FAQs, conversation inbox/handover actions and appointment availability/hold endpoints. Continue applying it to every future module route.
 - Protect platform administration with separate privileged permissions and audit logging.
 - Rate-limit login, password reset, public endpoints, and sensitive operations.
 - Use secure, HTTP-only, SameSite cookies and HTTPS in production.
@@ -32,7 +32,7 @@
 - Meta webhook POST now verifies HMAC-SHA256 over the raw request body with constant-time comparison, enforces a 1 MiB payload limit, and rejects invalid signatures before parsing.
 - Use constant-time signature comparison.
 - Apply payload size limits and strict parsing.
-- Persist encrypted webhook payloads before acknowledgement and deduplicate using a unique provider/event hash before side effects. Pending events dispatch a retryable database-queue job; it locks the event row and commits customer/conversation/message writes transactionally under the mapped tenant context. Message bodies, metadata and internal conversation notes are encrypted at rest. The grounded FAQ assistant retrieves only published FAQs under the active tenant context, validates Groq-selected IDs against that result set, and returns exact approved FAQ answer text rather than model-generated business claims. Outbound text sends require an active verified connection and an inbound message within the 24-hour customer service window. The sender checks `automation_state` (`AUTO_ACTIVE` for automation; `HUMAN_ACTIVE`/`WAITING_FOR_STAFF` for staff) while locking the conversation row through the provider call. Ambiguous timeouts and 5xx responses are recorded as `unknown` and are not blindly retried. Approved template sending and replay/dead-letter operations remain pending.
+- Persist encrypted webhook payloads before acknowledgement and deduplicate using a unique provider/event hash before side effects. Pending events dispatch a retryable database-queue job; it locks the event row and commits customer/conversation/message writes transactionally under the mapped tenant context. Message bodies, metadata, internal conversation notes and appointment event metadata are encrypted at rest. The grounded FAQ assistant retrieves only published FAQs under the active tenant context, validates Groq-selected IDs against that result set, and returns exact approved FAQ answer text rather than model-generated business claims. Outbound text sends require an active verified connection and an inbound message within the 24-hour customer service window. The sender checks `automation_state` (`AUTO_ACTIVE` for automation; `HUMAN_ACTIVE`/`WAITING_FOR_STAFF` for staff) while locking the conversation row through the provider call. Ambiguous timeouts and 5xx responses are recorded as `unknown` and are not blindly retried. Approved template sending and replay/dead-letter operations remain pending.
 - Quarantine unknown integration identifiers.
 - Do not expose webhook verification secrets in responses or logs.
 
@@ -55,7 +55,7 @@
 
 ## 7. Reliability as a security property
 
-- Idempotency for webhooks, outbound actions, bookings, and reminders.
+- Idempotency for webhooks, outbound actions, bookings, and reminders. Appointment holds use a tenant-unique idempotency key and a transactionally locked availability recheck; ambiguous Calendar outcomes remain reserved pending reconciliation.
 - Bounded retries with backoff; no infinite retry loops.
 - Failed-job and integration error visibility.
 - Database constraints for important invariants.
