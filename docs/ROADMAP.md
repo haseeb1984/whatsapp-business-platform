@@ -73,12 +73,14 @@ This roadmap distinguishes planned work from implemented work.
 **Status:** Business profile, weekly hours, holiday/special-hours management, service/pricing CRUD, staff/service assignments, staff weekly availability and FAQ management are committed with admin-only routes. The current CI suite passes (56 tests / 199 assertions). Staff date-specific exceptions, business policies and full dashboard workflows remain in progress.
 
 ## Milestone 4 — WhatsApp Cloud API foundation
-- [ ] Meta webhook GET verification.
-- [ ] POST raw-body HMAC signature validation.
-- [ ] Durable event persistence and idempotent event handler.
-- [ ] Tenant routing through verified phone_number_id mapping.
+- [x] Tenant admin connection setup with encrypted access-token storage; connections remain pending until Meta verification is added.
+- [x] Meta webhook GET verification with constant-time verify-token comparison.
+- [x] POST raw-body HMAC-SHA256 signature validation with constant-time comparison and payload-size limit.
+- [x] Durable encrypted webhook event persistence with SHA-256 idempotency key.
+- [x] Tenant routing through globally unique configured phone_number_id; unknown/disabled connections are quarantined as unmatched.
 - [ ] Outbound text/template adapter and status webhooks.
-- [ ] Integration tests using Meta test assets.
+- [ ] Provider-side connection/token verification and activation.
+- [x] Automated webhook tests for challenge verification, invalid token/signature, tenant mapping, encryption and duplicate delivery (CI pending for this commit).
 
 ## Milestone 5 — Conversations and human handover
 - [ ] Customer/conversation/message persistence.
