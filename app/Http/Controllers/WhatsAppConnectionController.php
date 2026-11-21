@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\WhatsAppConnection;
+use App\Services\Meta\MetaWhatsAppGraphApi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -40,12 +41,42 @@ class WhatsAppConnectionController extends Controller
     public function update(Request $request, WhatsAppConnection $connection): RedirectResponse
     {
         $validated = $this->validated($request, $connection);
-        if (($validated['access_token'] ?? '') === '') {
+        $tokenChanged = isset($validated['access_token']) && $validated['access_token'] !== '';
+        if (! $tokenChanged) {
             unset($validated['access_token']);
         }
-        $connection->fill($validated)->save();
 
-        return back()->with('success', 'WhatsApp connection updated.');
+        $identityChanged = $validated['phone_number_id'] !== $connection->phone_number_id
+            || $validated['waba_id'] !== $connection->waba_id;
+        $requestedStatus = $validated['status'] ?? null;
+        $connection->fill($validated);
+
+        if ($requestedStatus === 'disabled') {
+            $connection->status = 'disabled';
+            $connection->verified_at = null;
+        } elseif ($tokenChanged || $identityChanged || $requestedStatus === 'pending') {
+            $connection->status = 'pending';
+            $connection->verified_at = null;
+        }
+
+        $connection->save();
+
+        return back()->with('success', 'WhatsApp connection updated. Verify it with Meta before using it.');
+    }
+
+    public function verify(WhatsAppConnection $connection, MetaWhatsAppGraphApi $graphApi): RedirectResponse
+    {
+        abort_if($connection->status === 'disabled', 403);
+
+        $data = $graphApi->verifyPhoneNumber($connection);
+        $connection->forceFill([
+            'display_phone_number' => $data['display_phone_number'] ?? $connection->display_phone_number,
+            'verified_name' => $data['verified_name'] ?? $connection->verified_name,
+            'status' => 'active',
+            'verified_at' => now(),
+        ])->save();
+
+        return back()->with('success', 'Meta verified this WhatsApp phone number. The connection is active.');
     }
 
     public function destroy(WhatsAppConnection $connection): RedirectResponse
