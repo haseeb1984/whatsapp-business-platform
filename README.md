@@ -5,9 +5,9 @@ A reusable multi-tenant WhatsApp Business automation platform using the official
 ## Current implementation status
 
 **Milestone 0:** Technical specification committed.  
-**Milestone 1:** Laravel 13 / React / Inertia application shell and initial tenant schema committed; dependency installation and runtime tests are still pending.  
-**Milestone 2 (in progress):** Registration, login/logout, password reset, signed email verification, workspace selection/switching, tenant context and role-gating foundations are committed. Full runtime verification and the remaining authorization/database isolation work are pending. A fail-closed tenant-owned model concern (including bulk Eloquent tenant-ID update protection) and explicit background-work tenant context helper are now committed. Request middleware also clears/restores tenant context after each request, and suspended tenants are excluded from workspace selection. Production tenant models and database constraints still need to adopt the concern.
-**Milestone 3 (in progress):** Tenant-scoped business profile CRUD, regional settings, weekly business hours editor, holiday/special-hours CRUD, service/pricing management, staff CRUD with service assignments, staff weekly working hours, and FAQ CRUD with draft/published/archived lifecycle and tenant-scoped search are committed. Feature tests are authored but runtime execution is pending. Staff date-specific exceptions, business policies and complete dashboards remain outstanding.
+**Milestone 1:** Laravel 13 / React / Inertia application shell and initial tenant schema committed; Composer dependencies install successfully in CI and the frontend production build passes.  
+**Milestone 2 (in progress):** Registration, login/logout, password reset, signed email verification, workspace selection/switching, tenant context and role-gating foundations are committed. The current CI suite passes; additional production model coverage, authorization hardening and database isolation acceptance work remain. A fail-closed tenant-owned model concern (including bulk Eloquent tenant-ID update protection) and explicit background-work tenant context helper are now committed. Request middleware also clears/restores tenant context after each request, and suspended tenants are excluded from workspace selection. Production tenant models and database constraints still need to adopt the concern.
+**Milestone 3 (in progress):** Tenant-scoped business profile CRUD, regional settings, weekly business hours editor, holiday/special-hours CRUD, service/pricing management, staff CRUD with service assignments, staff weekly working hours, and FAQ CRUD with draft/published/archived lifecycle and tenant-scoped search are committed. The CI suite passes with coverage for these modules. Staff date-specific exceptions, business policies and complete dashboards remain outstanding.
 **Not implemented yet:** Meta integration, AI workflows, human handover, appointment booking, Google Calendar OAuth, and production business/platform dashboards.
 
 ## Approved stack
@@ -80,7 +80,7 @@ Prerequisites: PHP 8.3+, Composer, Node.js 22+, npm, and a PostgreSQL database. 
    php artisan serve
    ```
 
-Open `http://127.0.0.1:8000`. New users can register an account and create an initial business workspace; existing users can sign in. The dashboard is still a foundation screen, not a completed business dashboard. Business profile and weekly opening hours can be configured from its links.
+Open `http://127.0.0.1:8000`. New users can register an account and create an initial business workspace; existing users can sign in. The dashboard is still a foundation screen, not a completed business dashboard. Business profile, weekly hours, holidays, services, staff and FAQs can be configured from its links.
 
 ## Verification
 
@@ -88,7 +88,7 @@ Open `http://127.0.0.1:8000`. New users can register an account and create an in
 - `php artisan test`
 - `npm run build`
 
-A GitHub Actions workflow is configured to run these checks on pushes and pull requests. Recent runs are failing before any job steps are reported (the runner provides no step/log details), so no Composer install, Laravel test, or frontend build result is currently available. No complete local syntax/build/test run is currently available for this repository.
+GitHub Actions run [44928497305](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44928497305) passed on commit `d520e869283e106f0298203904b899b2634d6a7a`: Composer manifest validation, dependency installation, **56 Laravel tests (199 assertions)**, npm dependency installation and Vite production build. The tests use SQLite; a separate Neon PostgreSQL migration/constraint rehearsal is still required.
 
 ## Development principles
 
