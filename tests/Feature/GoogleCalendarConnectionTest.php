@@ -8,7 +8,7 @@ use App\Models\User;
 use App\Services\Google\GoogleCalendarService;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -51,7 +51,9 @@ class GoogleCalendarConnectionTest extends TestCase
         $this->assertSame('calendar-owner@example.test', $connection->google_account_email);
         $this->assertSame('plain-access-secret', $connection->access_token);
         $this->assertSame('plain-refresh-secret', $connection->refresh_token);
-        $this->assertStringNotContainsString('plain-access-secret', Crypt::decryptString(DB::table('google_calendar_connections')->where('id', $connection->id)->value('access_token')));
+        $storedToken = DB::table('google_calendar_connections')->where('id', $connection->id)->value('access_token');
+        $this->assertNotSame('plain-access-secret', $storedToken);
+        $this->assertNotSame('plain-refresh-secret', DB::table('google_calendar_connections')->where('id', $connection->id)->value('refresh_token'));
     }
 
     public function test_callback_rejects_invalid_or_replayed_oauth_state(): void
