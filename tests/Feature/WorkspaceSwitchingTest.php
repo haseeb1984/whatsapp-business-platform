@@ -46,6 +46,35 @@ class WorkspaceSwitchingTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_workspace_selection_hides_suspended_tenants_even_with_active_membership(): void
+    {
+        $user = User::query()->create([
+            'name' => 'Workspace User',
+            'email' => 'suspended-tenant@example.test',
+            'password' => 'StrongPassword123',
+        ]);
+        $active = Tenant::query()->create(['name' => 'Active Studio', 'slug' => 'active-studio']);
+        $suspended = Tenant::query()->create([
+            'name' => 'Suspended Studio',
+            'slug' => 'suspended-studio',
+            'status' => 'suspended',
+        ]);
+        $active->users()->attach($user->id, ['role' => 'business_admin', 'status' => 'active']);
+        $suspended->users()->attach($user->id, ['role' => 'business_admin', 'status' => 'active']);
+
+        $this->actingAs($user)
+            ->get('/workspaces')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Workspaces/Index')
+                ->has('workspaces', 1)
+                ->where('workspaces.0.id', $active->id));
+
+        $this->actingAs($user)
+            ->post('/workspaces/switch', ['tenant_id' => $suspended->id])
+            ->assertNotFound();
+    }
+
     public function test_workspace_selection_lists_only_active_memberships(): void
     {
         $user = User::query()->create([
