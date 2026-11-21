@@ -133,6 +133,19 @@ class AppointmentLifecycleTest extends TestCase
         $this->assertDatabaseHas('appointment_events', ['appointment_id' => $appointment->id, 'event_type' => 'hold_expired']);
     }
 
+
+    public function test_artisan_expiry_command_processes_a_specific_tenant(): void
+    {
+        [$tenant, $appointment] = $this->hold('lifecycle-artisan-expiry');
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-11-22 06:11:00 UTC'));
+
+        $this->artisan('appointments:expire-holds', ['--tenant' => $tenant->id])
+            ->expectsOutput('Expired 1 appointment hold(s).')
+            ->assertExitCode(0);
+
+        $this->assertDatabaseHas('appointments', ['id' => $appointment->id, 'status' => 'expired']);
+    }
+
     public function test_confirmed_appointment_is_cancelled_only_after_calendar_deletion_callback(): void
     {
         [$tenant, $appointment] = $this->hold('lifecycle-cancel');
