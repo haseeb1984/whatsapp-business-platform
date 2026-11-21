@@ -116,39 +116,43 @@ class ConversationController extends Controller
 
     public function take(Request $request, string $conversationId): RedirectResponse
     {
-        $conversation = Conversation::query()->lockForUpdate()->findOrFail($conversationId);
-        abort_unless($conversation->status === 'open', 409, 'Closed conversations cannot be taken.');
+        DB::transaction(function () use ($request, $conversationId): void {
+            $conversation = Conversation::query()->lockForUpdate()->findOrFail($conversationId);
+            abort_unless($conversation->status === 'open', 409, 'Closed conversations cannot be taken.');
 
-        if ($conversation->automation_state === 'HUMAN_ACTIVE'
-            && $conversation->assigned_user_id !== $request->user()->id
-            && app(TenantContext::class)->role() !== 'business_admin') {
-            abort(409, 'Another team member currently owns this conversation.');
-        }
+            if ($conversation->assigned_user_id !== null
+                && $conversation->assigned_user_id !== $request->user()->id
+                && app(TenantContext::class)->role() !== 'business_admin') {
+                abort(409, 'Another team member currently owns this conversation.');
+            }
 
-        $conversation->forceFill([
-            'automation_state' => 'HUMAN_ACTIVE',
-            'assigned_user_id' => $request->user()->id,
-            'handover_requested_at' => $conversation->handover_requested_at ?? now(),
-        ])->save();
+            $conversation->forceFill([
+                'automation_state' => 'HUMAN_ACTIVE',
+                'assigned_user_id' => $request->user()->id,
+                'handover_requested_at' => $conversation->handover_requested_at ?? now(),
+            ])->save();
+        });
 
         return back()->with('success', 'You have taken ownership of this conversation. Automation is paused.');
     }
 
     public function release(Request $request, string $conversationId): RedirectResponse
     {
-        $conversation = Conversation::query()->lockForUpdate()->findOrFail($conversationId);
-        abort_unless($conversation->status === 'open' && $conversation->automation_state === 'HUMAN_ACTIVE', 409);
-        abort_unless(
-            $conversation->assigned_user_id === $request->user()->id || app(TenantContext::class)->role() === 'business_admin',
-            403,
-        );
+        DB::transaction(function () use ($request, $conversationId): void {
+            $conversation = Conversation::query()->lockForUpdate()->findOrFail($conversationId);
+            abort_unless($conversation->status === 'open' && $conversation->automation_state === 'HUMAN_ACTIVE', 409);
+            abort_unless(
+                $conversation->assigned_user_id === $request->user()->id || app(TenantContext::class)->role() === 'business_admin',
+                403,
+            );
 
-        $conversation->forceFill([
-            'automation_state' => 'AUTO_ACTIVE',
-            'assigned_user_id' => null,
-            'handover_requested_at' => null,
-            'handover_reason' => null,
-        ])->save();
+            $conversation->forceFill([
+                'automation_state' => 'AUTO_ACTIVE',
+                'assigned_user_id' => null,
+                'handover_requested_at' => null,
+                'handover_reason' => null,
+            ])->save();
+        });
 
         return back()->with('success', 'Conversation released. Automation may respond to future inbound messages.');
     }
@@ -167,14 +171,16 @@ class ConversationController extends Controller
             ],
         ]);
 
-        $conversation = Conversation::query()->lockForUpdate()->findOrFail($conversationId);
-        abort_unless($conversation->status === 'open', 409);
+        DB::transaction(function () use ($conversationId, $validated): void {
+            $conversation = Conversation::query()->lockForUpdate()->findOrFail($conversationId);
+            abort_unless($conversation->status === 'open', 409);
 
-        $conversation->forceFill([
-            'assigned_user_id' => $validated['assigned_user_id'],
-            'automation_state' => $conversation->automation_state === 'AUTO_ACTIVE' ? 'WAITING_FOR_STAFF' : $conversation->automation_state,
-            'handover_requested_at' => $conversation->handover_requested_at ?? now(),
-        ])->save();
+            $conversation->forceFill([
+                'assigned_user_id' => $validated['assigned_user_id'],
+                'automation_state' => $conversation->automation_state === 'AUTO_ACTIVE' ? 'WAITING_FOR_STAFF' : $conversation->automation_state,
+                'handover_requested_at' => $conversation->handover_requested_at ?? now(),
+            ])->save();
+        });
 
         return back()->with('success', 'Conversation assigned to a workspace team member.');
     }
@@ -182,14 +188,16 @@ class ConversationController extends Controller
     public function requestHandover(Request $request, string $conversationId): RedirectResponse
     {
         $validated = $request->validate(['reason' => ['nullable', 'string', 'max:160']]);
-        $conversation = Conversation::query()->lockForUpdate()->findOrFail($conversationId);
-        abort_unless($conversation->status === 'open' && $conversation->automation_state === 'AUTO_ACTIVE', 409);
+        DB::transaction(function () use ($conversationId, $validated): void {
+            $conversation = Conversation::query()->lockForUpdate()->findOrFail($conversationId);
+            abort_unless($conversation->status === 'open' && $conversation->automation_state === 'AUTO_ACTIVE', 409);
 
-        $conversation->forceFill([
-            'automation_state' => 'WAITING_FOR_STAFF',
-            'handover_requested_at' => now(),
-            'handover_reason' => $validated['reason'] ?? 'Requested by team member',
-        ])->save();
+            $conversation->forceFill([
+                'automation_state' => 'WAITING_FOR_STAFF',
+                'handover_requested_at' => now(),
+                'handover_reason' => $validated['reason'] ?? 'Requested by team member',
+            ])->save();
+        });
 
         return back()->with('success', 'Automation paused and staff handover requested.');
     }
@@ -224,25 +232,28 @@ class ConversationController extends Controller
 
     public function close(string $conversationId): RedirectResponse
     {
-        $conversation = Conversation::query()->findOrFail($conversationId);
-        abort_unless($conversation->status === 'open', 409);
-
-        $conversation->forceFill(['status' => 'closed', 'automation_state' => 'HUMAN_ACTIVE'])->save();
+        DB::transaction(function () use ($conversationId): void {
+            $conversation = Conversation::query()->lockForUpdate()->findOrFail($conversationId);
+            abort_unless($conversation->status === 'open', 409);
+            $conversation->forceFill(['status' => 'closed', 'automation_state' => 'HUMAN_ACTIVE'])->save();
+        });
 
         return back()->with('success', 'Conversation closed.');
     }
 
     public function reopen(string $conversationId): RedirectResponse
     {
-        $conversation = Conversation::query()->findOrFail($conversationId);
-        abort_unless($conversation->status === 'closed', 409);
+        DB::transaction(function () use ($conversationId): void {
+            $conversation = Conversation::query()->lockForUpdate()->findOrFail($conversationId);
+            abort_unless($conversation->status === 'closed', 409);
 
-        $conversation->forceFill([
+            $conversation->forceFill([
             'status' => 'open',
             'automation_state' => 'WAITING_FOR_STAFF',
             'handover_requested_at' => now(),
             'handover_reason' => 'Conversation reopened by a team administrator',
-        ])->save();
+            ])->save();
+        });
 
         return back()->with('success', 'Conversation reopened and queued for staff.');
     }
