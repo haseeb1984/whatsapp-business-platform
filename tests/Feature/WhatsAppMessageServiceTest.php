@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Enums\MessageActor;
-use App\Models\ConnectionException;
 use App\Models\Conversation;
 use App\Models\Customer;
 use App\Models\Message;
