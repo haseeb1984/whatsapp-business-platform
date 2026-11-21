@@ -54,6 +54,25 @@ class GoogleCalendarService
         return $this->validatedTokenResponse($response);
     }
 
+
+    public function revokeConnection(GoogleCalendarConnection $connection): bool
+    {
+        $token = $connection->refresh_token ?: $connection->access_token;
+        if (! $token) {
+            return true;
+        }
+
+        try {
+            $response = Http::asForm()->acceptJson()->timeout(10)->post(config('services.google.revoke_url'), [
+                'token' => $token,
+            ]);
+
+            return $response->successful();
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     public function refreshAccessToken(GoogleCalendarConnection $connection): string
     {
         if (! $connection->refresh_token) {
