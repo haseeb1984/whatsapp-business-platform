@@ -57,7 +57,7 @@ Do not call Groq, Google Calendar, or other slow remote services before acknowle
 - Store an outbound attempt before the network call.
 - Use a stable internal idempotency/correlation key.
 - Persist Meta's message ID and response status.
-- Process delivery-status webhooks to update sent/delivered/read/failed states.
+- Process delivery-status webhooks to update sent/delivered/read/failed states (implemented; an early status event retries if its outbound message row has not committed yet).
 - Retry only errors classified as transient. Avoid blindly retrying ambiguous timeouts that may have resulted in a successful provider send.
 - Respect Meta's current messaging window, template, quality, and opt-in rules; verify policy details during implementation against current official documentation.
 
