@@ -56,7 +56,7 @@ class FaqController extends Controller
 
     public function update(Request $request, Faq $faq): RedirectResponse
     {
-        $validated = $this->validated($request);
+        $validated = $this->validated($request, $faq);
         if ($validated['status'] === 'published' && $faq->published_at === null) {
             $validated['published_at'] = now();
         } elseif ($validated['status'] === 'draft') {
@@ -75,10 +75,17 @@ class FaqController extends Controller
         return back()->with('success', 'FAQ removed.');
     }
 
-    private function validated(Request $request): array
+    private function validated(Request $request, ?Faq $faq = null): array
     {
+        $tenantId = app(\App\Support\Tenancy\TenantContext::class)->id();
+        $uniqueQuestion = Rule::unique('faqs', 'question')
+            ->where(fn ($query) => $query->where('tenant_id', $tenantId)->where('locale', $request->input('locale')));
+        if ($faq !== null) {
+            $uniqueQuestion->ignore($faq->id);
+        }
+
         return $request->validate([
-            'question' => ['required', 'string', 'max:500'],
+            'question' => ['required', 'string', 'max:500', $uniqueQuestion],
             'answer' => ['required', 'string', 'max:10000'],
             'locale' => ['required', 'string', 'max:12', 'regex:/^[a-z]{2}(?:-[A-Z]{2})?$/'],
             'status' => ['required', Rule::in(['draft', 'published', 'archived'])],
