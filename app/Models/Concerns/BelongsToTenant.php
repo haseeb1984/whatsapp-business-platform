@@ -9,6 +9,11 @@ use LogicException;
 
 trait BelongsToTenant
 {
+    public function newEloquentBuilder($query): TenantOwnedBuilder
+    {
+        return new TenantOwnedBuilder($query);
+    }
+
     public static function bootBelongsToTenant(): void
     {
         static::addGlobalScope('tenant', function (Builder $builder): void {
