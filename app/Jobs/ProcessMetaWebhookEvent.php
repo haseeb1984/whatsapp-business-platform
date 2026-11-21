@@ -9,6 +9,7 @@ use App\Models\WebhookEvent;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -35,36 +36,42 @@ class ProcessMetaWebhookEvent implements ShouldQueue
 
     public function handle(): void
     {
-        $event = WebhookEvent::query()->find($this->eventId);
-        if (! $event || $event->status !== 'pending' || ! $event->tenant_id) {
-            return;
-        }
-
-        $event->forceFill([
-            'status' => 'processing',
-            'attempts' => $event->attempts + 1,
-            'error_summary' => null,
-        ])->save();
-
         try {
-            TenantContext::runForTenant($event->tenant_id, function () use ($event): void {
-                if ($event->event_type === 'message.received') {
-                    $this->processInboundMessage($event->payload);
-                } elseif ($event->event_type === 'message.status') {
-                    $this->processMessageStatus($event->payload);
+            DB::transaction(function (): void {
+                $event = WebhookEvent::query()->lockForUpdate()->find($this->eventId);
+                if (! $event || $event->status !== 'pending' || ! $event->tenant_id) {
+                    return;
                 }
-            });
 
-            $event->forceFill([
-                'status' => 'processed',
-                'processed_at' => now(),
-                'error_summary' => null,
-            ])->save();
+                $event->forceFill([
+                    'status' => 'processing',
+                    'attempts' => $event->attempts + 1,
+                    'error_summary' => null,
+                ])->save();
+
+                TenantContext::runForTenant($event->tenant_id, function () use ($event): void {
+                    if ($event->event_type === 'message.received') {
+                        $this->processInboundMessage($event->payload);
+                    } elseif ($event->event_type === 'message.status') {
+                        $this->processMessageStatus($event->payload);
+                    }
+                });
+
+                $event->forceFill([
+                    'status' => 'processed',
+                    'processed_at' => now(),
+                    'error_summary' => null,
+                ])->save();
+            });
         } catch (Throwable $exception) {
-            $event->forceFill([
-                'status' => 'pending',
-                'error_summary' => 'Webhook event processing failed; the job will retry.',
-            ])->save();
+            $event = WebhookEvent::query()->find($this->eventId);
+            if ($event && $event->status !== 'processed') {
+                $event->forceFill([
+                    'status' => 'pending',
+                    'attempts' => $event->attempts + 1,
+                    'error_summary' => 'Webhook event processing failed; the job will retry.',
+                ])->save();
+            }
 
             throw $exception;
         }
@@ -92,12 +99,16 @@ class ProcessMetaWebhookEvent implements ShouldQueue
             throw new \UnexpectedValueException('Inbound Meta message is missing its sender or provider ID.');
         }
 
-        $customer = Customer::query()->firstOrNew(['whatsapp_wa_id' => $waId]);
+        $customer = Customer::query()->where('whatsapp_wa_id', $waId)->lockForUpdate()->first();
+        if (! $customer) {
+            $customer = Customer::query()->create(['whatsapp_wa_id' => $waId]);
+        }
+
         $contactName = $payload['_contact_name'] ?? null;
         if (is_string($contactName) && $contactName !== '') {
             $customer->display_name = mb_substr($contactName, 0, 160);
+            $customer->save();
         }
-        $customer->save();
 
         $timestamp = $payload['timestamp'] ?? null;
         $sentAt = is_string($timestamp) && ctype_digit($timestamp)
@@ -107,6 +118,7 @@ class ProcessMetaWebhookEvent implements ShouldQueue
         $conversation = Conversation::query()
             ->where('customer_id', $customer->id)
             ->where('status', 'open')
+            ->lockForUpdate()
             ->orderByDesc('last_message_at')
             ->first();
 
@@ -153,7 +165,7 @@ class ProcessMetaWebhookEvent implements ShouldQueue
             return;
         }
 
-        $message = Message::query()->where('provider_message_id', $providerMessageId)->first();
+        $message = Message::query()->where('provider_message_id', $providerMessageId)->lockForUpdate()->first();
         if ($message) {
             $message->forceFill(['delivery_status' => $status])->save();
         }
