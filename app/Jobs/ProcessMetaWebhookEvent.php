@@ -51,7 +51,7 @@ class ProcessMetaWebhookEvent implements ShouldQueue
 
                 TenantContext::runForTenant($event->tenant_id, function () use ($event): void {
                     if ($event->event_type === 'message.received') {
-                        $this->processInboundMessage($event->payload);
+                        $this->processInboundMessage($event->payload, $event->received_at);
                     } elseif ($event->event_type === 'message.status') {
                         $this->processMessageStatus($event->payload);
                     }
@@ -90,7 +90,7 @@ class ProcessMetaWebhookEvent implements ShouldQueue
         ])->save();
     }
 
-    private function processInboundMessage(array $payload): void
+    private function processInboundMessage(array $payload, CarbonImmutable $receivedAt): void
     {
         $waId = $payload['from'] ?? null;
         $providerMessageId = $payload['id'] ?? null;
@@ -111,9 +111,10 @@ class ProcessMetaWebhookEvent implements ShouldQueue
         }
 
         $timestamp = $payload['timestamp'] ?? null;
-        $sentAt = is_string($timestamp) && ctype_digit($timestamp)
+        $validTimestamp = (is_string($timestamp) && ctype_digit($timestamp)) || (is_int($timestamp) && $timestamp >= 0);
+        $sentAt = $validTimestamp
             ? CarbonImmutable::createFromTimestampUTC((int) $timestamp)
-            : now();
+            : $receivedAt;
 
         $conversation = Conversation::query()
             ->where('customer_id', $customer->id)
