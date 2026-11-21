@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\MessageActor;
+use App\Jobs\ProcessAppointmentReminder;
 use App\Models\Appointment;
 use App\Models\AppointmentReminder;
 use App\Models\BusinessHour;
