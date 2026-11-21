@@ -142,7 +142,14 @@ class ProcessAppointmentReminder implements ShouldQueue
                     $message->sent_at,
                 );
             } catch (ValidationException $exception) {
-                $this->finish($reminder->id, 'blocked_handover', 'whatsapp_send_rejected');
+                $messages = collect($exception->errors())->flatten()->implode(' ');
+                if (str_contains($messages, '24-hour')) {
+                    $this->finish($reminder->id, 'blocked_template_required', 'customer_service_window_closed');
+                } elseif (str_contains($messages, 'conversation') || str_contains($messages, 'handover')) {
+                    $this->finish($reminder->id, 'blocked_handover', 'conversation_is_under_human_control');
+                } else {
+                    $this->finish($reminder->id, 'failed', 'whatsapp_send_rejected');
+                }
             } catch (Throwable $exception) {
                 $this->releaseReminderForRetry($reminder->id, $exception);
                 throw $exception;
