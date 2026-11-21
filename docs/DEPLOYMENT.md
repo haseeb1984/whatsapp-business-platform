@@ -14,7 +14,7 @@ No additional paid hosting, database tier, queue service, or AI provider may be 
 
 ## 2. Current application runtime
 
-The repository contains a Laravel 13 application shell with React, TypeScript, Inertia, Vite, PostgreSQL configuration, an initial users/queue/tenant migration set, and health endpoints. It is not yet a complete SaaS product. Meta, Groq, Google Calendar, business workflows, authentication UI, and full tenant authorization are later milestones.
+The repository contains a Laravel 13 application shell with React, TypeScript, Inertia, Vite, PostgreSQL configuration, an initial users/queue/tenant migration set, and health endpoints. It is not yet a complete SaaS product. Meta, Groq, Google Calendar and business workflows remain unimplemented. Basic registration/login/logout, password-reset flow, workspace selection and initial tenant-context middleware are committed, but runtime tests, email verification and complete tenant authorization are still pending.
 
 Laravel 13 requires PHP 8.3 or higher. Hostinger's current PHP selector documentation lists PHP 8.2 and newer options, including 8.3–8.5. Select PHP 8.3+ for this application and verify required extensions in the actual site's PHP Info page. Do not assume the account's current PHP setting.
 
@@ -58,6 +58,7 @@ The committed `.env.example` contains placeholder-only values. Configure real va
 - DB_CONNECTION=pgsql, DB_URL, DB_SSLMODE=require
 - QUEUE_CONNECTION=database, SESSION_DRIVER=file, CACHE_STORE=file
 - META_APP_ID, META_APP_SECRET, META_WEBHOOK_VERIFY_TOKEN, META_GRAPH_API_VERSION
+- MAIL_MAILER, MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM_ADDRESS, MAIL_FROM_NAME (configure a working SMTP transport before enabling password recovery in production)
 - GROQ_API_KEY, GROQ_MODEL
 - GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI
 
