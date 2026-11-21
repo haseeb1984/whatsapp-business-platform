@@ -13,7 +13,7 @@ return new class extends Migration {
             $table->uuid('customer_id');
             $table->string('status', 20)->default('open');
             $table->string('automation_state', 32)->default('AUTO_ACTIVE');
-            $table->uuid('assigned_user_id')->nullable();
+            $table->foreignId('assigned_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestampTz('last_message_at')->nullable();
             $table->timestamps();
 
