@@ -48,6 +48,9 @@ class TenantOwnedModelTest extends TestCase
         $this->assertSame('A', TenantOwnedTestRecord::query()->firstOrFail()->value);
         $this->assertSame(0, TenantOwnedTestRecord::query()->whereKey($recordB->id)->update(['value' => 'tampered']));
         $this->assertSame(0, TenantOwnedTestRecord::query()->whereKey($recordB->id)->delete());
+
+        $this->expectException(LogicException::class);
+        TenantOwnedTestRecord::query()->whereKey($recordA->id)->update(['tenant_id' => $tenantB->id]);
     }
 
     public function test_it_assigns_the_context_tenant_and_rejects_tenant_id_tampering(): void
