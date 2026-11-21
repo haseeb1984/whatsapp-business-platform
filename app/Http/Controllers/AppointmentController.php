@@ -25,6 +25,7 @@ class AppointmentController extends Controller
     public function index(): Response
     {
         $timezone = app(TenantContext::class)->tenant()->timezone ?: 'UTC';
+        $policy = BookingPolicy::query()->first();
 
         $appointments = Appointment::query()
             ->with(['customer', 'service', 'staff'])
@@ -58,10 +59,10 @@ class AppointmentController extends Controller
             'today_local' => CarbonImmutable::now($timezone)->format('Y-m-d'),
             'timezone' => $timezone,
             'booking_policy' => [
-                'minimum_notice_minutes' => BookingPolicy::query()->first()?->minimum_notice_minutes ?? 60,
-                'booking_horizon_days' => BookingPolicy::query()->first()?->booking_horizon_days ?? 60,
-                'slot_interval_minutes' => BookingPolicy::query()->first()?->slot_interval_minutes ?? 15,
-                'hold_minutes' => BookingPolicy::query()->first()?->hold_minutes ?? 10,
+                'minimum_notice_minutes' => $policy?->minimum_notice_minutes ?? 60,
+                'booking_horizon_days' => $policy?->booking_horizon_days ?? 60,
+                'slot_interval_minutes' => $policy?->slot_interval_minutes ?? 15,
+                'hold_minutes' => $policy?->hold_minutes ?? 10,
             ],
             'current_user_role' => app(TenantContext::class)->role(),
         ]);
