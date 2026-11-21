@@ -221,7 +221,7 @@ class AppointmentLifecycleTest extends TestCase
             $staff = Staff::query()->create(['name' => 'Team Member', 'active' => true]);
             StaffService::query()->create(['staff_id' => $staff->id, 'service_id' => $service->id]);
             BusinessHour::query()->create(['weekday' => $weekday, 'is_closed' => false, 'opens_at' => '09:00', 'closes_at' => '17:00']);
-            StaffWorkingHour::query()->create(['staff_id' => $staff->id, 'weekday' => 0, 'is_closed' => false, 'opens_at' => '09:00', 'closes_at' => '17:00']);
+            StaffWorkingHour::query()->create(['staff_id' => $staff->id, 'weekday' => $weekday, 'is_closed' => false, 'opens_at' => '09:00', 'closes_at' => '17:00']);
             $customer = Customer::query()->create(['whatsapp_wa_id' => '923001112233']);
 
             return [$service, $staff, $customer];
