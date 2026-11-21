@@ -62,6 +62,29 @@ class AppointmentLifecycleTest extends TestCase
         });
     }
 
+
+    public function test_ambiguous_calendar_result_keeps_the_slot_reserved_for_reconciliation(): void
+    {
+        [$tenant, $appointment] = $this->hold('lifecycle-calendar-unknown');
+
+        TenantContext::runForTenant($tenant->id, function () use ($appointment): void {
+            $lifecycle = app(AppointmentLifecycleService::class);
+            $lifecycle->markCalendarPending($appointment->id);
+            $unknown = $lifecycle->markCalendarSyncUnknown($appointment->id, 'calendar_timeout');
+
+            $this->assertSame('calendar_pending', $unknown->status);
+            $this->assertSame('unknown', $unknown->calendar_sync_status);
+
+            $slots = app(\App\Services\Booking\AppointmentAvailabilityService::class)
+                ->availableSlots($appointment->service_id, '2026-11-23', $appointment->staff_id);
+            $this->assertNotContains('10:00', array_column($slots, 'local_start'));
+            $this->assertDatabaseHas('appointment_events', [
+                'appointment_id' => $appointment->id,
+                'event_type' => 'calendar_sync_unknown',
+            ]);
+        });
+    }
+
     public function test_failed_calendar_sync_never_confirms_the_appointment(): void
     {
         [$tenant, $appointment] = $this->hold('lifecycle-failure');
