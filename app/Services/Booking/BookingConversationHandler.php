@@ -65,6 +65,18 @@ class BookingConversationHandler
                 ->first();
 
             if ($session) {
+                $canRestart = in_array($session->state, ['cancelled', 'expired'], true);
+
+                if ($session->state === 'hold_created' && $session->appointment_id) {
+                    $appointment = Appointment::query()->find($session->appointment_id);
+                    $canRestart = $appointment !== null
+                        && in_array($appointment->status, ['confirmed', 'failed', 'expired', 'cancelled'], true);
+                }
+
+                if ($canRestart && $this->isBookingIntent($message)) {
+                    return $this->resetToServiceSelection($conversation, $session);
+                }
+
                 return $session;
             }
 
