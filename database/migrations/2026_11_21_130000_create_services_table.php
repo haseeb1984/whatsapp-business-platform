@@ -30,7 +30,7 @@ return new class extends Migration {
         if (DB::getDriverName() === 'pgsql') {
             DB::statement('ALTER TABLE services ADD CONSTRAINT services_nonnegative_price_check CHECK (price_amount >= 0)');
             DB::statement('ALTER TABLE services ADD CONSTRAINT services_duration_range_check CHECK (duration_minutes BETWEEN 5 AND 1440)');
-            DB::statement('ALTER TABLE services ADD CONSTRAINT services_buffer_range_check CHECK (buffer_before_minutes <= 240 AND buffer_after_minutes <= 240)');
+            DB::statement('ALTER TABLE services ADD CONSTRAINT services_buffer_range_check CHECK (buffer_before_minutes BETWEEN 0 AND 240 AND buffer_after_minutes BETWEEN 0 AND 240)');
         }
     }
 
