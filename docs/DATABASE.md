@@ -34,9 +34,9 @@
 - `whatsapp_connections`: UUID id, tenant_id, globally unique phone_number_id, waba_id, display_phone_number, verified_name, encrypted access_token, status (`pending`, `active`, `disabled`); active is set only after Graph API phone-number and WABA membership verification, verified_at.
 - `whatsapp_templates`: tenant_id, provider_template_name, language, category, approval_status, components JSONB.
 - `webhook_events`: UUID id, nullable tenant_id until resolved, provider, SHA-256 provider_event_key, phone_number_id, event_type, encrypted payload text, received_at, processed_at, status, attempts and sanitized error summary; unique `(provider, provider_event_key)`. Unmatched phone IDs are quarantined with status `unmatched`.
-- `customers`: tenant_id, whatsapp_wa_id, display_name, profile metadata; unique tenant/wa_id.
-- `conversations`: tenant_id, customer_id, status, automation_state, assigned_user_id, last_message_at.
-- `messages`: tenant_id, conversation_id, direction, message_type, body, provider_message_id, delivery_status, metadata JSONB, sent_at; unique provider message ID within provider/tenant.
+- `customers`: UUID id, tenant_id, whatsapp_wa_id, display_name, encrypted profile_metadata; unique `(tenant_id, whatsapp_wa_id)` and `(tenant_id, id)`.
+- `conversations`: UUID id, tenant_id, customer_id, status, automation_state (default `AUTO_ACTIVE`), assigned_user_id, last_message_at; composite tenant-aware FK to customers.
+- `messages`: UUID id, tenant_id, conversation_id, direction, message_type, encrypted body, provider_message_id, delivery_status, encrypted metadata, sent_at; unique `(tenant_id, provider_message_id)` and composite tenant-aware FK to conversations.
 - `conversation_assignments`: tenant_id, conversation_id, user_id, assigned_at, released_at.
 - `conversation_notes`: tenant_id, conversation_id, user_id, body.
 
