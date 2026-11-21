@@ -19,7 +19,7 @@ class GoogleCalendarService
         'https://www.googleapis.com/auth/calendar.freebusy',
     ];
 
-    public function authorizationUrl(string $state): string
+    public function authorizationUrl(string $state, string $codeChallenge): string
     {
         $this->assertConfigured();
 
@@ -32,10 +32,12 @@ class GoogleCalendarService
             'prompt' => 'consent',
             'include_granted_scopes' => 'true',
             'state' => $state,
+            'code_challenge' => $codeChallenge,
+            'code_challenge_method' => 'S256',
         ], '', '&', PHP_QUERY_RFC3986);
     }
 
-    public function exchangeAuthorizationCode(string $code): array
+    public function exchangeAuthorizationCode(string $code, string $codeVerifier): array
     {
         $this->assertConfigured();
         $response = Http::asForm()->acceptJson()->timeout(15)->post(config('services.google.token_url'), [
@@ -44,6 +46,7 @@ class GoogleCalendarService
             'client_secret' => config('services.google.client_secret'),
             'redirect_uri' => config('services.google.redirect_uri'),
             'grant_type' => 'authorization_code',
+            'code_verifier' => $codeVerifier,
         ]);
 
         return $this->validatedTokenResponse($response);
@@ -71,6 +74,32 @@ class GoogleCalendarService
         ])->save();
 
         return $data['access_token'];
+    }
+
+
+    public function listCalendars(): array
+    {
+        $connection = $this->connectedConnection();
+        $token = $this->accessToken($connection);
+        $response = $this->apiRequest($connection, $token, 'get', '/users/me/calendarList?minAccessRole=writer');
+
+        return array_values(array_map(static fn (array $calendar): array => [
+            'id' => $calendar['id'],
+            'summary' => $calendar['summary'] ?? $calendar['id'],
+            'primary' => (bool) ($calendar['primary'] ?? false),
+            'access_role' => $calendar['accessRole'] ?? 'reader',
+        ], array_filter($response['items'] ?? [], static fn ($item): bool => is_array($item) && is_string($item['id'] ?? null))));
+    }
+
+    public function revoke(string $token): void
+    {
+        if ($token === '') {
+            return;
+        }
+
+        Http::asForm()->acceptJson()->timeout(10)->post(config('services.google.revoke_url'), [
+            'token' => $token,
+        ]);
     }
 
     public function freeBusy(array $calendarIds, string $timeMin, string $timeMax): array
