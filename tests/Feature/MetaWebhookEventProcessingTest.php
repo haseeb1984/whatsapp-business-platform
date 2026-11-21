@@ -93,6 +93,49 @@ class MetaWebhookEventProcessingTest extends TestCase
         $this->assertDatabaseHas('webhook_events', ['id' => $event->id, 'status' => 'processed']);
     }
 
+
+    public function test_status_event_retries_if_the_outbound_message_has_not_committed_yet(): void
+    {
+        $tenant = $this->tenant('processor-status-race');
+        $event = WebhookEvent::query()->create([
+            'tenant_id' => $tenant->id,
+            'provider' => 'meta_whatsapp',
+            'provider_event_key' => hash('sha256', 'early-status-event'),
+            'event_type' => 'message.status',
+            'payload' => ['id' => 'wamid.early-status', 'status' => 'delivered'],
+            'status' => 'pending',
+            'attempts' => 0,
+            'received_at' => now(),
+        ]);
+
+        try {
+            (new ProcessMetaWebhookEvent($event->id))->handle();
+            $this->fail('A status without its outbound message must be retried.');
+        } catch (\UnexpectedValueException) {
+            $this->assertDatabaseHas('webhook_events', ['id' => $event->id, 'status' => 'pending', 'attempts' => 1]);
+        }
+
+        TenantContext::runForTenant($tenant->id, function (): void {
+            $customer = Customer::query()->create(['whatsapp_wa_id' => '923009998877']);
+            $conversation = Conversation::query()->create(['customer_id' => $customer->id]);
+            Message::query()->create([
+                'conversation_id' => $conversation->id,
+                'direction' => 'outbound',
+                'message_type' => 'text',
+                'body' => 'Hello',
+                'provider_message_id' => 'wamid.early-status',
+                'delivery_status' => 'sent',
+            ]);
+        });
+
+        (new ProcessMetaWebhookEvent($event->id))->handle();
+        $this->assertDatabaseHas('messages', [
+            'provider_message_id' => 'wamid.early-status',
+            'delivery_status' => 'delivered',
+        ]);
+        $this->assertDatabaseHas('webhook_events', ['id' => $event->id, 'status' => 'processed']);
+    }
+
     public function test_event_without_a_tenant_is_not_processed(): void
     {
         $event = WebhookEvent::query()->create([
