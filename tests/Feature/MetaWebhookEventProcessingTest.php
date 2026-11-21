@@ -117,7 +117,7 @@ class MetaWebhookEventProcessingTest extends TestCase
         return WebhookEvent::query()->create([
             'tenant_id' => $tenantId,
             'provider' => 'meta_whatsapp',
-            'provider_event_key' => hash('sha256', $providerMessageId.'-'.uniqid('', true)),
+            'provider_event_key' => hash('sha256', $providerMessageId.'-'.WebhookEvent::query()->count()),
             'phone_number_id' => '123456789012345',
             'event_type' => 'message.received',
             'payload' => [
