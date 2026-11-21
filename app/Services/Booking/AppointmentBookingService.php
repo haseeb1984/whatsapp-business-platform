@@ -1,0 +1,101 @@
+<?php
+
+namespace App\Services\Booking;
+
+use App\Models\Appointment;
+use App\Models\AppointmentEvent;
+use App\Models\Customer;
+use App\Models\Service;
+use App\Models\Staff;
+use App\Models\Tenant;
+use App\Support\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+
+class AppointmentBookingService
+{
+    public function __construct(private readonly AppointmentAvailabilityService $availability)
+    {
+    }
+
+    public function createHold(
+        string $customerId,
+        string $serviceId,
+        string $staffId,
+        CarbonImmutable $localStart,
+        string $idempotencyKey,
+        string $source = 'whatsapp',
+    ): Appointment {
+        if ($idempotencyKey === '' || mb_strlen($idempotencyKey) > 128) {
+            throw ValidationException::withMessages(['idempotency_key' => 'A valid idempotency key is required.']);
+        }
+
+        if (! in_array($source, ['whatsapp', 'dashboard', 'api'], true)) {
+            throw ValidationException::withMessages(['source' => 'The booking source is invalid.']);
+        }
+
+        return DB::transaction(function () use ($customerId, $serviceId, $staffId, $localStart, $idempotencyKey, $source): Appointment {
+            $tenantId = app(TenantContext::class)->id();
+            Tenant::query()->lockForUpdate()->findOrFail($tenantId);
+
+            $existing = Appointment::query()->where('idempotency_key', $idempotencyKey)->first();
+            if ($existing) {
+                return $existing;
+            }
+
+            $customer = Customer::query()->findOrFail($customerId);
+            $service = Service::query()->where('active', true)->findOrFail($serviceId);
+            $staff = Staff::query()->where('active', true)->lockForUpdate()->findOrFail($staffId);
+
+            $assigned = $staff->serviceAssignments()->where('service_id', $service->id)->exists();
+            if (! $assigned) {
+                throw ValidationException::withMessages(['staff_id' => 'The selected staff member cannot provide this service.']);
+            }
+
+            $timezone = app(TenantContext::class)->tenant()->timezone ?: 'UTC';
+            $start = $localStart->setTimezone($timezone);
+            if ($start->lessThanOrEqualTo(CarbonImmutable::now($timezone))) {
+                throw ValidationException::withMessages(['starts_at' => 'Choose a future appointment time.']);
+            }
+
+            $this->availability->assertSlotAvailable($service->id, $staff->id, $start);
+
+            $end = $start->addMinutes((int) $service->duration_minutes);
+            $reservedStart = $start->subMinutes((int) $service->buffer_before_minutes);
+            $reservedEnd = $end->addMinutes((int) $service->buffer_after_minutes);
+
+            $appointment = Appointment::query()->create([
+                'customer_id' => $customer->id,
+                'service_id' => $service->id,
+                'staff_id' => $staff->id,
+                'service_name' => $service->name,
+                'price_amount' => $service->price_amount,
+                'currency' => $service->currency,
+                'duration_minutes' => $service->duration_minutes,
+                'starts_at' => $start->utc(),
+                'ends_at' => $end->utc(),
+                'reserved_starts_at' => $reservedStart->utc(),
+                'reserved_ends_at' => $reservedEnd->utc(),
+                'status' => 'pending_hold',
+                'source' => $source,
+                'idempotency_key' => $idempotencyKey,
+                'calendar_sync_status' => 'pending',
+                'hold_expires_at' => now()->addMinutes(10),
+            ]);
+
+            AppointmentEvent::query()->create([
+                'appointment_id' => $appointment->id,
+                'event_type' => 'hold_created',
+                'actor_type' => 'system',
+                'metadata' => [
+                    'timezone' => $timezone,
+                    'local_start' => $start->format('Y-m-d H:i:s'),
+                    'hold_expires_at' => $appointment->hold_expires_at?->toIso8601String(),
+                ],
+            ]);
+
+            return $appointment;
+        });
+    }
+}
