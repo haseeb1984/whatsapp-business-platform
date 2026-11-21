@@ -32,7 +32,7 @@
 - Meta webhook POST now verifies HMAC-SHA256 over the raw request body with constant-time comparison, enforces a 1 MiB payload limit, and rejects invalid signatures before parsing.
 - Use constant-time signature comparison.
 - Apply payload size limits and strict parsing.
-- Persist encrypted webhook payloads before acknowledgement and deduplicate using a unique provider/event hash before side effects. Pending events dispatch a retryable database-queue job; it locks the event row and commits customer/conversation/message writes transactionally under the mapped tenant context. Message bodies and metadata are encrypted at rest. Replay/dead-letter operations remain pending.
+- Persist encrypted webhook payloads before acknowledgement and deduplicate using a unique provider/event hash before side effects. Pending events dispatch a retryable database-queue job; it locks the event row and commits customer/conversation/message writes transactionally under the mapped tenant context. Message bodies and metadata are encrypted at rest. Outbound text sends require an active verified connection and an inbound message within the 24-hour customer service window. The sender checks `automation_state` (`AUTO_ACTIVE` for automation; `HUMAN_ACTIVE`/`WAITING_FOR_STAFF` for staff) while locking the conversation row through the provider call. Ambiguous timeouts and 5xx responses are recorded as `unknown` and are not blindly retried. Approved template sending and replay/dead-letter operations remain pending.
 - Quarantine unknown integration identifiers.
 - Do not expose webhook verification secrets in responses or logs.
 
