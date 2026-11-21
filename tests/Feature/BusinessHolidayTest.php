@@ -34,7 +34,7 @@ class BusinessHolidayTest extends TestCase
         $this->put('/business/holidays/'.$holiday->id, [
             ...$payload,
             'name' => 'Christmas special hours',
-            'is_closed' => false,
+            'is_closed' => 0,
             'opens_at' => '10:00',
             'closes_at' => '14:00',
         ])->assertRedirect();
@@ -43,8 +43,8 @@ class BusinessHolidayTest extends TestCase
             'id' => $holiday->id,
             'tenant_id' => $tenant->id,
             'is_closed' => false,
-            'opens_at' => '10:00:00',
-            'closes_at' => '14:00:00',
+            'opens_at' => '10:00',
+            'closes_at' => '14:00',
         ]);
 
         $this->delete('/business/holidays/'.$holiday->id)->assertRedirect();
