@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Models\Tenant;
+use App\Models\Appointment;
 use App\Services\Booking\AppointmentCalendarOrchestrator;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Bus\Queueable;
@@ -44,6 +44,10 @@ class SyncAppointmentCalendarEvent implements ShouldQueue
                     'error_keys' => array_keys($exception->errors()),
                 ]);
             } catch (RuntimeException $exception) {
+                if (Appointment::query()->find($this->appointmentId)?->status === 'failed') {
+                    return;
+                }
+
                 // Ambiguous provider failures are retried with the same deterministic Google event ID.
                 throw $exception;
             }
