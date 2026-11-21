@@ -5,25 +5,60 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AuthController extends Controller
 {
-    public function showLogin(): Response
+    public function showLogin(): Response { return Inertia::render('Auth/Login'); }
+    public function showRegister(): Response { return Inertia::render('Auth/Register'); }
+    public function showForgotPassword(): Response { return Inertia::render('Auth/ForgotPassword', ['status' => session('status')]); }
+    public function showResetPassword(Request $request): Response
     {
-        return Inertia::render('Auth/Login');
+        return Inertia::render('Auth/ResetPassword', [
+            'token' => $request->route('token'),
+            'email' => $request->query('email', ''),
+        ]);
     }
 
-    public function showRegister(): Response
+    public function sendResetLink(Request $request): RedirectResponse
     {
-        return Inertia::render('Auth/Register');
+        $request->validate(['email' => ['required', 'email']]);
+        $status = Password::sendResetLink($request->only('email'));
+
+        return $status === Password::RESET_LINK_SENT
+            ? back()->with('status', __($status))
+            : back()->withErrors(['email' => __($status)]);
+    }
+
+    public function resetPassword(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'token' => ['required'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'confirmed', PasswordRule::min(12)->mixedCase()->numbers()],
+        ]);
+
+        $status = Password::reset($validated, function (User $user, string $password): void {
+            $user->forceFill([
+                'password' => $password,
+                'remember_token' => Str::random(60),
+            ])->save();
+
+            event(new PasswordReset($user));
+        });
+
+        return $status === Password::PASSWORD_RESET
+            ? redirect()->route('login')->with('status', __($status))
+            : back()->withErrors(['email' => [__($status)]]);
     }
 
     public function login(Request $request): RedirectResponse
@@ -34,13 +69,19 @@ class AuthController extends Controller
         ]);
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
-            return back()->withErrors(['email' => 'The supplied credentials are incorrect.'])
-                ->onlyInput('email');
+            return back()->withErrors(['email' => 'The supplied credentials are incorrect.'])->onlyInput('email');
         }
 
         $request->session()->regenerate();
+        $memberships = $request->user()->tenants()->wherePivot('status', 'active')->get();
 
-        return redirect()->intended(route('dashboard'));
+        if ($memberships->count() === 1) {
+            $request->session()->put('current_tenant_id', (string) $memberships->first()->getKey());
+            return redirect()->intended(route('dashboard'));
+        }
+
+        $request->session()->forget('current_tenant_id');
+        return redirect()->route('workspaces.index');
     }
 
     public function register(Request $request): RedirectResponse
@@ -50,21 +91,19 @@ class AuthController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'business_name' => ['required', 'string', 'max:160'],
             'timezone' => ['required', 'timezone'],
-            'password' => ['required', 'confirmed', Password::min(12)->mixedCase()->numbers()],
+            'password' => ['required', 'confirmed', PasswordRule::min(12)->mixedCase()->numbers()],
         ]);
 
-        $user = DB::transaction(function () use ($validated): User {
+        [$user, $tenant] = DB::transaction(function () use ($validated): array {
             $user = User::query()->create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => $validated['password'],
             ]);
 
-            $baseSlug = Str::slug($validated['business_name']);
-            $baseSlug = $baseSlug !== '' ? $baseSlug : 'business';
+            $baseSlug = Str::slug($validated['business_name']) ?: 'business';
             $slug = $baseSlug;
             $suffix = 2;
-
             while (Tenant::query()->where('slug', $slug)->exists()) {
                 $slug = $baseSlug.'-'.$suffix++;
             }
@@ -76,16 +115,13 @@ class AuthController extends Controller
                 'status' => 'pending',
             ]);
 
-            $tenant->users()->attach($user->id, [
-                'role' => 'business_admin',
-                'status' => 'active',
-            ]);
-
-            return $user;
+            $tenant->users()->attach($user->id, ['role' => 'business_admin', 'status' => 'active']);
+            return [$user, $tenant];
         });
 
         Auth::login($user);
         $request->session()->regenerate();
+        $request->session()->put('current_tenant_id', (string) $tenant->getKey());
 
         return redirect()->route('dashboard');
     }
@@ -95,7 +131,6 @@ class AuthController extends Controller
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-
         return redirect()->route('login');
     }
 }
