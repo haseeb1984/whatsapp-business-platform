@@ -32,11 +32,13 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Reject a session-selected tenant that the authenticated user does not belong to.
 - [x] Protect the dashboard with authentication and tenant-context middleware.
 - [x] Add workspace selection/switching UI and validate active membership server-side.
-- [x] Add feature tests for registration, login/logout, password recovery, workspace selection and cross-tenant selection rejection.
+- [x] Add tenant role context and role-restricted middleware for tenant routes.
+- [x] Add feature tests for registration, login/logout, password recovery, workspace selection, cross-tenant selection rejection and role authorization.
+- [ ] Apply role middleware to business configuration routes as those modules are introduced.
 - [ ] Implement tenant-scoped repositories/policies and composite tenant-aware foreign keys.
 - [ ] Add cross-tenant negative authorization tests for read, update, delete and background jobs.
 
-**Status:** Initial authentication, password recovery and workspace selection foundations committed. Configure production SMTP before using reset emails. Fine-grained authorization, email verification, database constraints and full isolation acceptance tests remain outstanding. Automated tests have been authored but are not yet executed in a working Laravel runtime.
+**Status:** Initial authentication, password recovery and workspace selection foundations committed. Configure production SMTP before using reset emails. Applying role restrictions to each business module, email verification, database constraints and full isolation acceptance tests remain outstanding. Automated tests have been authored but are not yet executed in a working Laravel runtime.
 
 **Exit gate:** A user from tenant A cannot read, update, delete or infer tenant B data through any tested route or job.
 
