@@ -31,6 +31,8 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Automatically select a user's sole active tenant; require explicit selection for multiple tenants.
 - [x] Reject a session-selected tenant that the authenticated user does not belong to.
 - [x] Block suspended business workspaces even when the user membership itself is active.
+- [x] Exclude suspended tenants from workspace selection, switching and automatic login selection.
+- [x] Restore/clear request tenant context after each request to prevent long-lived process context leakage.
 - [x] Route newly registered users to email verification before dashboard access.
 - [x] Protect the dashboard with authentication and tenant-context middleware.
 - [x] Add workspace selection/switching UI and validate active membership server-side.
