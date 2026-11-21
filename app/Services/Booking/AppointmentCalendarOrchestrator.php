@@ -30,8 +30,11 @@ class AppointmentCalendarOrchestrator
         }
 
         try {
-            $this->calendar->assertAppointmentCalendarAvailable($pending);
-            $eventId = $this->calendar->createAppointmentEvent($pending);
+            $eventId = $this->calendar->findAppointmentEvent($pending);
+            if ($eventId === null) {
+                $this->calendar->assertAppointmentCalendarAvailable($pending);
+                $eventId = $this->calendar->createAppointmentEvent($pending);
+            }
 
             return $this->lifecycle->confirmAfterCalendarSync($pending->id, $eventId);
         } catch (Throwable $exception) {
