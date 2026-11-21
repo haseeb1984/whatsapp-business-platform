@@ -7,6 +7,7 @@ use App\Models\AppointmentEvent;
 use App\Models\BookingPolicy;
 use App\Models\Customer;
 use App\Models\GoogleCalendarConnection;
+use App\Jobs\SyncAppointmentCalendarEvent;
 use App\Models\Service;
 use App\Models\Staff;
 use App\Models\Tenant;
@@ -49,7 +50,7 @@ class AppointmentBookingService
         // External FreeBusy is checked before the local transaction so no DB lock is held during Google API I/O.
         $this->availability->assertSlotAvailable($serviceId, $staffId, $requestedStart->setTimezone($timezone), true);
 
-        return DB::transaction(function () use ($tenantId, $timezone, $requestedStart, $customerId, $serviceId, $staffId, $idempotencyKey, $source): Appointment {
+        $appointment = DB::transaction(function () use ($tenantId, $timezone, $requestedStart, $customerId, $serviceId, $staffId, $idempotencyKey, $source): Appointment {
             Tenant::query()->lockForUpdate()->findOrFail($tenantId);
 
             $existing = Appointment::query()->where('idempotency_key', $idempotencyKey)->first();
@@ -110,6 +111,13 @@ class AppointmentBookingService
 
             return $appointment;
         });
+
+        if ($appointment->status === 'pending_hold'
+            && GoogleCalendarConnection::query()->where('status', 'connected')->exists()) {
+            SyncAppointmentCalendarEvent::dispatch($tenantId, $appointment->id);
+        }
+
+        return $appointment->refresh();
     }
 
     private function returnIdempotentMatch(
