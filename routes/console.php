@@ -11,7 +11,8 @@ Artisan::command('platform:about', function (): void {
     $this->line('Queue: '.config('queue.default'));
 })->purpose('Display platform runtime configuration');
 
-Artisan::command('appointments:expire-holds {--tenant=}', function (AppointmentLifecycleService $lifecycle): int {
+Artisan::command('appointments:expire-holds {--tenant=}', function (): int {
+    $lifecycle = app(AppointmentLifecycleService::class);
     $tenantId = $this->option('tenant');
     $expired = 0;
 
