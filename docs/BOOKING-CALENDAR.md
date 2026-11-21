@@ -10,7 +10,7 @@ A booking request may require service, preferred date, preferred time range, sta
 
 Staff date-specific leave/special-hours overrides and tenant policies for minimum notice, booking horizon, slot interval and hold duration are now implemented and editable by business admins.
 
-**Still pending:** Google Calendar FreeBusy periods and reconciliation with external events. Availability must not be described as confirmed until both local and external calendar checks are complete.
+**Implemented:** when a tenant has connected Google Calendar, availability queries each eligible staff calendar through FreeBusy and excludes overlapping external busy periods. If the external calendar cannot be checked, availability fails closed instead of returning unverified slots. A final FreeBusy check runs before event creation.
 
 Convert local business times to UTC for storage and API operations. Slot results carry explicit UTC offsets so repeated daylight-saving wall times remain distinguishable; the hold endpoint accepts the selected ISO-8601 instant, not an ambiguous local string. Use IANA timezone identifiers.
 
@@ -28,7 +28,7 @@ The initial local lifecycle and temporary-hold transitions are implemented. Sugg
 - `cancelled`: cancellation completed and persisted.
 - `failed` / `expired`: operation failed or hold expired; not confirmed.
 
-Only `confirmed` may be communicated as a confirmed booking. The current application creates `pending_hold` records only; it does not confirm a booking until the Calendar integration successfully creates the external event and calls the guarded confirmation transition with its event ID.
+Only `confirmed` may be communicated as a confirmed booking. The application creates `pending_hold` records, transitions to `calendar_pending`, checks FreeBusy, creates a deterministic Google event and calls the guarded confirmation transition with its event ID. The business dashboard exposes confirm/reconcile and cancel actions. The customer-facing WhatsApp booking conversation is still pending.
 
 ## 4. Concurrency and double-booking prevention
 
@@ -40,9 +40,9 @@ A `calendar_pending` appointment blocks the slot. If the Calendar outcome is amb
 
 ## 5. Google Calendar connection
 
-**Implemented foundation:** tenant-bound OAuth state validation, account identity lookup, encrypted access/refresh tokens, token refresh, FreeBusy request service, deterministic event creation with lookup after ambiguous create responses, and event deletion. A business-admin connection screen is available. Per-staff calendar ID storage is present.
+**Implemented:** OAuth state + PKCE validation bound to the signed-in user and active tenant, verified Google account identity, required-scope checks, encrypted access/refresh tokens, access-token refresh, token revocation on disconnect, writable calendar listing, tenant default calendar selection and per-staff calendar mapping. FreeBusy is integrated into availability and is checked again before event creation. Appointment event IDs are deterministic; retries look up an existing event before attempting another create. Cancellation calls Google event deletion and only then marks the appointment cancelled. Rate limits and ambiguous create/delete outcomes keep the appointment reserved for reconciliation.
 
-**Still pending:** per-staff calendar mapping UI, FreeBusy integration into availability, event update/reschedule orchestration, revocation handling, and full booking saga integration. Google API behavior must be exercised against a dedicated test account before production use.
+**Still pending:** event update/reschedule, automated reconciliation worker for unknown outcomes, reminders, and live acceptance testing against a dedicated Google test account.
 
 - Use exact configured redirect URI and least-privilege scopes.
 - Store calendar ID, external event ID, ETag/version if available, sync state, and last sync time.
@@ -57,7 +57,7 @@ PostgreSQL and Google Calendar do not share a transaction. Use an explicit saga/
 - If the response times out, query/reconcile by stable marker before retrying create.
 - If the event exists but local persistence failed, attach the event to the pending appointment.
 - If event creation definitely failed, release/expire the hold and communicate that the slot was not booked.
-- For reschedule, preserve the old confirmed event until the replacement operation is safely committed, or use a clearly documented update strategy.
+- Rescheduling is not implemented yet. When added, preserve the old confirmed event until the replacement operation is safely committed, or use a clearly documented update strategy.
 - For cancellation, do not mark cancelled until the calendar deletion/update outcome is known; handle already-deleted events idempotently.
 
 ## 7. Reminders
