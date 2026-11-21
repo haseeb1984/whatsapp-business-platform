@@ -138,6 +138,7 @@ class AppointmentLifecycleService
 
             $appointment->forceFill([
                 'status' => 'cancelled',
+                'calendar_sync_status' => 'not_required',
                 'hold_expires_at' => null,
             ])->save();
 
@@ -182,6 +183,7 @@ class AppointmentLifecycleService
     {
         $appointment->forceFill([
             'status' => $status,
+            'calendar_sync_status' => $status === 'expired' ? 'not_required' : 'pending',
             'hold_expires_at' => null,
         ])->save();
 
