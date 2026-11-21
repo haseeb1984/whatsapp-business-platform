@@ -21,7 +21,7 @@
 - `tenant_settings`: tenant_id, key, JSONB value; constrain keys and validate values in application code.
 
 ### Business configuration
-- `business_profiles`: tenant_id, display_name, address, contact details, description, policies.
+- `business_profiles`: UUID id, unique tenant_id, display_name, address, contact details, description, timezone and locale. The initial implementation is one profile per tenant and has a tenant foreign key plus a composite unique `(tenant_id, id)` key for future same-tenant references.
 - `business_hours`: tenant_id, weekday, opens_at, closes_at, closed.
 - `business_holidays`: tenant_id, starts_at, ends_at, name.
 - `services`: tenant_id, name, description, price_amount, currency, duration_minutes, buffer_before_minutes, buffer_after_minutes, active.
