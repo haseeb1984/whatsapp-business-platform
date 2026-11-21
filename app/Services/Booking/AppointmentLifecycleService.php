@@ -142,6 +142,37 @@ class AppointmentLifecycleService
         });
     }
 
+
+    public function markCalendarDeletionUnknown(string $appointmentId, string $reasonCode): Appointment
+    {
+        return DB::transaction(function () use ($appointmentId, $reasonCode): Appointment {
+            $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointmentId);
+            if ($appointment->status !== 'confirmed') {
+                throw ValidationException::withMessages(['appointment' => 'Only a confirmed appointment can have an ambiguous calendar deletion.']);
+            }
+
+            $appointment->forceFill(['calendar_sync_status' => 'unknown'])->save();
+            $this->event($appointment, 'calendar_deletion_unknown', ['reason_code' => mb_substr($reasonCode, 0, 80)]);
+
+            return $appointment->refresh();
+        });
+    }
+
+    public function markCalendarDeletionFailed(string $appointmentId, string $reasonCode): Appointment
+    {
+        return DB::transaction(function () use ($appointmentId, $reasonCode): Appointment {
+            $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointmentId);
+            if ($appointment->status !== 'confirmed') {
+                throw ValidationException::withMessages(['appointment' => 'Only a confirmed appointment can have a failed calendar deletion.']);
+            }
+
+            $appointment->forceFill(['calendar_sync_status' => 'failed'])->save();
+            $this->event($appointment, 'calendar_deletion_failed', ['reason_code' => mb_substr($reasonCode, 0, 80)]);
+
+            return $appointment->refresh();
+        });
+    }
+
     public function cancelAfterCalendarDeletion(string $appointmentId): Appointment
     {
         return DB::transaction(function () use ($appointmentId): Appointment {
