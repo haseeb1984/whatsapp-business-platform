@@ -24,7 +24,7 @@ export default function StaffWorkingHours() {
             <div className="mx-auto max-w-4xl">
                 <a href="/business/staff" className="text-sm text-blue-700 hover:underline">← Staff management</a>
                 <h1 className="mt-4 text-3xl font-bold text-slate-900">{staff.name} · Working hours</h1>
-                <p className="mt-2 text-slate-600">Set this team member's regular availability. These hours must also fit within the business opening hours.</p>
+                <p className="mt-2 text-slate-600">Set this team member's regular availability. The booking availability engine will intersect these hours with the business opening hours.</p>
                 <form onSubmit={submit} className="mt-8 space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                     {data.days.map((day, index) => <div key={day.weekday} className="grid gap-3 border-b border-slate-100 pb-4 sm:grid-cols-[1fr_auto_1fr_1fr] sm:items-center">
                         <p className="font-semibold text-slate-800">{day.label}</p>
