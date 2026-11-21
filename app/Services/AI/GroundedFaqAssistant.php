@@ -15,6 +15,10 @@ class GroundedFaqAssistant
 
     public function answer(string $question, string $locale): FaqAssistantResult
     {
+        if (trim($question) === '' || mb_strlen($question) > 4096) {
+            return $this->handoff();
+        }
+
         $matches = $this->retrieval->retrieve($question, $locale);
         if ($matches === []) {
             return $this->handoff();
@@ -28,7 +32,7 @@ class GroundedFaqAssistant
         $candidates = array_map(static fn (array $match): array => [
             'id' => $match['faq']->id,
             'question' => $match['faq']->question,
-            'answer' => $match['faq']->answer,
+            'answer' => mb_substr($match['faq']->answer, 0, 1200),
         ], $matches);
 
         try {
