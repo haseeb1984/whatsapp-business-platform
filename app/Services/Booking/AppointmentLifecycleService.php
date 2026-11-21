@@ -4,12 +4,17 @@ namespace App\Services\Booking;
 
 use App\Models\Appointment;
 use App\Models\AppointmentEvent;
+use App\Services\Booking\AppointmentReminderService;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class AppointmentLifecycleService
 {
+    public function __construct(private readonly AppointmentReminderService $reminders)
+    {
+    }
+
     public function markCalendarPending(string $appointmentId): Appointment
     {
         $result = DB::transaction(function () use ($appointmentId): array {
@@ -57,6 +62,7 @@ class AppointmentLifecycleService
         return DB::transaction(function () use ($appointmentId, $externalEventId): Appointment {
             $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointmentId);
             if ($appointment->status === 'confirmed' && $appointment->external_event_id === $externalEventId) {
+                $this->reminders->scheduleFor($appointment);
                 return $appointment;
             }
             if ($appointment->status !== 'calendar_pending') {
@@ -71,6 +77,7 @@ class AppointmentLifecycleService
             ])->save();
 
             $this->event($appointment, 'confirmed', ['external_event_id' => $externalEventId]);
+            $this->reminders->scheduleFor($appointment);
 
             return $appointment->refresh();
         });
@@ -175,6 +182,7 @@ class AppointmentLifecycleService
             ])->save();
 
             $this->event($appointment, 'cancelled_after_calendar_deletion');
+            $this->reminders->cancelPendingFor($appointment);
 
             return $appointment->refresh();
         });
