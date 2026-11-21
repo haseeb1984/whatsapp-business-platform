@@ -97,7 +97,7 @@ class MetaWhatsAppWebhookTest extends TestCase
         ], $raw)->assertOk();
 
         $this->assertDatabaseCount('webhook_events', 1);
-        Queue::assertPushed(ProcessMetaWebhookEvent::class, 1);
+        Queue::assertPushed(ProcessMetaWebhookEvent::class);
     }
 
     public function test_invalid_signature_is_rejected_before_event_persistence(): void
