@@ -26,6 +26,7 @@ Route::get('/', function (Request $request) {
     $tenantId = $request->session()->get('current_tenant_id');
     $hasActiveMembership = is_string($tenantId) && $request->user()->tenants()
         ->wherePivot('status', 'active')
+        ->where('tenants.status', 'active')
         ->where('tenants.id', $tenantId)
         ->exists();
 
