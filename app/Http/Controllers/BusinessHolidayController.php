@@ -56,14 +56,14 @@ class BusinessHolidayController extends Controller
     private function validated(Request $request, ?BusinessHoliday $holiday = null): array
     {
         $tenantId = app(TenantContext::class)->id();
+        $uniqueDate = Rule::unique('business_holidays', 'date')
+            ->where(fn ($query) => $query->where('tenant_id', $tenantId));
+        if ($holiday !== null) {
+            $uniqueDate->ignore($holiday->id);
+        }
+
         $validator = validator($request->all(), [
-            'date' => [
-                'required',
-                'date_format:Y-m-d',
-                Rule::unique('business_holidays', 'date')
-                    ->where(fn ($query) => $query->where('tenant_id', $tenantId))
-                    ->ignore($holiday?->id),
-            ],
+            'date' => ['required', 'date_format:Y-m-d', $uniqueDate],
             'name' => ['required', 'string', 'max:160'],
             'is_closed' => ['required', 'boolean'],
             'opens_at' => ['nullable', 'required_if:is_closed,false', 'date_format:H:i'],
