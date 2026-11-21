@@ -18,6 +18,7 @@ class GoogleCalendarService
         'email',
         'https://www.googleapis.com/auth/calendar.events',
         'https://www.googleapis.com/auth/calendar.freebusy',
+        'https://www.googleapis.com/auth/calendar.calendarlist.readonly',
     ];
 
     public function authorizationUrl(string $state, string $codeChallenge): string
@@ -157,6 +158,9 @@ class GoogleCalendarService
             $appointment->reserved_starts_at->utc()->toIso8601String(),
             $appointment->reserved_ends_at->utc()->toIso8601String(),
         );
+        if (! is_array($busy[$calendarId] ?? null) || isset($busy[$calendarId]['errors'])) {
+            throw ValidationException::withMessages(['calendar' => 'The assigned Google Calendar could not be checked for conflicts.']);
+        }
 
         foreach (($busy[$calendarId]['busy'] ?? []) as $period) {
             if (! is_string($period['start'] ?? null) || ! is_string($period['end'] ?? null)) {
