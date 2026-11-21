@@ -123,11 +123,12 @@ class MetaWhatsAppWebhookController extends Controller
                         ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
                         $eventId = (string) Str::uuid();
-                        $inserted = DB::table('webhook_events')->insertOrIgnore([
+                        $eventKey = hash('sha256', $serialized);
+                        DB::table('webhook_events')->insertOrIgnore([
                             'id' => $eventId,
                             'tenant_id' => $tenantId,
                             'provider' => 'meta_whatsapp',
-                            'provider_event_key' => hash('sha256', $serialized),
+                            'provider_event_key' => $eventKey,
                             'phone_number_id' => $phoneNumberId,
                             'event_type' => $item['type'],
                             'payload' => Crypt::encryptString(json_encode($item['payload'], JSON_THROW_ON_ERROR)),
@@ -138,8 +139,15 @@ class MetaWhatsAppWebhookController extends Controller
                             'updated_at' => now(),
                         ]);
 
-                        if ($inserted > 0 && $tenantId) {
-                            ProcessMetaWebhookEvent::dispatch($eventId)->afterCommit();
+                        if ($tenantId) {
+                            $storedEvent = DB::table('webhook_events')
+                                ->where('provider', 'meta_whatsapp')
+                                ->where('provider_event_key', $eventKey)
+                                ->first(['id', 'status']);
+
+                            if ($storedEvent && $storedEvent->status === 'pending') {
+                                ProcessMetaWebhookEvent::dispatch($storedEvent->id)->afterCommit();
+                            }
                         }
                     }
                 }
