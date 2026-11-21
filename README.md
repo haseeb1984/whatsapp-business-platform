@@ -4,11 +4,27 @@ A reusable multi-tenant WhatsApp Business automation platform using the official
 
 ## Current implementation status
 
-**Milestone 0:** Technical specification committed.  
-**Milestone 1:** Laravel 13 / React / Inertia application shell and initial tenant schema committed; Composer dependencies install successfully in CI and the frontend production build passes.  
-**Milestone 2 (in progress):** Registration, login/logout, password reset, signed email verification, workspace selection/switching, tenant context and role-gating foundations are committed. The current CI suite passes; additional production model coverage, authorization hardening and database isolation acceptance work remain. A fail-closed tenant-owned model concern (including bulk Eloquent tenant-ID update protection) and explicit background-work tenant context helper are now committed. Request middleware also clears/restores tenant context after each request, and suspended tenants are excluded from workspace selection. All currently implemented tenant-owned models opt in; every future tenant-owned model must also adopt it. Composite database constraints still need broader coverage across future cross-entity relationships.
-**Milestone 3 (in progress):** Tenant-scoped business profile CRUD, regional settings, weekly business hours editor, holiday/special-hours CRUD, service/pricing management, staff CRUD with service assignments, staff weekly working hours, and FAQ CRUD with draft/published/archived lifecycle and tenant-scoped search are committed. The CI suite passes with coverage for these modules. Staff date-specific exceptions, business policies and complete dashboards remain outstanding.
-**Partially implemented:** Tenant WhatsApp connection setup with encrypted access tokens, Meta Graph API verification of phone number and WABA membership, signed webhook verification, durable encrypted/idempotent event ingestion, active phone-number routing, a retryable processor that normalizes inbound messages into encrypted customer/conversation/message records, and a text sender that enforces the 24-hour customer-service window and automation/human state gate. **Partially implemented:** a provider-independent Groq adapter and tenant-scoped grounded FAQ selector; the model selects approved FAQ IDs and the backend returns only stored approved answers. The assistant is connected to a queued inbound-text workflow, with latest-message/human-takeover checks, automatic `WAITING_FOR_STAFF` on insufficient FAQ evidence, and unique inbound-to-outbound correlation to suppress duplicate replies. **Partially implemented booking:** tenant-timezone availability from business hours, holidays, staff schedules, service eligibility, durations and buffers; a temporary-hold API/dashboard with idempotency, conflict locking, configurable booking policies, staff date exceptions and scheduled expiry; and a lifecycle that blocks confirmation until a calendar event ID is supplied after successful sync. **Not implemented yet:** actual Google Calendar OAuth/FreeBusy/event operations, confirmed live booking orchestration, rescheduling and confirmed-booking cancellation, approved WhatsApp templates, staff notifications/invitations and real-time inbox updates, and production platform administration dashboards.
+**Milestone 0:** Product requirements, architecture, database, security and deployment specifications committed. Actual Hostinger/Neon account limits still need verification.
+
+**Milestone 1:** Laravel 13 / React 19 / TypeScript / Inertia application shell, CI dependency installation, SQLite feature-test setup and production frontend build are working. A disposable Neon/PostgreSQL migration rehearsal remains pending.
+
+**Milestone 2:** Registration, login/logout, password recovery, signed email verification, multi-workspace selection/switching, tenant context, role middleware, suspended-tenant protection and fail-closed tenant-owned Eloquent model scoping are implemented. Broader tenant-aware foreign-key coverage and end-to-end queued-job isolation remain hardening tasks.
+
+**Milestone 3:** Business profile, timezone/locale, weekly hours, holidays/special hours, services/pricing, staff/service assignments, staff weekly hours and date-specific exceptions, booking policies, and FAQ CRUD/publication/search are implemented with tenant scoping and admin controls. Full business dashboards and remaining UX polish are still in progress.
+
+**Milestone 4:** Official Meta WhatsApp Cloud API connection setup, encrypted credentials, phone/WABA verification, signed/idempotent webhook ingestion, retryable event processing, encrypted message persistence, delivery-status handling and policy-aware text sending are implemented. Approved template lifecycle and Embedded Signup remain pending.
+
+**Milestone 5:** Tenant-scoped inbox, staff assignment/takeover, manual replies, encrypted internal notes, automation pause/resume and close/reopen controls are implemented. Staff notifications/invitations, real-time updates and expanded audit history remain pending.
+
+**Milestone 6:** Provider-independent Groq integration, published-FAQ grounding, approved-answer-only output, queued inbound reply workflow, rate-limit fallback, prompt-injection checks and safe human handover are implemented. Broader intent routing, structured business-fact retrieval and allowlisted booking tools remain pending.
+
+**Milestone 7:** Tenant-timezone availability, staff/service eligibility, business hours/holidays, staff schedules/date exceptions, booking policies, local and Google FreeBusy conflict checks, idempotent temporary holds, bounded expiry, and the appointment dashboard are implemented. Calendar-backed confirmation/cancellation orchestration is implemented; WhatsApp booking conversation, rescheduling and reminders remain pending.
+
+**Milestone 8:** Google OAuth with state + PKCE validation, encrypted access/refresh tokens, refresh/revocation, writable calendar listing, tenant default and per-staff calendar mapping, FreeBusy, deterministic event creation/reconciliation lookup and event deletion are implemented. Live Google test-account validation and event update/reschedule remain pending.
+
+**Current CI:** GitHub Actions run [44949967750](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44949967750) passed on commit `afa09a2e3d00d6cb29c2eca51b6dc01d5db8740e`: **124 Laravel tests (457 assertions)**, Composer manifest validation/dependency installation and Vite production build. Tests currently use SQLite; Neon/PostgreSQL migration and constraint rehearsal remains outstanding.
+
+**Not production-ready yet:** WhatsApp approved templates, end-to-end WhatsApp booking and rescheduling, reminders, full platform/business administration dashboards, expanded tenant isolation and operational hardening, Neon rehearsal, Hostinger deployment validation, live Meta/Google acceptance tests, backup/restore and production onboarding.
 
 ## Approved stack
 
@@ -18,7 +34,7 @@ A reusable multi-tenant WhatsApp Business automation platform using the official
 - Queue: Laravel database queue, processed in bounded cron-triggered batches on Hostinger shared hosting
 - AI: Groq through a provider-independent adapter (grounded FAQ selection and queued inbound reply orchestration implemented)
 - Messaging: Official Meta WhatsApp Cloud API only
-- Calendar: Google Calendar API (planned)
+- Calendar: Google Calendar API (OAuth, FreeBusy and create/delete primitives implemented; booking integration in progress)
 - Hosting: Hostinger Business
 - Vercel: explicitly excluded
 
@@ -80,7 +96,7 @@ Prerequisites: PHP 8.3+, Composer, Node.js 22+, npm, and a PostgreSQL database. 
    php artisan serve
    ```
 
-Open `http://127.0.0.1:8000`. New users can register an account and create an initial business workspace; existing users can sign in. The dashboard is still a foundation screen, not a completed business dashboard. Business profile, weekly hours, holidays, services, staff and FAQs can be configured from its links.
+Open `http://127.0.0.1:8000`. New users can register an account and create an initial business workspace; existing users can sign in. The dashboard is still a foundation screen, not a completed business dashboard. Business profile, weekly hours, holidays, services, staff, FAQs, WhatsApp, conversations, appointments and Google Calendar settings are available from its links.
 
 ## Verification
 
