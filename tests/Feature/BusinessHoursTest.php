@@ -108,8 +108,8 @@ class BusinessHoursTest extends TestCase
             'name' => 'Hours User',
             'email' => $email,
             'password' => 'StrongPassword123',
-            'email_verified_at' => now(),
-        ]);
+                    ]);
+        $user->forceFill(['email_verified_at' => now()])->save();
         $tenant = Tenant::query()->create([
             'name' => 'Hours Workspace',
             'slug' => str_replace(['@', '.'], '-', $email),
