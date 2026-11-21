@@ -189,7 +189,7 @@ class AppointmentLifecycleService
                         return;
                     }
 
-                    $appointment->forceFill(['status' => 'expired'])->save();
+                    $appointment->forceFill(['status' => 'expired', 'calendar_sync_status' => 'not_required'])->save();
                     $this->event($appointment, 'hold_expired');
                     $expired++;
                 });
