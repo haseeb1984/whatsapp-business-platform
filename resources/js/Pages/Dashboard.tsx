@@ -17,7 +17,7 @@ export default function Dashboard() {
             <Head title="Project dashboard" />
             <main className="min-h-screen bg-slate-950 px-6 py-12 text-slate-100">
                 <div className="mx-auto max-w-5xl">
-                    <div className="flex items-center justify-between gap-4"><p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-400">JuncSys · SaaS platform</p><button onClick={() => router.post('/logout')} className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">Sign out</button></div>
+                    <div className="flex items-center justify-between gap-4"><p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-400">JuncSys · SaaS platform</p><div className="flex gap-2"><button onClick={() => router.get('/workspaces')} className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">Switch workspace</button><button onClick={() => router.post('/logout')} className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">Sign out</button></div></div>
                     <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                         <div>
                             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">WhatsApp Business Platform</h1>
