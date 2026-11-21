@@ -5,19 +5,19 @@ import type { FormEvent } from 'react';
 type ServiceOption = { id: string; name: string };
 type CustomerOption = { id: string; label: string };
 type StaffOption = { id: string; name: string };
-type Slot = { staff_id: string; staff_name: string; starts_at: string; ends_at: string; local_start: string; local_end: string; timezone: string; utc_offset: string };
+type Slot = { staff_id: string; staff_name: string; starts_at: string; ends_at: string; local_start: string; local_end: string; timezone: string; utc_offset: string; calendar_checked: boolean };
 type Appointment = {
     id: string; customer: string | null; service: string; staff: string | null; starts_at: string; ends_at: string;
     status: string; calendar_sync_status: string; hold_expires_at: string | null; hold_expires_label: string | null; starts_at_label: string; price: string;
 };
 type Props = {
     appointments: Appointment[]; services: ServiceOption[]; customers: CustomerOption[]; staff: StaffOption[];
-    today_local: string; timezone: string; current_user_role: string;
+    today_local: string; timezone: string; current_user_role: string; calendar_connected: boolean;
     booking_policy: { minimum_notice_minutes: number; booking_horizon_days: number; slot_interval_minutes: number; hold_minutes: number };
 };
 
 export default function AppointmentManagement() {
-    const { appointments, services, customers, staff, today_local, timezone, booking_policy, current_user_role } = usePage<Props>().props;
+    const { appointments, services, customers, staff, today_local, timezone, booking_policy, current_user_role, calendar_connected } = usePage<Props>().props;
     const policy = useForm(booking_policy);
     const [serviceId, setServiceId] = useState(services[0]?.id ?? '');
     const [customerId, setCustomerId] = useState(customers[0]?.id ?? '');
@@ -82,7 +82,7 @@ export default function AppointmentManagement() {
             <Head title="Appointments" />
             <div className="mx-auto max-w-6xl">
                 <a href="/dashboard" className="text-sm text-blue-700 hover:underline">← Dashboard</a>
-                <div className="mt-4"><h1 className="text-3xl font-bold text-slate-900">Appointments</h1><p className="mt-2 text-slate-600">Check live staff availability and create temporary booking holds. Holds are not confirmed until Calendar synchronization succeeds.</p><p className="mt-1 text-xs text-slate-500">Business timezone: {timezone}</p></div>
+                <div className="mt-4"><h1 className="text-3xl font-bold text-slate-900">Appointments</h1><p className="mt-2 text-slate-600">Check live staff availability and create temporary booking holds. Holds are not confirmed until Calendar synchronization succeeds.</p><p className="mt-1 text-xs text-slate-500">Business timezone: {timezone}</p>{!calendar_connected && <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Google Calendar is not connected. Availability is based on local schedules and appointments only; external calendar conflicts cannot yet be checked.</p>}</div>
                 {current_user_role === 'business_admin' && <form onSubmit={savePolicy} className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
                     <h2 className="text-lg font-semibold text-slate-900">Booking policy</h2>
                     <p className="mt-1 text-sm text-slate-500">Control notice time, how far ahead customers can book, slot spacing and temporary hold duration.</p>
