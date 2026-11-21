@@ -14,7 +14,7 @@ class Staff extends Model
 
     protected $table = 'staff_members';
 
-    protected $fillable = ['name', 'email', 'phone', 'active'];
+    protected $fillable = ['name', 'email', 'phone', 'google_calendar_id', 'active'];
 
     protected function casts(): array
     {
