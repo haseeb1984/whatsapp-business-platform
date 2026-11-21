@@ -6,7 +6,7 @@ use App\Models\Conversation;
 use App\Models\Customer;
 use App\Models\Message;
 use App\Models\WebhookEvent;
-use App\Jobs\GenerateAutomatedFaqReply;
+use App\Jobs\ProcessBookingConversationReply;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
@@ -54,7 +54,7 @@ class ProcessMetaWebhookEvent implements ShouldQueue
                     if ($event->event_type === 'message.received') {
                         $replyContext = $this->processInboundMessage($event->payload, $event->received_at);
                         if ($replyContext) {
-                            GenerateAutomatedFaqReply::dispatch(
+                            ProcessBookingConversationReply::dispatch(
                                 $event->tenant_id,
                                 $replyContext['conversation_id'],
                                 $replyContext['message_id'],
