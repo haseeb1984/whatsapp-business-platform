@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class WhatsAppConnection extends Model
 {
+    protected $table = 'whatsapp_connections';
+
     use HasUuids;
     use BelongsToTenant;
 
