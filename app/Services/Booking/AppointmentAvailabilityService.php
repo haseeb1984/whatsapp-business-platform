@@ -3,10 +3,12 @@
 namespace App\Services\Booking;
 
 use App\Models\Appointment;
+use App\Models\BookingPolicy;
 use App\Models\BusinessHoliday;
 use App\Models\BusinessHour;
 use App\Models\Service;
 use App\Models\Staff;
+use App\Models\StaffAvailabilityException;
 use App\Models\StaffService;
 use App\Models\StaffWorkingHour;
 use App\Support\Tenancy\TenantContext;
@@ -18,19 +20,23 @@ class AppointmentAvailabilityService
     /**
      * Return available local start times for an active service and eligible staff.
      *
-     * @return array<int, array{staff_id: string, staff_name: string, starts_at: string, ends_at: string, local_start: string, local_end: string, timezone: string}>
+     * @return array<int, array{staff_id: string, staff_name: string, starts_at: string, ends_at: string, local_start: string, local_end: string, utc_offset: string, timezone: string}>
      */
-    public function availableSlots(string $serviceId, string $localDate, ?string $staffId = null, int $intervalMinutes = 15): array
+    public function availableSlots(string $serviceId, string $localDate, ?string $staffId = null, ?int $intervalMinutes = null): array
     {
+        $policy = BookingPolicy::query()->first();
+        $intervalMinutes ??= $policy?->slot_interval_minutes ?? 15;
         if ($intervalMinutes < 5 || $intervalMinutes > 60 || $intervalMinutes % 5 !== 0) {
             throw ValidationException::withMessages(['interval' => 'Slot interval must be between 5 and 60 minutes in 5-minute increments.']);
         }
 
         $timezone = app(TenantContext::class)->tenant()->timezone ?: 'UTC';
         $date = $this->parseLocalDate($localDate, $timezone);
-        if ($date->lt(CarbonImmutable::now($timezone)->startOfDay())) {
+        $today = CarbonImmutable::now($timezone)->startOfDay();
+        if ($date->lt($today) || $date->gt($today->addDays($policy?->booking_horizon_days ?? 60))) {
             return [];
         }
+        $earliestStart = CarbonImmutable::now($timezone)->addMinutes($policy?->minimum_notice_minutes ?? 60);
 
         $service = Service::query()->where('active', true)->find($serviceId);
         if (! $service) {
@@ -67,6 +73,11 @@ class AppointmentAvailabilityService
                 : $staffWindow['closes_at'];
 
             $firstStart = $opensAt->addMinutes((int) $service->buffer_before_minutes);
+            if ($earliestStart->greaterThan($firstStart)) {
+                $secondsUntilNotice = $earliestStart->getTimestamp() - $firstStart->getTimestamp();
+                $steps = (int) ceil($secondsUntilNotice / ($intervalMinutes * 60));
+                $firstStart = $firstStart->addMinutes($steps * $intervalMinutes);
+            }
             $lastStart = $closesAt->subMinutes((int) $service->duration_minutes + (int) $service->buffer_after_minutes);
             if ($firstStart->greaterThan($lastStart)) {
                 continue;
@@ -141,6 +152,19 @@ class AppointmentAvailabilityService
 
     private function staffWindow(Staff $staff, CarbonImmutable $date): ?array
     {
+        $exception = StaffAvailabilityException::query()
+            ->where('staff_id', $staff->id)
+            ->whereDate('date', $date->toDateString())
+            ->first();
+
+        if ($exception) {
+            if ($exception->is_closed || ! $exception->opens_at || ! $exception->closes_at) {
+                return null;
+            }
+
+            return $this->window($date, (string) $exception->opens_at, (string) $exception->closes_at);
+        }
+
         $weekday = $date->dayOfWeekIso - 1;
         $hours = StaffWorkingHour::query()
             ->where('staff_id', $staff->id)
