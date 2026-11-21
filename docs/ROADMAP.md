@@ -24,18 +24,19 @@ This roadmap distinguishes planned work from implemented work.
 
 ## Milestone 2 — Identity, tenancy, and authorization
 - [x] Implement email/password registration, login and logout with session regeneration/invalidation.
-- [ ] Implement password reset and email verification.
+- [x] Implement password reset request and token-based password update flow.
+- [ ] Implement email verification and verified-account enforcement.
 - [x] Create a business workspace and active owner membership transactionally during registration.
 - [x] Add a tenant context value object and middleware that resolves only active memberships.
 - [x] Automatically select a user's sole active tenant; require explicit selection for multiple tenants.
 - [x] Reject a session-selected tenant that the authenticated user does not belong to.
 - [x] Protect the dashboard with authentication and tenant-context middleware.
-- [x] Add feature tests for registration, login/logout, membership resolution and cross-tenant selection rejection.
-- [ ] Implement explicit tenant switching UI for users with multiple workspaces.
+- [x] Add workspace selection/switching UI and validate active membership server-side.
+- [x] Add feature tests for registration, login/logout, password recovery, workspace selection and cross-tenant selection rejection.
 - [ ] Implement tenant-scoped repositories/policies and composite tenant-aware foreign keys.
 - [ ] Add cross-tenant negative authorization tests for read, update, delete and background jobs.
 
-**Status:** Initial authentication and tenant-context foundation committed. Password recovery, email verification, multi-workspace switching, fine-grained authorization, database constraints and full isolation acceptance tests remain outstanding. Automated tests have been authored but are not yet executed in a working Laravel runtime.
+**Status:** Initial authentication, password recovery and workspace selection foundations committed. Configure production SMTP before using reset emails. Fine-grained authorization, email verification, database constraints and full isolation acceptance tests remain outstanding. Automated tests have been authored but are not yet executed in a working Laravel runtime.
 
 **Exit gate:** A user from tenant A cannot read, update, delete or infer tenant B data through any tested route or job.
 
