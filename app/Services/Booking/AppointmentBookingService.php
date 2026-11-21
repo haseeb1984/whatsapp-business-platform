@@ -44,7 +44,10 @@ class AppointmentBookingService
 
         $existing = Appointment::query()->where('idempotency_key', $idempotencyKey)->first();
         if ($existing) {
-            return $this->returnIdempotentMatch($existing, $customerId, $serviceId, $staffId, $requestedStart);
+            $existing = $this->returnIdempotentMatch($existing, $customerId, $serviceId, $staffId, $requestedStart);
+            $this->dispatchCalendarSyncIfNeeded($existing, $tenantId);
+
+            return $existing->refresh();
         }
 
         // External FreeBusy is checked before the local transaction so no DB lock is held during Google API I/O.
@@ -112,12 +115,17 @@ class AppointmentBookingService
             return $appointment;
         });
 
-        if ($appointment->status === 'pending_hold'
+        $this->dispatchCalendarSyncIfNeeded($appointment, $tenantId);
+
+        return $appointment->refresh();
+    }
+
+    private function dispatchCalendarSyncIfNeeded(Appointment $appointment, string $tenantId): void
+    {
+        if (in_array($appointment->status, ['pending_hold', 'calendar_pending'], true)
             && GoogleCalendarConnection::query()->where('status', 'connected')->exists()) {
             SyncAppointmentCalendarEvent::dispatch($tenantId, $appointment->id);
         }
-
-        return $appointment->refresh();
     }
 
     private function returnIdempotentMatch(
