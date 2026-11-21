@@ -45,6 +45,12 @@ Do not call Groq, Google Calendar, or other slow remote services before acknowle
 
 ## 5. Outbound messaging
 
+- Implemented: text-only outbound sends use the official Graph API adapter and a tenant-active connection.
+- Enforce the 24-hour customer service window from the latest inbound message; outside the window, free-form text is blocked and an approved template is required. See [Meta WhatsApp Business Policy](https://whatsappbusiness.com/policy/).
+- Automation sends are allowed only in `AUTO_ACTIVE`; staff sends require `HUMAN_ACTIVE` or `WAITING_FOR_STAFF`.
+- The sender locks the conversation row through the bounded provider request so a concurrent handover transition cannot overtake an already-authorized send.
+- Ambiguous timeouts/5xx outcomes are stored as `unknown`; never blindly retry them.
+- Approved template sending is not implemented yet.
 - Route every outbound request through a single Meta adapter.
 - Validate recipient, message type, template approval, locale, and policy constraints before send.
 - Store an outbound attempt before the network call.
