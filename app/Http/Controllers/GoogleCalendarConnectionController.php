@@ -176,7 +176,8 @@ class GoogleCalendarConnectionController extends Controller
     private function assertCalendarExists(GoogleCalendarService $calendar, string $calendarId): void
     {
         $exists = collect($calendar->listCalendars())->contains(
-            static fn (array $item): bool => $item['id'] === $calendarId,
+            static fn (array $item): bool => $item['id'] === $calendarId
+                && in_array($item['access_role'] ?? null, ['owner', 'writer'], true),
         );
 
         if (! $exists) {
