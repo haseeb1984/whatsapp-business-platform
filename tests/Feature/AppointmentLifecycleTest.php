@@ -88,21 +88,7 @@ class AppointmentLifecycleTest extends TestCase
 
     public function test_temporary_hold_uses_tenant_configured_duration(): void
     {
-        [$tenant, $service, $staff, $customer] = $this->bookingSetup('lifecycle-hold-policy');
-        TenantContext::runForTenant($tenant->id, fn () => BookingPolicy::query()->create([
-            'minimum_notice_minutes' => 0,
-            'booking_horizon_days' => 60,
-            'slot_interval_minutes' => 15,
-            'hold_minutes' => 25,
-        ]));
-
-        $appointment = TenantContext::runForTenant($tenant->id, fn () => app(AppointmentBookingService::class)->createHold(
-            $customer->id,
-            $service->id,
-            $staff->id,
-            CarbonImmutable::parse('2026-11-23 10:00:00', 'Asia/Karachi'),
-            'booking-custom-hold-duration',
-        ));
+        [, $appointment] = $this->hold('lifecycle-hold-policy', 25);
 
         $this->assertTrue($appointment->hold_expires_at->equalTo(now()->addMinutes(25)));
     }
@@ -163,7 +149,7 @@ class AppointmentLifecycleTest extends TestCase
         });
     }
 
-    private function hold(string $slug): array
+    private function hold(string $slug, ?int $holdMinutes = null): array
     {
         $tenant = Tenant::query()->create([
             'name' => 'Lifecycle Workspace',
@@ -171,7 +157,16 @@ class AppointmentLifecycleTest extends TestCase
             'timezone' => 'Asia/Karachi',
         ]);
 
-        [$service, $staff, $customer] = TenantContext::runForTenant($tenant->id, function (): array {
+        [$service, $staff, $customer] = TenantContext::runForTenant($tenant->id, function () use ($holdMinutes): array {
+            if ($holdMinutes !== null) {
+                BookingPolicy::query()->create([
+                    'minimum_notice_minutes' => 0,
+                    'booking_horizon_days' => 60,
+                    'slot_interval_minutes' => 15,
+                    'hold_minutes' => $holdMinutes,
+                ]);
+            }
+
             $service = Service::query()->create([
                 'name' => 'Consultation',
                 'price_amount' => '100.00',
