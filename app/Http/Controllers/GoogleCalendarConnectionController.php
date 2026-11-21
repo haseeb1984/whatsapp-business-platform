@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 use Inertia\Inertia;
 use Inertia\Response;
-use RuntimeException;
 
 class GoogleCalendarConnectionController extends Controller
 {
@@ -101,11 +100,28 @@ class GoogleCalendarConnectionController extends Controller
         }
 
         if (! $userInfo->successful() || ! is_string($userInfo->json('email')) || $userInfo->json('verified_email') !== true) {
-            throw new RuntimeException('Google account identity could not be verified.');
+            return redirect()->route('business.calendar.index')->withErrors([
+                'calendar' => 'Google account identity could not be verified.',
+            ]);
+        }
+
+        $grantedScopes = preg_split('/\\s+/', (string) ($tokens['scope'] ?? ''), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $requiredScopes = [
+            'https://www.googleapis.com/auth/calendar.events',
+            'https://www.googleapis.com/auth/calendar.freebusy',
+            'https://www.googleapis.com/auth/calendar.calendarlist.readonly',
+        ];
+        if (array_diff($requiredScopes, $grantedScopes) !== []) {
+            return redirect()->route('business.calendar.index')->withErrors([
+                'calendar' => 'Google did not grant all required Calendar permissions. Reconnect and approve the requested access.',
+            ]);
         }
 
         $connection = GoogleCalendarConnection::query()->first();
-        $refreshToken = $tokens['refresh_token'] ?? $connection?->refresh_token;
+        $sameAccountRefreshToken = $connection && $connection->google_account_email === $userInfo->json('email')
+            ? $connection->refresh_token
+            : null;
+        $refreshToken = $tokens['refresh_token'] ?? $sameAccountRefreshToken;
         if (! is_string($refreshToken) || $refreshToken === '') {
             return redirect()->route('business.calendar.index')->withErrors([
                 'calendar' => 'Google did not provide offline access. Disconnect the old authorization and reconnect with consent.',
