@@ -53,6 +53,6 @@ Route::middleware('auth')->group(function (): void {
 });
 
 Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
-    Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
+    Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');\n    Route::middleware('tenant.role:business_admin')->group(function (): void {\n        Route::get('/business/profile', [BusinessProfileController::class, 'edit'])->name('business.profile.edit');\n        Route::put('/business/profile', [BusinessProfileController::class, 'update'])->name('business.profile.update');\n    });
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
