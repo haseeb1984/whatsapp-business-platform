@@ -13,6 +13,7 @@ use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\BookingPolicyController;
 use App\Http\Controllers\StaffAvailabilityExceptionController;
+use App\Http\Controllers\GoogleCalendarConnectionController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Http\Request;
@@ -89,6 +90,10 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::post('/business/faqs', [FaqController::class, 'store'])->name('business.faqs.store');
         Route::put('/business/faqs/{faq}', [FaqController::class, 'update'])->name('business.faqs.update');
         Route::delete('/business/faqs/{faq}', [FaqController::class, 'destroy'])->name('business.faqs.destroy');
+        Route::get('/business/calendar', [GoogleCalendarConnectionController::class, 'index'])->name('business.calendar.index');
+        Route::get('/business/calendar/connect', [GoogleCalendarConnectionController::class, 'connect'])->middleware('throttle:5,1')->name('business.calendar.connect');
+        Route::get('/business/calendar/callback', [GoogleCalendarConnectionController::class, 'callback'])->middleware('throttle:10,1')->name('business.calendar.callback');
+        Route::delete('/business/calendar', [GoogleCalendarConnectionController::class, 'disconnect'])->name('business.calendar.disconnect');
         Route::get('/business/whatsapp', [WhatsAppConnectionController::class, 'index'])->name('business.whatsapp.index');
         Route::post('/business/whatsapp', [WhatsAppConnectionController::class, 'store'])->name('business.whatsapp.store');
         Route::put('/business/whatsapp/{connection}', [WhatsAppConnectionController::class, 'update'])->name('business.whatsapp.update');
