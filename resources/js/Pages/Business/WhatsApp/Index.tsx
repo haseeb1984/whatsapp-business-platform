@@ -11,7 +11,8 @@ type Connection = {
     status: 'pending' | 'active' | 'disabled';
     verified_at: string | null;
 };
-type Props = { connections: Connection[] };
+type Template = { id: string; provider_template_id: string; name: string; language: string; category: string | null; status: string; synced_at: string | null };
+type Props = { connections: Connection[]; templates: Template[] };
 type ConnectionForm = {
     phone_number_id: string;
     waba_id: string;
@@ -30,7 +31,7 @@ const emptyForm: ConnectionForm = {
 };
 
 export default function WhatsAppConnections() {
-    const { connections } = usePage<Props>().props;
+    const { connections, templates } = usePage<Props>().props;
     const { data, setData, post, put, processing, errors, reset } = useForm<ConnectionForm>(emptyForm);
     const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -61,7 +62,7 @@ export default function WhatsAppConnections() {
                 <a href="/dashboard" className="text-sm text-blue-700 hover:underline">← Dashboard</a>
                 <h1 className="mt-4 text-3xl font-bold text-slate-900">WhatsApp Cloud API connections</h1>
                 <p className="mt-2 text-slate-600">Register a Meta phone number and its permanent access token. Tokens are encrypted at rest and never returned to this page.</p>
-                <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">New connections remain pending until provider verification is implemented. Do not treat a pending connection as ready to send messages.</p>
+                <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Connections remain pending until Meta confirms the phone number and its WABA membership.</p>
                 <form onSubmit={submit} className="mt-8 grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2">
                     <label className="text-sm font-medium text-slate-700">Phone Number ID<input className={field} value={data.phone_number_id} onChange={e => setData('phone_number_id', e.target.value)} required maxLength={64} />{errors.phone_number_id && <span className="text-red-600">{errors.phone_number_id}</span>}</label>
                     <label className="text-sm font-medium text-slate-700">WhatsApp Business Account ID<input className={field} value={data.waba_id} onChange={e => setData('waba_id', e.target.value)} required maxLength={64} />{errors.waba_id && <span className="text-red-600">{errors.waba_id}</span>}</label>
@@ -76,9 +77,15 @@ export default function WhatsAppConnections() {
                     {connections.length === 0 ? <p className="mt-4 text-sm text-slate-500">No WhatsApp connections configured.</p> : <ul className="mt-4 divide-y divide-slate-100">
                         {connections.map(connection => <li key={connection.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
                             <div><p className="font-semibold text-slate-800">{connection.display_phone_number || connection.phone_number_id} <span className="text-sm font-normal text-slate-500">· {connection.status}</span></p><p className="text-sm text-slate-500">Phone ID: {connection.phone_number_id} · WABA: {connection.waba_id}</p>{connection.verified_name && <p className="text-sm text-slate-600">{connection.verified_name}</p>}</div>
-                            <div className="flex gap-2">{connection.status === 'pending' && <button type="button" onClick={() => router.post('/business/whatsapp/' + connection.id + '/verify')} className="rounded-lg border border-blue-200 px-3 py-2 text-sm text-blue-700">Verify with Meta</button>}<button type="button" onClick={() => edit(connection)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700">Edit</button><button type="button" onClick={() => router.delete('/business/whatsapp/' + connection.id)} className="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700">Remove</button></div>
+                            <div className="flex gap-2">{connection.status === 'pending' && <button type="button" onClick={() => router.post('/business/whatsapp/' + connection.id + '/verify')} className="rounded-lg border border-blue-200 px-3 py-2 text-sm text-blue-700">Verify with Meta</button>}{connection.status === 'active' && <button type="button" onClick={() => router.post('/business/whatsapp/' + connection.id + '/templates/sync')} className="rounded-lg border border-emerald-200 px-3 py-2 text-sm text-emerald-700">Sync templates</button>}<button type="button" onClick={() => edit(connection)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700">Edit</button><button type="button" onClick={() => router.delete('/business/whatsapp/' + connection.id)} className="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700">Remove</button></div>
                         </li>)}
                     </ul>}
+                </section>
+
+                <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h2 className="text-lg font-semibold text-slate-900">Meta message templates</h2>
+                    <p className="mt-1 text-sm text-slate-500">Template status is synchronized from Meta. Only templates approved by Meta can be used for business-initiated messages outside the 24-hour customer-service window.</p>
+                    {templates.length === 0 ? <p className="mt-4 text-sm text-slate-500">No templates synchronized yet. Verify a connection, then select Sync templates.</p> : <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b text-slate-500"><th className="py-2 pr-4">Template</th><th className="py-2 pr-4">Language</th><th className="py-2 pr-4">Category</th><th className="py-2">Meta status</th></tr></thead><tbody>{templates.map(template => <tr key={template.id} className="border-b border-slate-100"><td className="py-3 pr-4 font-medium text-slate-800">{template.name}</td><td className="py-3 pr-4">{template.language}</td><td className="py-3 pr-4">{template.category ?? '—'}</td><td className="py-3">{template.status}</td></tr>)}</tbody></table></div>}
                 </section>
             </div>
         </main>
