@@ -33,6 +33,11 @@ class BusinessProfileTest extends TestCase
             'tenant_id' => $tenant->id,
             'display_name' => 'Northside Studio',
         ]);
+        $this->assertDatabaseHas('tenants', [
+            'id' => $tenant->id,
+            'timezone' => 'Asia/Karachi',
+            'locale' => 'en',
+        ]);
 
         $this->put('/business/profile', [...$payload, 'display_name' => 'Northside Studio Updated'])->assertRedirect();
         $this->assertDatabaseHas('business_profiles', [
