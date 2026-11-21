@@ -28,7 +28,7 @@ The initial local lifecycle and temporary-hold transitions are implemented. Sugg
 - `cancelled`: cancellation completed and persisted.
 - `failed` / `expired`: operation failed or hold expired; not confirmed.
 
-Only `confirmed` may be communicated as a confirmed booking. The application creates `pending_hold` records, transitions to `calendar_pending`, checks FreeBusy, creates a deterministic Google event and calls the guarded confirmation transition with its event ID. The business dashboard exposes confirm/reconcile and cancel actions. The customer-facing WhatsApp booking conversation is still pending.
+Only `confirmed` may be communicated as a confirmed booking. The application creates `pending_hold` records, transitions to `calendar_pending`, checks FreeBusy, creates a deterministic Google event and calls the guarded confirmation transition with its event ID. The business dashboard exposes confirm/reconcile and cancel actions. The booking-first WhatsApp conversation handler is implemented: a customer can send “book”, choose a configured service, provide a date, select a named or any available staff member, and choose from currently available slots. The handler creates an idempotent temporary hold, then a queued conversation job runs the Google Calendar confirmation saga. The reply says confirmed only after the calendar event and local state are committed; busy/definite failures are reported as not confirmed, while ambiguous outcomes remain explicitly pending. The inbound router falls back to grounded FAQ handling when the message is not a booking interaction, and the existing human-handover gate still blocks automated replies.
 
 ## 4. Concurrency and double-booking prevention
 
@@ -42,7 +42,7 @@ A `calendar_pending` appointment blocks the slot. If the Calendar outcome is amb
 
 **Implemented:** OAuth state + PKCE validation bound to the signed-in user and active tenant, verified Google account identity, required-scope checks, encrypted access/refresh tokens, access-token refresh, token revocation on disconnect, writable calendar listing, tenant default calendar selection and per-staff calendar mapping. FreeBusy is integrated into availability and is checked again before event creation. Appointment event IDs are deterministic; retries look up an existing event before attempting another create. Cancellation calls Google event deletion and only then marks the appointment cancelled. Rate limits and ambiguous create/delete outcomes keep the appointment reserved for reconciliation.
 
-**Still pending:** event update/reschedule, automated reconciliation worker for unknown outcomes, reminders, and live acceptance testing against a dedicated Google test account.
+**Still pending:** event update/reschedule, automated reconciliation worker for unknown outcomes, approved template reminders, and live acceptance testing against a dedicated Google test account.
 
 - Use exact configured redirect URI and least-privilege scopes.
 - Store calendar ID, external event ID, ETag/version if available, sync state, and last sync time.
@@ -66,7 +66,7 @@ PostgreSQL and Google Calendar do not share a transaction. Use an explicit saga/
 
 **Policy limitation:** reminders are sent as free-form text only when the 24-hour customer-service window is open and automation is active. Outside that window, reminders are held as `blocked_template_required`; approved WhatsApp template sending is not implemented yet, so those reminders are not sent until template support is added.
 
-**Still pending:** reminder templates, reminder retry/reconciliation UI, locale-specific reminder content and full end-to-end delivery-status reconciliation.
+**Still pending:** approved template reminders for closed 24-hour windows, reminder retry/reconciliation UI, locale-specific reminder content and full end-to-end delivery-status reconciliation.
 
 ## 8. Acceptance tests
 
