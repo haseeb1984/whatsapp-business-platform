@@ -125,8 +125,8 @@ class StaffWorkingHoursTest extends TestCase
             'name' => 'Staff Hours User',
             'email' => $email,
             'password' => 'StrongPassword123',
-            'email_verified_at' => now(),
-        ]);
+                    ]);
+        $user->forceFill(['email_verified_at' => now()])->save();
         $tenant = Tenant::query()->create([
             'name' => 'Staff Hours Workspace',
             'slug' => str_replace(['@', '.'], '-', $email),
