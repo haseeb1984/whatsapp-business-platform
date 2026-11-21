@@ -41,7 +41,7 @@
 - `conversation_notes`: tenant_id, conversation_id, user_id, body.
 
 ### Knowledge and AI
-- `faqs`: tenant_id, question, answer, keywords JSONB, status, locale, updated_by.
+- `faqs`: UUID id, tenant_id, question, answer, locale, status (`draft`, `published`, `archived`), published_at. The first FAQ module enforces unique `(tenant_id, locale, question)` and only exposes tenant-scoped records; AI retrieval must filter to `published` rows.
 - `knowledge_documents`: tenant_id, title, content, source_type, status, version.
 - `ai_provider_configs`: tenant_id nullable for platform default, provider, model, encrypted credential reference, enabled, priority, settings JSONB. Never expose secrets to the browser.
 - `ai_usage_records`: tenant_id, provider, model, input_tokens, output_tokens, latency_ms, status, created_at.
