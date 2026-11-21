@@ -38,10 +38,10 @@ Access tokens are encrypted at rest and omitted from dashboard props. App secret
 5. Commit durable storage before acknowledgement (implemented).
 6. Return a successful acknowledgement promptly (implemented).
 7. Dispatch `ProcessMetaWebhookEvent` after commit; it runs with five attempts and bounded backoff, uses a row lock plus a transaction, restores tenant context, and marks the event processed only after normalized writes commit.
-8. For a newly stored inbound text message, enqueue one `GenerateAutomatedFaqReply` job after commit. It rechecks tenant, conversation, latest inbound message and `AUTO_ACTIVE` before AI processing; duplicate inbound events do not enqueue duplicate reply jobs.
 8. Persist normalized customer, conversation and encrypted message/status records; duplicate provider message IDs do not create duplicate messages (implemented).
-9. Retry status events that arrive before the outbound message transaction commits; do not discard early provider status updates.
-10. Recheck human handover before AI processing and again inside the outbound sender. If grounded FAQ evidence is unavailable, transition the conversation to `WAITING_FOR_STAFF`; staff assignment, notification and release UI remain pending.
+9. For a newly stored inbound text message, enqueue one `GenerateAutomatedFaqReply` job after commit. It rechecks tenant, conversation, latest inbound message and `AUTO_ACTIVE` before AI processing; duplicate inbound events do not enqueue duplicate reply jobs.
+10. Retry status events that arrive before the outbound message transaction commits; do not discard early provider status updates.
+11. Recheck human handover before AI processing and again inside the outbound sender. If grounded FAQ evidence is unavailable, transition the conversation to `WAITING_FOR_STAFF`.
 
 Do not call Groq, Google Calendar, or other slow remote services before acknowledging a webhook.
 
@@ -49,12 +49,13 @@ Do not call Groq, Google Calendar, or other slow remote services before acknowle
 
 - Implemented: text-only outbound sends use the official Graph API adapter and a tenant-active connection.
 - Enforce the 24-hour customer service window from the latest inbound message; outside the window, free-form text is blocked and an approved template is required. See [Meta WhatsApp Business Policy](https://whatsappbusiness.com/policy/).
-- Automation sends are allowed only in `AUTO_ACTIVE`; staff sends require `HUMAN_ACTIVE` or `WAITING_FOR_STAFF`.
+- Automation sends are allowed only in `AUTO_ACTIVE`; staff sends require `HUMAN_ACTIVE` and the assigned user.
 - The sender locks the conversation row through the bounded provider request so a concurrent handover transition cannot overtake an already-authorized send.
 - Automated replies carry a same-tenant unique reference to the inbound message that triggered them; a repeated job does not send a second reply.
 - A newer inbound message or human takeover suppresses stale queued AI work.
 - Ambiguous timeouts/5xx outcomes are stored as `unknown`; never blindly retry them.
-- Approved template sending is not implemented yet.
+- A tenant-scoped conversation inbox now supports staff assignment, take-over, manual replies, encrypted internal notes, close/reopen (admin only), and explicit release back to automation.
+- Staff notifications, invitation flow, real-time updates and approved template sending are not implemented yet.
 - Route every outbound request through a single Meta adapter.
 - Validate recipient, message type, template approval, locale, and policy constraints before send.
 - Store an outbound attempt before the network call.
