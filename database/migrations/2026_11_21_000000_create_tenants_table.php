@@ -6,7 +6,7 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('tenants', function (Blueprint $table): void {
             $table->uuid('id')->primary(); $table->string('name'); $table->string('slug')->unique();
-            $table->string('status', 24)->default('pending')->index(); $table->string('timezone', 64)->default('UTC');
+            $table->string('status', 24)->default('active')->index(); $table->string('timezone', 64)->default('UTC');
             $table->string('locale', 12)->default('en'); $table->jsonb('settings')->nullable(); $table->timestamps();
         });
         Schema::create('tenant_user', function (Blueprint $table): void {
