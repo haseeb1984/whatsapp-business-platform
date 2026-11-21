@@ -38,7 +38,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Add workspace selection/switching UI and validate active membership server-side.
 - [x] Add tenant role context and role-restricted middleware for tenant routes.
 - [x] Add feature tests for registration, login/logout, password recovery, workspace selection, cross-tenant selection rejection and role authorization.
-- [ ] Apply role middleware to business configuration routes as those modules are introduced.
+- [x] Apply business-admin role middleware to business profile and weekly-hours configuration routes.
 - [x] Add a fail-closed `BelongsToTenant` Eloquent concern with context-derived tenant assignment and tenant ID immutability.
 - [x] Block tenant reassignment through Eloquent bulk `update()` operations on tenant-owned models.
 - [x] Add explicit background-work tenant context lifecycle with active-tenant validation and context restoration.
@@ -55,11 +55,13 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Business profile edit form, server-side validation and business-admin-only route protection.
 - [x] Keep tenant timezone and locale synchronized with the business profile in one database transaction.
 - [x] Add profile isolation and staff-access feature tests (authored; execution pending).
-- [ ] Business hours, holidays, services, staff and policies.
+- [x] Add weekly-hours validation, tenant-isolation and staff-access feature tests (authored; execution pending).
+- [x] Weekly business hours editor with seven-day validation, tenant isolation and database constraints (tests authored; execution pending).
+- [ ] Holidays, services, staff and policies.
 - [ ] FAQ CRUD, publish/archive lifecycle and tenant-scoped search.
 - [ ] Dashboard forms and validation.
 
-**Status:** First business configuration module committed. It is not yet runtime-verified; full milestone remains in progress.
+**Status:** Business profile and weekly-hours configuration are committed, including admin-only editors and authored feature tests. Runtime verification remains pending; holidays, services, staff, FAQs and full dashboards remain in progress.
 
 ## Milestone 4 — WhatsApp Cloud API foundation
 - [ ] Meta webhook GET verification.
