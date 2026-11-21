@@ -124,6 +124,29 @@ class AppointmentLifecycleService
         });
     }
 
+
+    public function cancelPendingHold(string $appointmentId, string $reason = 'cancelled_by_staff'): Appointment
+    {
+        return DB::transaction(function () use ($appointmentId, $reason): Appointment {
+            $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointmentId);
+            if ($appointment->status === 'cancelled') {
+                return $appointment;
+            }
+            if ($appointment->status !== 'pending_hold') {
+                throw ValidationException::withMessages(['appointment' => 'Only a temporary pending hold can be cancelled locally.']);
+            }
+
+            $appointment->forceFill([
+                'status' => 'cancelled',
+                'hold_expires_at' => null,
+            ])->save();
+
+            $this->event($appointment, 'hold_cancelled', ['reason' => mb_substr($reason, 0, 80)]);
+
+            return $appointment->refresh();
+        });
+    }
+
     public function expireHoldsForTenant(string $tenantId, int $limit = 100): int
     {
         return TenantContext::runForTenant($tenantId, function () use ($limit): int {
