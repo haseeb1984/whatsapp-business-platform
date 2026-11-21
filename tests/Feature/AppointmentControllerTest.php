@@ -77,7 +77,7 @@ class AppointmentControllerTest extends TestCase
             'customer_id' => $customer->id,
             'service_id' => $service->id,
             'staff_id' => $staff->id,
-            'starts_at' => '2026-11-23 09:00',
+            'starts_at' => '2026-11-23T04:00:00+00:00',
             'idempotency_key' => 'appointment-inbound-message-cancel',
         ])->assertStatus(202);
 
