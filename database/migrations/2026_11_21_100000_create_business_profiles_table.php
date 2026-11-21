@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\\Database\\Migrations\\Migration;
-use Illuminate\\Database\\Schema\\Blueprint;
-use Illuminate\\Support\\Facades\\Schema;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     public function up(): void
@@ -19,7 +19,6 @@ return new class extends Migration {
             $table->string('timezone', 64)->default('UTC');
             $table->string('locale', 12)->default('en');
             $table->timestamps();
-
             $table->unique(['tenant_id', 'id']);
             $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnDelete();
         });
