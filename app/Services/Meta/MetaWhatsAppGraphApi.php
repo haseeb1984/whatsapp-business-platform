@@ -3,6 +3,7 @@
 namespace App\Services\Meta;
 
 use App\Models\WhatsAppConnection;
+use App\Exceptions\MetaWhatsAppApiException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 
@@ -10,9 +11,9 @@ class MetaWhatsAppGraphApi
 {
     public function verifyPhoneNumber(WhatsAppConnection $connection): array
     {
-        $version = config('services.meta.graph_api_version');
+        $version = $this->configuredVersion();
 
-        if (! is_string($version) || ! preg_match('/^v\d+\.\d+$/', $version)) {
+        if ($version === null) {
             throw ValidationException::withMessages([
                 'connection' => 'Configure a valid META_GRAPH_API_VERSION before verifying this connection.',
             ]);
@@ -64,5 +65,49 @@ class MetaWhatsAppGraphApi
         }
 
         return $data;
+    }
+
+    public function sendText(WhatsAppConnection $connection, string $recipient, string $body): string
+    {
+        $version = $this->configuredVersion();
+        if ($version === null) {
+            throw new MetaWhatsAppApiException('Configure META_GRAPH_API_VERSION before sending messages.');
+        }
+
+        $response = Http::withToken($connection->access_token)
+            ->acceptJson()
+            ->timeout(15)
+            ->post("https://graph.facebook.com/{$version}/{$connection->phone_number_id}/messages", [
+                'messaging_product' => 'whatsapp',
+                'recipient_type' => 'individual',
+                'to' => $recipient,
+                'type' => 'text',
+                'text' => [
+                    'preview_url' => false,
+                    'body' => $body,
+                ],
+            ]);
+
+        if (! $response->successful()) {
+            $status = $response->status();
+            throw new MetaWhatsAppApiException(
+                'Meta rejected the WhatsApp message request.',
+                $status === 429 || $status >= 500,
+            );
+        }
+
+        $messageId = $response->json('messages.0.id');
+        if (! is_string($messageId) || $messageId === '') {
+            throw new MetaWhatsAppApiException('Meta accepted the request without returning a message ID.', true);
+        }
+
+        return $messageId;
+    }
+
+    private function configuredVersion(): ?string
+    {
+        $version = config('services.meta.graph_api_version');
+
+        return is_string($version) && preg_match('/^v\d+\.\d+$/', $version) ? $version : null;
     }
 }
