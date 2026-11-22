@@ -205,7 +205,7 @@ class AppointmentRescheduleServiceTest extends TestCase
             'status' => 'confirmed',
             'calendar_sync_status' => 'unknown',
         ]);
-        $this->assertNull(TenantContext::id());
+        $this->assertFalse(app()->bound(TenantContext::class));
     }
 
     private function confirmedAppointment(string $slug): array
