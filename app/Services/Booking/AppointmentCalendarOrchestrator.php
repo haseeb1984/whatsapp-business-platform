@@ -4,6 +4,7 @@ namespace App\Services\Booking;
 
 use App\Exceptions\GoogleCalendarBusyException;
 use App\Models\Appointment;
+use App\Models\AppointmentReschedule;
 use App\Services\Google\GoogleCalendarService;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
@@ -65,8 +66,16 @@ class AppointmentCalendarOrchestrator
             return $appointment;
         }
 
-        if ($appointment->status !== 'confirmed' || ! $appointment->external_event_id) {
-            throw ValidationException::withMessages(['appointment' => 'Only a confirmed calendar appointment can be cancelled here.']);
+        if ($appointment->status !== 'confirmed' || ! $appointment->external_event_id
+            || $appointment->calendar_sync_status !== 'synced') {
+            throw ValidationException::withMessages(['appointment' => 'Only a fully synchronized confirmed appointment can be cancelled here.']);
+        }
+
+        if (AppointmentReschedule::query()
+            ->where('appointment_id', $appointment->id)
+            ->whereIn('status', ['pending', 'unknown'])
+            ->exists()) {
+            throw ValidationException::withMessages(['appointment' => 'This appointment has a reschedule awaiting calendar confirmation. Resolve it before cancellation.']);
         }
 
         try {
