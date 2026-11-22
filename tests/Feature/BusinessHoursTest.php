@@ -89,7 +89,7 @@ class BusinessHoursTest extends TestCase
                 'opens_at' => '10:00',
                 'closes_at' => '18:00',
             ]);
-            $this->assertSame('10:00', BusinessHour::query()->firstOrFail()->opens_at);
+            $this->assertSame('10:00', substr((string) BusinessHour::query()->firstOrFail()->opens_at, 0, 5));
         });
     }
 
