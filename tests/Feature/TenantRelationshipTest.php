@@ -94,6 +94,39 @@ class TenantRelationshipTest extends TestCase
         ]);
     }
 
+    public function test_database_rejects_message_replies_across_tenants(): void
+    {
+        $owner = Tenant::query()->create(['name' => 'Owner', 'slug' => 'owner-reply']);
+        $other = Tenant::query()->create(['name' => 'Other', 'slug' => 'other-reply']);
+        $customerId = (string) Str::uuid();
+        $conversationId = (string) Str::uuid();
+        $messageId = (string) Str::uuid();
+
+        DB::table('customers')->insert([
+            'id' => $customerId, 'tenant_id' => $owner->id, 'whatsapp_wa_id' => 'wa-owner-reply',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('conversations')->insert([
+            'id' => $conversationId, 'tenant_id' => $owner->id, 'customer_id' => $customerId,
+            'status' => 'open', 'automation_state' => 'AUTO_ACTIVE',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('messages')->insert([
+            'id' => $messageId, 'tenant_id' => $owner->id, 'conversation_id' => $conversationId,
+            'direction' => 'inbound', 'message_type' => 'text', 'delivery_status' => 'received',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $this->expectException(QueryException::class);
+
+        DB::table('messages')->insert([
+            'id' => (string) Str::uuid(), 'tenant_id' => $other->id,
+            'conversation_id' => (string) Str::uuid(), 'reply_to_message_id' => $messageId,
+            'direction' => 'outbound', 'message_type' => 'text', 'delivery_status' => 'sent',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+    }
+
     public function test_a_user_can_belong_to_a_tenant_with_a_role(): void
     {
         $user = User::query()->create([
