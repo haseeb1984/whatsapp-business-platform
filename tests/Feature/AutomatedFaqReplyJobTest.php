@@ -61,7 +61,7 @@ class AutomatedFaqReplyJobTest extends TestCase
     public function test_missing_approved_faq_moves_conversation_to_waiting_for_staff_without_guessing(): void
     {
         Http::fake();
-        [$tenant, $conversation, $inbound] = $this->conversation('auto-faq-handoff', 'AUTO_ACTIVE', 'Can you guarantee a discount today?');
+        [$tenant, $conversation, $inbound] = $this->conversation('auto-faq-handoff', 'AUTO_ACTIVE', 'What are your opening hours?');
 
         (new GenerateAutomatedFaqReply($tenant->id, $conversation->id, $inbound->id))->handle(
             app(GroundedFaqAssistant::class),
