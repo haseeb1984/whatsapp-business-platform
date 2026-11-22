@@ -125,7 +125,12 @@ class WhatsAppConnectionTest extends TestCase
         ]));
 
         $this->actingAs($userA)->withSession(['current_tenant_id' => $tenantA->id]);
+
+        $this->get('/business/whatsapp')->assertOk()->assertDontSee('123450000000099');
+        $this->put('/business/whatsapp/'.$foreignConnection->id, [])->assertNotFound();
         $this->post('/business/whatsapp/'.$foreignConnection->id.'/verify')->assertNotFound();
+        $this->post('/business/whatsapp/'.$foreignConnection->id.'/templates/sync')->assertNotFound();
+        $this->delete('/business/whatsapp/'.$foreignConnection->id)->assertNotFound();
 
         Http::assertNothingSent();
         $this->assertDatabaseHas('whatsapp_connections', [
