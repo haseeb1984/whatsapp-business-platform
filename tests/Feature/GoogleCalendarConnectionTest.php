@@ -105,6 +105,33 @@ class GoogleCalendarConnectionTest extends TestCase
         $this->assertSame('primary', $mappedStaff->google_calendar_id);
     }
 
+    public function test_user_cannot_map_another_tenants_staff_to_their_calendar(): void
+    {
+        [$userA, $tenantA] = $this->workspace('google-foreign-a@example.test');
+        [, $tenantB] = $this->workspace('google-foreign-b@example.test');
+
+        $foreignStaff = TenantContext::runForTenant($tenantB->id, fn () => Staff::query()->create([
+            'name' => 'Tenant B Calendar Staff',
+            'active' => true,
+        ]));
+        TenantContext::runForTenant($tenantA->id, fn () => GoogleCalendarConnection::query()->create([
+            'access_token' => 'tenant-a-calendar-access',
+            'refresh_token' => 'tenant-a-calendar-refresh',
+            'token_expires_at' => now()->addHour(),
+            'status' => 'connected',
+            'default_calendar_id' => 'primary',
+        ]));
+
+        $this->actingAs($userA)->withSession(['current_tenant_id' => $tenantA->id]);
+        $this->put('/business/calendar/staff/'.$foreignStaff->id, ['calendar_id' => 'primary'])->assertNotFound();
+
+        $this->assertDatabaseHas('staff_members', [
+            'id' => $foreignStaff->id,
+            'tenant_id' => $tenantB->id,
+            'google_calendar_id' => null,
+        ]);
+    }
+
     public function test_callback_rejects_invalid_or_replayed_oauth_state(): void
     {
         [$user, $tenant] = $this->workspace('google-state@example.test');
