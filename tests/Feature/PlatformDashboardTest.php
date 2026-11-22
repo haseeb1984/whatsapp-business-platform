@@ -31,7 +31,7 @@ class PlatformDashboardTest extends TestCase
                 ->where('metrics.tenants_active', 1)
                 ->where('metrics.users_total', 1)
                 ->has('tenants.data', 1)
-                ->where('tenants.0.name', 'Salon Workspace')
+                ->where('tenants.data.0.name', 'Salon Workspace')
             );
     }
 
