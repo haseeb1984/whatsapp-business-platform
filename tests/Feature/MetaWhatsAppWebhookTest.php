@@ -116,6 +116,21 @@ class MetaWhatsAppWebhookTest extends TestCase
         $this->assertDatabaseCount('webhook_events', 0);
     }
 
+
+    public function test_webhook_rejects_payloads_over_the_size_limit_before_json_parsing(): void
+    {
+        config(['services.meta.app_secret' => 'test-meta-app-secret']);
+        $raw = str_repeat('x', 1_048_577);
+        $signature = 'sha256='.hash_hmac('sha256', $raw, 'test-meta-app-secret');
+
+        $this->call('POST', '/api/webhooks/meta/whatsapp', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_HUB_SIGNATURE_256' => $signature,
+        ], $raw)->assertStatus(413);
+
+        $this->assertDatabaseCount('webhook_events', 0);
+    }
+
     public function test_events_from_unknown_phone_numbers_are_quarantined_as_unmatched(): void
     {
         config(['services.meta.app_secret' => 'test-meta-app-secret']);
