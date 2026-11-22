@@ -46,7 +46,7 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Implement tenant-scoped repositories/policies and composite tenant-aware foreign keys.
 - [ ] Add cross-tenant negative authorization tests for read, update, delete and background jobs.
 
-**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. Current business modules use business-admin role middleware. Remaining work is broader tenant-model coverage, composite foreign keys for all cross-entity references and end-to-end queued-job isolation. Configure production SMTP before sending verification or password-reset emails. Latest verified CI run [44968717470](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44968717470) passed on commit `393a7e674dfb75667655419667c6e92b043c88e2` (140 tests / 514 assertions); tests use SQLite and PostgreSQL rehearsal remains pending.
+**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. Current business modules use business-admin role middleware. Remaining work is broader tenant-model coverage, composite foreign keys for all cross-entity references and end-to-end queued-job isolation. Configure production SMTP before sending verification or password-reset emails. Latest verified CI run [44969997248](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44969997248) passed on commit `8e873dde6ad2ee0e8fb47b8fafc31a102c7b150e` (145 tests / 541 assertions); tests use SQLite and PostgreSQL rehearsal remains pending.
 
 **Exit gate:** A user from tenant A cannot read, update, delete or infer tenant B data through any tested route or job.
 
@@ -88,7 +88,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Durable encrypted webhook event persistence with SHA-256 idempotency key and duplicate suppression.
 - [x] Tenant routing through verified active phone_number_id; unknown/disabled connections are quarantined as unmatched.
 
-**Current checkpoint:** Template catalog retrieval (including cursor pagination), tenant-scoped persistence, manual sync action, settings UI, approved-template sending, parameter validation and out-of-window appointment-reminder integration are implemented. The reminder template is selected by `META_APPOINTMENT_REMINDER_TEMPLATE` and `META_APPOINTMENT_REMINDER_LANGUAGE`; it must contain exactly two sequential BODY variables. CI passed on commit `393a7e6` with 140 tests / 514 assertions and the frontend production build.
+**Current checkpoint:** Template catalog retrieval (including cursor pagination), tenant-scoped persistence, manual sync action, settings UI, approved-template sending, parameter validation and out-of-window appointment-reminder integration are implemented. The reminder template is selected by `META_APPOINTMENT_REMINDER_TEMPLATE` and `META_APPOINTMENT_REMINDER_LANGUAGE`; it must contain exactly two sequential BODY variables. CI passed on commit `8e873dd` with 145 tests / 541 assertions and the frontend production build.
 
 ## Milestone 5 — Conversations and human handover
 - [x] Customer/conversation/message persistence for inbound WhatsApp events with encrypted message content.
@@ -128,8 +128,10 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Bounded cron dispatch, retryable tenant-scoped reminder jobs, delivery-state tracking and appointment cancellation handling.
 - [x] Enforce WhatsApp 24-hour customer-service window and human-handover gate for reminder sends; outside-window reminders are held pending approved template support.
 - [x] Approved template reminders outside the 24-hour window, with strict parameter mapping and safe blocking when the configured approved template is unavailable.
-- [ ] Rescheduling and reminder schedule replacement.
-- [ ] Retry-safe automated reconciliation for ambiguous Calendar operations.
+- [x] Rescheduling and reminder schedule replacement; pending reminder records are cancelled and new reminders are keyed to the new appointment time.
+- [x] Retry-safe automated reconciliation for ambiguous Calendar updates; both old and requested slots remain reserved until the provider event is confirmed.
+
+**Status:** Booking, reminder scheduling, cancellation, rescheduling and ambiguous Calendar update recovery are implemented and CI-tested. Live Google account validation and PostgreSQL migration rehearsal remain acceptance gates.
 
 ## Milestone 8 — Google Calendar integration
 - [x] Tenant-scoped OAuth with session state, PKCE, current-user/workspace binding and expiry checks.
@@ -140,7 +142,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Deterministic appointment event creation and event lookup after ambiguous create outcomes.
 - [x] Calendar event deletion; local cancellation is persisted only after deletion succeeds.
 - [x] Keep slots reserved on rate limits or ambiguous create/delete outcomes.
-- [ ] Event update/reschedule orchestration and reconciliation worker for unknown outcomes.
+- [x] Event update/reschedule orchestration and tenant-scoped reconciliation worker for unknown outcomes; Google event updates are verified by read-back before local commit.
 - [ ] Validate against a dedicated live Google test account and verify revocation/permission-loss behavior.
 
 
