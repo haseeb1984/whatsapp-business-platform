@@ -108,6 +108,21 @@ class BookingConversationHandlerTest extends TestCase
         $this->assertSame('awaiting_service', $session->state);
     }
 
+
+    public function test_service_price_question_does_not_start_a_booking_session(): void
+    {
+        [$tenant, $conversation] = $this->conversation('booking-price-question');
+
+        $reply = TenantContext::runForTenant($tenant->id, fn () => app(BookingConversationHandler::class)->handle(
+            $conversation,
+            'I want to know the price of a consultation',
+            'wamid.booking-price-question',
+        ));
+
+        $this->assertNull($reply);
+        TenantContext::runForTenant($tenant->id, fn () => $this->assertDatabaseCount('conversation_booking_sessions', 0));
+    }
+
     private function conversation(string $slug): array
     {
         $user = User::query()->create([
