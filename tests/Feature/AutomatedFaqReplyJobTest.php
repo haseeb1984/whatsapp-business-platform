@@ -3,20 +3,20 @@
 namespace Tests\Feature;
 
 use App\Jobs\GenerateAutomatedFaqReply;
-use App\Models\Service;
-use App\Services\AI\BusinessIntentRouter;
-use App\Services\AI\GroundedFaqAssistant;
-use App\Services\Messaging\WhatsAppMessageService;
-use Mockery;
 use App\Models\Conversation;
 use App\Models\Customer;
 use App\Models\Faq;
 use App\Models\Message;
+use App\Models\Service;
 use App\Models\Tenant;
 use App\Models\WhatsAppConnection;
+use App\Services\AI\BusinessIntentRouter;
+use App\Services\AI\GroundedFaqAssistant;
+use App\Services\Messaging\WhatsAppMessageService;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Mockery;
 use Tests\TestCase;
 
 class AutomatedFaqReplyJobTest extends TestCase
@@ -44,7 +44,6 @@ class AutomatedFaqReplyJobTest extends TestCase
         (new GenerateAutomatedFaqReply($tenant->id, $conversation->id, $inbound->id))->handle(
             app(GroundedFaqAssistant::class),
             app(BusinessIntentRouter::class),
-            app(BusinessIntentRouter::class),
             app(WhatsAppMessageService::class),
         );
 
@@ -66,7 +65,8 @@ class AutomatedFaqReplyJobTest extends TestCase
 
         (new GenerateAutomatedFaqReply($tenant->id, $conversation->id, $inbound->id))->handle(
             app(GroundedFaqAssistant::class),
-            app(\App\Services\Messaging\WhatsAppMessageService::class),
+            app(BusinessIntentRouter::class),
+            app(WhatsAppMessageService::class),
         );
 
         TenantContext::runForTenant($tenant->id, function () use ($conversation): void {
@@ -81,16 +81,17 @@ class AutomatedFaqReplyJobTest extends TestCase
         Http::fake();
         [$tenant, $conversation, $inbound] = $this->conversation('auto-faq-human-active', 'HUMAN_ACTIVE', 'What are your opening hours?');
         TenantContext::runForTenant($tenant->id, fn () => Faq::query()->create([
-            'question' => 'What is your refund policy?',
-            'answer' => 'Refunds are reviewed by our team within five business days.',
+            'question' => 'What are your opening hours?',
+            'answer' => 'We are open from 9 AM to 6 PM.',
             'locale' => 'en',
             'status' => 'published',
             'published_at' => now(),
         ]));
 
         (new GenerateAutomatedFaqReply($tenant->id, $conversation->id, $inbound->id))->handle(
-            app(\App\Services\AI\GroundedFaqAssistant::class),
-            app(\App\Services\Messaging\WhatsAppMessageService::class),
+            app(GroundedFaqAssistant::class),
+            app(BusinessIntentRouter::class),
+            app(WhatsAppMessageService::class),
         );
 
         TenantContext::runForTenant($tenant->id, function () use ($conversation): void {
@@ -111,16 +112,16 @@ class AutomatedFaqReplyJobTest extends TestCase
 
         [$tenant, $conversation, $inbound] = $this->conversation('auto-faq-idempotent', 'AUTO_ACTIVE', 'What is your refund policy?');
         TenantContext::runForTenant($tenant->id, fn () => Faq::query()->create([
-            'question' => 'What are your opening hours?',
-            'answer' => 'We are open from 9 AM to 6 PM.',
+            'question' => 'What is your refund policy?',
+            'answer' => 'Refunds are reviewed by our team within five business days.',
             'locale' => 'en',
             'status' => 'published',
             'published_at' => now(),
         ]));
 
         $job = new GenerateAutomatedFaqReply($tenant->id, $conversation->id, $inbound->id);
-        $job->handle(app(GroundedFaqAssistant::class), app(BusinessIntentRouter::class), app(\App\Services\Messaging\WhatsAppMessageService::class));
-        $job->handle(app(\App\Services\AI\GroundedFaqAssistant::class), app(\App\Services\Messaging\WhatsAppMessageService::class));
+        $job->handle(app(GroundedFaqAssistant::class), app(BusinessIntentRouter::class), app(WhatsAppMessageService::class));
+        $job->handle(app(GroundedFaqAssistant::class), app(BusinessIntentRouter::class), app(WhatsAppMessageService::class));
 
         TenantContext::runForTenant($tenant->id, function () use ($inbound): void {
             $this->assertDatabaseCount('messages', 2);
@@ -131,7 +132,6 @@ class AutomatedFaqReplyJobTest extends TestCase
         });
         Http::assertSentCount(1);
     }
-
 
     public function test_structured_service_pricing_is_answered_from_tenant_data_before_faq_ai(): void
     {
@@ -151,13 +151,13 @@ class AutomatedFaqReplyJobTest extends TestCase
             'active' => true,
         ]));
 
-        $assistant = \Mockery::mock(GroundedFaqAssistant::class);
+        $assistant = Mockery::mock(GroundedFaqAssistant::class);
         $assistant->shouldNotReceive('answer');
 
         (new GenerateAutomatedFaqReply($tenant->id, $conversation->id, $inbound->id))->handle(
             $assistant,
             app(BusinessIntentRouter::class),
-            app(\App\Services\Messaging\WhatsAppMessageService::class),
+            app(WhatsAppMessageService::class),
         );
 
         TenantContext::runForTenant($tenant->id, function () use ($inbound): void {
