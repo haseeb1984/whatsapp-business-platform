@@ -46,7 +46,7 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Implement tenant-scoped repositories/policies and composite tenant-aware foreign keys.
 - [ ] Add cross-tenant negative authorization tests for read, update, delete and background jobs.
 
-**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. Current business modules use business-admin role middleware. Remaining work is broader tenant-model coverage, composite foreign keys for all cross-entity references and end-to-end queued-job isolation. Configure production SMTP before sending verification or password-reset emails. Latest verified CI run [44970332348](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44970332348) passed on commit `0fa809e6d2418d8d86ce032d8a15e5a8a1e4bd78` (146 tests / 573 assertions); tests use SQLite and PostgreSQL rehearsal remains pending.
+**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. Current business modules use business-admin role middleware. Remaining work is broader tenant-model coverage, composite foreign keys for all cross-entity references and end-to-end queued-job isolation. Configure production SMTP before sending verification or password-reset emails. Latest verified CI run [44971168242](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44971168242) passed on commit `b1d2bac72383b67ebdf5d5ab4cf97c92b6e63f16` (155 tests / 601 assertions); tests use SQLite and PostgreSQL rehearsal remains pending.
 
 **Exit gate:** A user from tenant A cannot read, update, delete or infer tenant B data through any tested route or job.
 
@@ -88,7 +88,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Durable encrypted webhook event persistence with SHA-256 idempotency key and duplicate suppression.
 - [x] Tenant routing through verified active phone_number_id; unknown/disabled connections are quarantined as unmatched.
 
-**Current checkpoint:** Template catalog retrieval (including cursor pagination), tenant-scoped persistence, manual sync action, settings UI, approved-template sending, parameter validation and out-of-window appointment-reminder integration are implemented. The reminder template is selected by `META_APPOINTMENT_REMINDER_TEMPLATE` and `META_APPOINTMENT_REMINDER_LANGUAGE`; it must contain exactly two sequential BODY variables. CI passed on commit `8e873dd` with 145 tests / 541 assertions and the frontend production build.
+**Current checkpoint:** Template catalog retrieval (including cursor pagination), tenant-scoped persistence, manual sync action, settings UI, approved-template sending, parameter validation and out-of-window appointment-reminder integration are implemented. The reminder template is selected by `META_APPOINTMENT_REMINDER_TEMPLATE` and `META_APPOINTMENT_REMINDER_LANGUAGE`; it must contain exactly two sequential BODY variables. CI passed on commit `b1d2bac` with 155 tests / 601 assertions and the frontend production build.
 
 ## Milestone 5 — Conversations and human handover
 - [x] Customer/conversation/message persistence for inbound WhatsApp events with encrypted message content.
@@ -108,9 +108,12 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Connect inbound text events to a queued grounded FAQ response workflow; recheck latest inbound and human takeover before answering.
 - [x] Move unsupported/insufficient FAQ questions to `WAITING_FOR_STAFF` without generating unsupported claims.
 - [x] Add same-tenant unique inbound-to-outbound correlation to prevent duplicate automated sends.
-- [ ] Intent routing, structured business-fact retrieval and allowlisted tools.
+- [x] Deterministic intent routing for service catalog/pricing, today/tomorrow/weekly hours and business contact/location; exact tenant data is used before FAQ fallback.
+- [ ] Allowlisted tools, expanded multilingual intents and additional business workflows.
 - [x] Groq rate-limit/timeout handling with deterministic high-confidence fallback and handoff.
 - [x] Prompt-injection-safe FAQ selection and tenant-isolation tests (CI passing).
+
+**Status:** Groq remains the grounded FAQ selector. Deterministic business facts now answer common service, pricing, hours and contact questions from tenant records; missing structured facts fall back to approved FAQs, then hand off if evidence is still insufficient. Natural-language service booking phrases are routed into the booking flow. Allowlisted tools and broader multilingual intent coverage remain pending.
 
 ## Milestone 7 — Booking domain
 - [x] Timezone-aware availability from tenant business hours, holiday overrides, staff weekly schedules and service duration/buffers.
