@@ -46,7 +46,7 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Implement tenant-scoped repositories/policies and composite tenant-aware foreign keys.
 - [ ] Add cross-tenant negative authorization tests for read, update, delete and background jobs.
 
-**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. Current business modules use business-admin role middleware. Remaining work is broader tenant-model coverage, composite foreign keys for all cross-entity references and end-to-end queued-job isolation. Configure production SMTP before sending verification or password-reset emails. Latest verified CI run [44972046204](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44972046204) passed on commit `e19541552326d9fe1f4bc331c4f750a76a7ee5bc` (160 tests / 651 assertions); tests use SQLite and PostgreSQL rehearsal remains pending.
+**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. Current business modules use business-admin role middleware. Remaining work is broader tenant-model coverage, composite foreign keys for all cross-entity references and end-to-end queued-job isolation. Configure production SMTP before sending verification or password-reset emails. Latest verified CI run [44972417403](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44972417403) passed on commit `e3c13da00eebf9db78c5512a677514c5056a25ad`: 160 tests / 651 assertions on SQLite and again on PostgreSQL 16, plus the Vite production build. Live Neon connection rehearsal remains pending.
 
 **Exit gate:** A user from tenant A cannot read, update, delete or infer tenant B data through any tested route or job.
 
@@ -88,7 +88,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Durable encrypted webhook event persistence with SHA-256 idempotency key and duplicate suppression.
 - [x] Tenant routing through verified active phone_number_id; unknown/disabled connections are quarantined as unmatched.
 
-**Current checkpoint:** Template catalog retrieval (including cursor pagination), tenant-scoped persistence, manual sync action, settings UI, approved-template sending, parameter validation and out-of-window appointment-reminder integration are implemented. The reminder template is selected by `META_APPOINTMENT_REMINDER_TEMPLATE` and `META_APPOINTMENT_REMINDER_LANGUAGE`; it must contain exactly two sequential BODY variables. CI passed on commit `e195415` with 160 tests / 651 assertions and the frontend production build.
+**Current checkpoint:** Template catalog retrieval (including cursor pagination), tenant-scoped persistence, manual sync action, settings UI, approved-template sending, parameter validation and out-of-window appointment-reminder integration are implemented. The reminder template is selected by `META_APPOINTMENT_REMINDER_TEMPLATE` and `META_APPOINTMENT_REMINDER_LANGUAGE`; it must contain exactly two sequential BODY variables. CI passed on commit `e3c13da` with 160 tests / 651 assertions on SQLite and PostgreSQL 16, plus the frontend production build.
 
 ## Milestone 5 — Conversations and human handover
 - [x] Customer/conversation/message persistence for inbound WhatsApp events with encrypted message content.
@@ -159,12 +159,15 @@ This roadmap distinguishes planned work from implemented work.
 
 
 ## Milestone 10 — Production hardening and deployment
-- [ ] Automated tests across critical workflows.
+- [x] Automated tests across critical workflows (160 tests / 651 assertions on SQLite and PostgreSQL 16).
+- [x] PostgreSQL 16 migration/test compatibility matrix in CI; live Neon connectivity and TLS validation remain pending.
 - [ ] Security review and dependency checks.
 - [ ] Load/latency tests for cron-backed processing.
 - [ ] Hostinger + Neon deployment rehearsal.
 - [ ] Backup/restore drill and rollback plan.
 - [ ] Meta production onboarding readiness review.
+
+**Status:** SQLite and PostgreSQL 16 suites both pass in CI. The application has not yet been connected to the user's live Neon database or deployed to Hostinger; production credentials, TLS, queue/cron configuration, backups and rollback remain acceptance gates.
 
 ## Development rules
 
