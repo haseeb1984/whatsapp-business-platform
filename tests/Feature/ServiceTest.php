@@ -82,6 +82,30 @@ class ServiceTest extends TestCase
         });
     }
 
+    public function test_user_cannot_update_or_delete_another_tenants_service(): void
+    {
+        [$userA, $tenantA] = $this->workspace('service-foreign-a@example.test');
+        [, $tenantB] = $this->workspace('service-foreign-b@example.test');
+        $foreignService = TenantContext::runForTenant($tenantB->id, fn () => Service::query()->create(
+            $this->serviceAttributes('Tenant B private service'),
+        ));
+
+        $this->actingAs($userA)->withSession(['current_tenant_id' => $tenantA->id]);
+        $this->put('/business/services/'.$foreignService->id, [
+            ...$this->serviceAttributes('Tampered service'),
+            'price_amount' => '1.00',
+        ])->assertNotFound();
+        $this->delete('/business/services/'.$foreignService->id)->assertNotFound();
+
+        $this->assertDatabaseHas('services', [
+            'id' => $foreignService->id,
+            'tenant_id' => $tenantB->id,
+            'name' => 'Tenant B private service',
+            'price_amount' => '100.00',
+            'active' => true,
+        ]);
+    }
+
     public function test_staff_cannot_manage_services(): void
     {
         [$user, $tenant] = $this->workspace('service-staff@example.test', 'staff');
