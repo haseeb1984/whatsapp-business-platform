@@ -32,6 +32,10 @@ class DashboardController extends Controller
             ->groupBy('tenant_id')
             ->pluck('total', 'tenant_id');
 
+        $messageCounts = DB::table('messages')->select('tenant_id', DB::raw('COUNT(*) as total'))->groupBy('tenant_id')->pluck('total', 'tenant_id');
+        $conversationCounts = DB::table('conversations')->select('tenant_id', DB::raw('COUNT(*) as total'))->groupBy('tenant_id')->pluck('total', 'tenant_id');
+        $appointmentCounts = DB::table('appointments')->select('tenant_id', DB::raw('COUNT(*) as total'))->groupBy('tenant_id')->pluck('total', 'tenant_id');
+
         $tenantQuery = Tenant::query()
             ->withCount('users')
             ->when($filters['q'] ?? null, fn ($query, $term) => $query->where(function ($search) use ($term): void {
@@ -51,6 +55,9 @@ class DashboardController extends Controller
             'users' => $tenant->users_count,
             'whatsapp_connections' => (int) ($whatsappCounts[$tenant->id] ?? 0),
             'calendar_connections' => (int) ($calendarCounts[$tenant->id] ?? 0),
+            'messages' => (int) ($messageCounts[$tenant->id] ?? 0),
+            'conversations' => (int) ($conversationCounts[$tenant->id] ?? 0),
+            'appointments' => (int) ($appointmentCounts[$tenant->id] ?? 0),
             'created_at' => $tenant->created_at?->toDateTimeString(),
         ]);
 
@@ -72,6 +79,9 @@ class DashboardController extends Controller
                 'users_total' => User::query()->count(),
                 'whatsapp_connections' => (int) $whatsappCounts->sum(),
                 'calendar_connections' => (int) $calendarCounts->sum(),
+                'messages_total' => DB::table('messages')->count(),
+                'conversations_total' => DB::table('conversations')->count(),
+                'appointments_total' => DB::table('appointments')->count(),
                 'queue_pending' => $queuePending,
                 'queue_failed' => $queueFailed,
             ],
