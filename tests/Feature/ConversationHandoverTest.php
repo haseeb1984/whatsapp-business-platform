@@ -58,6 +58,17 @@ class ConversationHandoverTest extends TestCase
             'assigned_user_id' => null,
         ]);
         Http::assertSentCount(1);
+        $this->assertDatabaseCount('audit_events', 4);
+        $this->assertDatabaseHas('audit_events', [
+            'tenant_id' => $tenant->id,
+            'actor_user_id' => $user->id,
+            'event' => 'conversations.take',
+        ]);
+        $this->assertDatabaseHas('audit_events', [
+            'tenant_id' => $tenant->id,
+            'actor_user_id' => $user->id,
+            'event' => 'conversations.reply',
+        ]);
     }
 
     public function test_staff_cannot_send_a_reply_without_taking_ownership_first(): void
