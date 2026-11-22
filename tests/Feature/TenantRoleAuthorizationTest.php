@@ -44,6 +44,28 @@ class TenantRoleAuthorizationTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_staff_is_forbidden_from_real_business_configuration_routes(): void
+    {
+        [$user, $tenant] = $this->makeMembership('staff');
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id]);
+
+        $this->get('/business/profile')->assertForbidden();
+        $this->put('/business/profile', ['name' => 'Attempted takeover'])->assertForbidden();
+        $this->post('/business/faqs', [
+            'question' => 'Can I book?',
+            'answer' => 'Yes',
+        ])->assertForbidden();
+        $this->post('/business/whatsapp', [
+            'phone_number_id' => '123456789012345',
+            'waba_id' => '987654321098765',
+            'access_token' => 'not-a-real-token',
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('faqs', ['question' => 'Can I book?']);
+        $this->assertDatabaseCount('whatsapp_connections', 0);
+    }
+
     private function makeMembership(string $role): array
     {
         $user = User::query()->create([
