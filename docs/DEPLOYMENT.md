@@ -26,6 +26,9 @@ Cron-driven processing can introduce noticeable message response latency. It mus
 
 ## 4. Verify before deployment
 
+The public, rate-limited `GET /health/ready` endpoint checks database connectivity and (when using Laravel's database queue) the queue storage table. It does not prove that cron workers are running or that Meta/Google credentials are valid; those require separate operational checks.
+
+
 In Hostinger hPanel, verify the exact plan variant and current limits:
 - PHP 8.3+ and required extensions (Ctype, cURL, DOM, Fileinfo, Filter, Hash, Mbstring, OpenSSL, PCRE, PDO, Session, Tokenizer, XML, and PDO PostgreSQL);
 - Composer availability or supported deployment workflow;
