@@ -96,6 +96,35 @@ class ConversationHandoverTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_user_cannot_mutate_another_tenants_conversation_through_inbox_actions(): void
+    {
+        Http::fake();
+
+        [$user, $tenantA] = $this->workspace('handover-action-tenant-a@example.test', 'business_admin');
+        [, $tenantB] = $this->workspace('handover-action-tenant-b@example.test', 'business_admin');
+        $conversation = $this->conversation($tenantB, 'WAITING_FOR_STAFF');
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenantA->id]);
+
+        $this->post('/conversations/'.$conversation->id.'/take')->assertNotFound();
+        $this->post('/conversations/'.$conversation->id.'/notes', ['body' => 'Unauthorized note'])->assertNotFound();
+        $this->post('/conversations/'.$conversation->id.'/reply', ['body' => 'Unauthorized reply'])->assertNotFound();
+        $this->post('/conversations/'.$conversation->id.'/release')->assertNotFound();
+        $this->put('/conversations/'.$conversation->id.'/assign', ['assigned_user_id' => $user->id])->assertNotFound();
+        $this->post('/conversations/'.$conversation->id.'/close')->assertNotFound();
+
+        Http::assertNothingSent();
+        $this->assertDatabaseHas('conversations', [
+            'id' => $conversation->id,
+            'tenant_id' => $tenantB->id,
+            'automation_state' => 'WAITING_FOR_STAFF',
+            'assigned_user_id' => null,
+        ]);
+        $this->assertDatabaseCount('conversation_notes', 0);
+        $this->assertDatabaseCount('messages', 1);
+        $this->assertDatabaseCount('audit_events', 0);
+    }
+
     public function test_business_admin_can_assign_conversation_to_another_active_workspace_member(): void
     {
         [$admin, $tenant] = $this->workspace('handover-admin@example.test', 'business_admin');
