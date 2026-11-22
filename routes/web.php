@@ -110,7 +110,7 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::post('/business/whatsapp/{connection}/templates/sync', [WhatsAppConnectionController::class, 'syncTemplates'])->middleware('throttle:5,1')->name('business.whatsapp.templates.sync');
         Route::delete('/business/whatsapp/{connection}', [WhatsAppConnectionController::class, 'destroy'])->name('business.whatsapp.destroy');
     });
-    Route::middleware('tenant.role:business_admin,staff')->group(function (): void {
+    Route::middleware(['tenant.role:business_admin,staff', 'audit'])->group(function (): void {
         Route::get('/conversations', [ConversationController::class, 'index'])->name('conversations.index');
         Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])->name('conversations.show');
         Route::post('/conversations/{conversation}/take', [ConversationController::class, 'take'])->name('conversations.take');
@@ -122,7 +122,7 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::get('/business/appointments/availability', [AppointmentController::class, 'availability'])->name('business.appointments.availability');
         Route::post('/business/appointments/holds', [AppointmentController::class, 'createHold'])->name('business.appointments.holds.store');
         Route::post('/business/appointments/{appointment}/cancel-hold', [AppointmentController::class, 'cancelHold'])->name('business.appointments.holds.cancel');
-        Route::middleware(['tenant.role:business_admin', 'audit'])->group(function (): void {
+        Route::middleware('tenant.role:business_admin')->group(function (): void {
             Route::put('/business/appointments/policy', [BookingPolicyController::class, 'update'])->name('business.appointments.policy.update');
             Route::post('/business/appointments/{appointment}/confirm-calendar', [AppointmentController::class, 'confirmCalendar'])->name('business.appointments.confirm-calendar');
             Route::post('/business/appointments/{appointment}/cancel', [AppointmentController::class, 'cancelConfirmed'])->name('business.appointments.cancel');
