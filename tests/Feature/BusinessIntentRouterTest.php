@@ -99,7 +99,7 @@ class BusinessIntentRouterTest extends TestCase
         $this->assertStringNotContainsString('Email:', $result->answer);
     }
 
-    public function test_missing_business_facts_handoff_and_unrecognized_questions_fall_back_to_faq(): void
+    public function test_missing_business_facts_and_unrecognized_questions_fall_back_to_faq(): void
     {
         $tenant = $this->tenant('intent-missing');
         $router = app(BusinessIntentRouter::class);
@@ -107,7 +107,7 @@ class BusinessIntentRouterTest extends TestCase
         $missing = TenantContext::runForTenant($tenant->id, fn () => $router->route('What are your opening hours?', 'en'));
         $other = TenantContext::runForTenant($tenant->id, fn () => $router->route('Can you explain your refund policy?', 'en'));
 
-        $this->assertSame('handoff', $missing->status);
+        $this->assertSame('not_handled', $missing->status);
         $this->assertSame('business_hours_not_configured', $missing->intent);
         $this->assertSame('not_handled', $other->status);
     }
