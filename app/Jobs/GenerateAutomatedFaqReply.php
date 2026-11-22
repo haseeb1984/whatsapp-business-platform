@@ -86,7 +86,7 @@ class GenerateAutomatedFaqReply implements ShouldQueue
             };
 
             if ($result->status !== 'answered' || ! is_string($result->answer) || trim($result->answer) === '' || mb_strlen($result->answer) > 4096) {
-                DB::transaction(function (): void {
+                DB::transaction(function () use ($result): void {
                     $conversation = Conversation::query()->lockForUpdate()->find($this->conversationId);
                     if (! $conversation || $conversation->status !== 'open' || $conversation->automation_state !== 'AUTO_ACTIVE') {
                         return;
