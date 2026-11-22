@@ -14,7 +14,11 @@ class RecordAuditEvent
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
+        $routeName = $request->route()?->getName();
+        $isMutation = in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true)
+            || $routeName === 'business.calendar.callback';
+
+        if (! $isMutation) {
             return $next($request);
         }
 
