@@ -48,6 +48,34 @@ class MetaWebhookEventProcessingTest extends TestCase
         Queue::assertPushed(ProcessBookingConversationReply::class, 1);
     }
 
+    public function test_webhook_job_uses_event_tenant_and_restores_preexisting_tenant_context(): void
+    {
+        Queue::fake();
+        $ownerTenant = $this->tenant('processor-owner-context');
+        $otherTenant = $this->tenant('processor-other-context');
+        $event = $this->inboundEvent($ownerTenant->id, 'wamid.owner-context');
+
+        TenantContext::runForTenant($otherTenant->id, function () use ($event, $ownerTenant, $otherTenant): void {
+            (new ProcessMetaWebhookEvent($event->id))->handle();
+
+            $this->assertSame($otherTenant->id, TenantContext::id());
+            $this->assertSame(0, Customer::query()->count());
+        });
+
+        $this->assertNull(TenantContext::id());
+        TenantContext::runForTenant($ownerTenant->id, function (): void {
+            $this->assertSame(1, Customer::query()->count());
+            $this->assertSame(1, Conversation::query()->count());
+            $this->assertSame(1, Message::query()->count());
+        });
+        $this->assertDatabaseHas('webhook_events', [
+            'id' => $event->id,
+            'tenant_id' => $ownerTenant->id,
+            'status' => 'processed',
+        ]);
+        Queue::assertPushed(ProcessBookingConversationReply::class, 1);
+    }
+
     public function test_processing_the_same_provider_message_twice_does_not_duplicate_it(): void
     {
         Queue::fake();
