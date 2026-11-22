@@ -94,6 +94,42 @@ class TenantOwnedModelTest extends TestCase
         TenantContext::runForTenant($tenant->id, fn () => 'should not run');
     }
 
+    public function test_every_business_owned_model_uses_the_tenant_scope_contract(): void
+    {
+        $tenantOwnedModels = [
+            \\App\\Models\\Appointment::class,
+            \\App\\Models\\AppointmentEvent::class,
+            \\App\\Models\\AppointmentReminder::class,
+            \\App\\Models\\AppointmentReschedule::class,
+            \\App\\Models\\BookingPolicy::class,
+            \\App\\Models\\BusinessHoliday::class,
+            \\App\\Models\\BusinessHour::class,
+            \\App\\Models\\BusinessProfile::class,
+            \\App\\Models\\Conversation::class,
+            \\App\\Models\\ConversationBookingSession::class,
+            \\App\\Models\\ConversationNote::class,
+            \\App\\Models\\Customer::class,
+            \\App\\Models\\Faq::class,
+            \\App\\Models\\GoogleCalendarConnection::class,
+            \\App\\Models\\Message::class,
+            \\App\\Models\\Service::class,
+            \\App\\Models\\Staff::class,
+            \\App\\Models\\StaffAvailabilityException::class,
+            \\App\\Models\\StaffService::class,
+            \\App\\Models\\StaffWorkingHour::class,
+            \\App\\Models\\WhatsAppConnection::class,
+            \\App\\Models\\WhatsAppTemplate::class,
+        ];
+
+        foreach ($tenantOwnedModels as $model) {
+            $this->assertContains(
+                BelongsToTenant::class,
+                class_uses($model),
+                $model.' must use the fail-closed tenant ownership contract.',
+            );
+        }
+    }
+
     public function test_tenant_owned_queries_fail_closed_without_context(): void
     {
         app()->forgetInstance(TenantContext::class);
