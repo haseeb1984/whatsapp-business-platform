@@ -99,8 +99,9 @@ class BookingConversationHandler
     private function isBookingIntent(string $message): bool
     {
         return preg_match('/^\s*(book|booking|appointment|schedule|reserve)\s*$/i', $message) === 1
-            || preg_match('/\b(book|reserve|schedule)\s+(an?\s+)?(appointment|slot)\b/i', $message) === 1
-            || preg_match('/\b(i want|i need|can i|could i)\s+to\s+(book|schedule|reserve)\b/i', $message) === 1;
+            || preg_match('/\b(book|reserve|schedule)\s+(an?\s+)?(appointment|slot|visit)\b/i', $message) === 1
+            || preg_match('/\b(i want|i need|i would like|i\'d like|can i|could i|please)\b.{0,40}\b(book|booking|appointment|schedule|reserve)\b/i', $message) === 1
+            || preg_match('/\b(need|want|looking for)\s+(an?\s+)?appointment\b/i', $message) === 1;
     }
 
     private function serviceOptions(ConversationBookingSession $session): string
