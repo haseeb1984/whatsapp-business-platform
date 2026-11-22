@@ -73,8 +73,10 @@ class AppointmentRescheduleServiceTest extends TestCase
             'appointment_id' => $appointment->id,
             'event_type' => 'rescheduled',
         ]);
-        $this->assertSame(2, AppointmentReminder::query()->where('appointment_id', $appointment->id)->where('status', 'cancelled')->count());
-        $this->assertSame(2, AppointmentReminder::query()->where('appointment_id', $appointment->id)->where('status', 'pending')->count());
+        TenantContext::runForTenant($tenant->id, function () use ($appointment): void {
+            $this->assertSame(2, AppointmentReminder::query()->where('appointment_id', $appointment->id)->where('status', 'cancelled')->count());
+            $this->assertSame(2, AppointmentReminder::query()->where('appointment_id', $appointment->id)->where('status', 'pending')->count());
+        });
     }
 
     public function test_ambiguous_calendar_update_keeps_both_slots_reserved_and_queues_reconciliation(): void
