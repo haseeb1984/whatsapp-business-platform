@@ -76,34 +76,69 @@ class MetaWhatsAppGraphApi
             ]);
         }
 
-        $response = Http::withToken($connection->access_token)
-            ->acceptJson()
-            ->timeout(15)
-            ->get("https://graph.facebook.com/{$version}/{$connection->waba_id}/message_templates", [
+        $endpoint = "https://graph.facebook.com/{$version}/{$connection->waba_id}/message_templates";
+        $allTemplates = [];
+        $after = null;
+        $hasMore = false;
+
+        for ($page = 0; $page < 20; $page++) {
+            $query = [
                 'fields' => 'id,name,status,category,language,components',
                 'limit' => 100,
-            ]);
+            ];
+            if ($after !== null) {
+                $query['after'] = $after;
+            }
 
-        if (! $response->successful()) {
+            $response = Http::withToken($connection->access_token)
+                ->acceptJson()
+                ->timeout(15)
+                ->get($endpoint, $query);
+
+            if (! $response->successful()) {
+                throw ValidationException::withMessages([
+                    'templates' => 'Meta could not retrieve message templates. Check WhatsApp Business Account access and the whatsapp_business_management permission.',
+                ]);
+            }
+
+            $data = $response->json('data');
+            if (! is_array($data)) {
+                throw ValidationException::withMessages([
+                    'templates' => 'Meta returned an invalid message-template response.',
+                ]);
+            }
+
+            foreach ($data as $template) {
+                if (is_array($template)
+                    && is_string($template['id'] ?? null)
+                    && is_string($template['name'] ?? null)
+                    && is_string($template['language'] ?? null)
+                    && is_string($template['status'] ?? null)) {
+                    $allTemplates[] = $template;
+                }
+            }
+
+            $hasMore = is_string($response->json('paging.next'));
+            if (! $hasMore) {
+                break;
+            }
+
+            $nextCursor = $response->json('paging.cursors.after');
+            if (! is_string($nextCursor) || $nextCursor === '') {
+                throw ValidationException::withMessages([
+                    'templates' => 'Meta indicated more templates but did not return a usable pagination cursor.',
+                ]);
+            }
+            $after = $nextCursor;
+        }
+
+        if ($hasMore) {
             throw ValidationException::withMessages([
-                'templates' => 'Meta could not retrieve message templates. Check WhatsApp Business Account access and the whatsapp_business_management permission.',
+                'templates' => 'Meta returned more than 2,000 templates. Narrow the catalog before synchronizing to avoid a partial result.',
             ]);
         }
 
-        $templates = $response->json('data');
-        if (! is_array($templates)) {
-            throw ValidationException::withMessages([
-                'templates' => 'Meta returned an invalid message-template response.',
-            ]);
-        }
-
-        return collect($templates)->filter(fn ($template): bool =>
-            is_array($template)
-            && is_string($template['id'] ?? null)
-            && is_string($template['name'] ?? null)
-            && is_string($template['language'] ?? null)
-            && is_string($template['status'] ?? null)
-        )->values()->all();
+        return collect($allTemplates)->unique('id')->values()->all();
     }
 
     public function sendText(WhatsAppConnection $connection, string $recipient, string $body): string
