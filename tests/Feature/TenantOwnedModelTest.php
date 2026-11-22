@@ -131,6 +131,42 @@ class TenantOwnedModelTest extends TestCase
         }
     }
 
+    public function test_tenant_owned_bulk_insert_operations_are_blocked(): void
+    {
+        $tenant = Tenant::query()->create(['name' => 'Tenant A', 'slug' => 'tenant-a']);
+        $this->setTenant($tenant);
+
+        try {
+            TenantOwnedTestRecord::query()->insert(['id' => (string) str()->uuid(), 'tenant_id' => $tenant->id, 'value' => 'unsafe']);
+            $this->fail('Bulk insert should be blocked.');
+        } catch (LogicException $exception) {
+            $this->assertStringContainsString('Bulk inserts are disabled', $exception->getMessage());
+        }
+
+        try {
+            TenantOwnedTestRecord::query()->upsert([
+                ['id' => (string) str()->uuid(), 'tenant_id' => $tenant->id, 'value' => 'unsafe'],
+            ], ['id'], ['value']);
+            $this->fail('Bulk upsert should be blocked.');
+        } catch (LogicException $exception) {
+            $this->assertStringContainsString('Bulk upserts are disabled', $exception->getMessage());
+        }
+
+        $this->assertSame(0, TenantOwnedTestRecord::query()->count());
+    }
+
+    public function test_tenant_owned_update_or_insert_is_blocked(): void
+    {
+        $tenant = Tenant::query()->create(['name' => 'Tenant A', 'slug' => 'tenant-a']);
+        $this->setTenant($tenant);
+
+        $this->expectException(LogicException::class);
+        TenantOwnedTestRecord::query()->updateOrInsert(
+            ['value' => 'unsafe'],
+            ['tenant_id' => $tenant->id],
+        );
+    }
+
     public function test_tenant_owned_queries_fail_closed_without_context(): void
     {
         app()->forgetInstance(TenantContext::class);
