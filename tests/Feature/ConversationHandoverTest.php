@@ -12,6 +12,7 @@ use App\Models\WhatsAppConnection;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class ConversationHandoverTest extends TestCase
@@ -104,8 +105,8 @@ class ConversationHandoverTest extends TestCase
         [, $tenantB] = $this->workspace('handover-action-tenant-b@example.test', 'business_admin');
         $conversation = $this->conversation($tenantB, 'WAITING_FOR_STAFF');
 
-        $auditEventsForTenantABefore = \\Illuminate\\Support\\Facades\\DB::table('audit_events')->where('tenant_id', $tenantA->id)->count();
-        $auditEventsForTenantBBefore = \\Illuminate\\Support\\Facades\\DB::table('audit_events')->where('tenant_id', $tenantB->id)->count();
+        $auditEventsForTenantABefore = DB::table('audit_events')->where('tenant_id', $tenantA->id)->count();
+        $auditEventsForTenantBBefore = DB::table('audit_events')->where('tenant_id', $tenantB->id)->count();
 
         $this->actingAs($user)->withSession(['current_tenant_id' => $tenantA->id]);
 
@@ -127,11 +128,11 @@ class ConversationHandoverTest extends TestCase
         $this->assertDatabaseCount('messages', 1);
         $this->assertSame(
             $auditEventsForTenantABefore + 6,
-            \\Illuminate\\Support\\Facades\\DB::table('audit_events')->where('tenant_id', $tenantA->id)->count(),
+            DB::table('audit_events')->where('tenant_id', $tenantA->id)->count(),
         );
         $this->assertSame(
             $auditEventsForTenantBBefore,
-            \\Illuminate\\Support\\Facades\\DB::table('audit_events')->where('tenant_id', $tenantB->id)->count(),
+            DB::table('audit_events')->where('tenant_id', $tenantB->id)->count(),
         );
     }
 
