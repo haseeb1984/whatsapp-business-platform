@@ -18,9 +18,12 @@ use App\Http\Controllers\StaffAvailabilityExceptionController;
 use App\Http\Controllers\GoogleCalendarConnectionController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Controllers\ReadinessController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+Route::get('/health/ready', ReadinessController::class)->middleware('throttle:30,1')->name('health.ready');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
