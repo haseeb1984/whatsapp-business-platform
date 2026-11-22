@@ -2,7 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Exceptions\GoogleCalendarBusyException;\nuse App\Jobs\SyncAppointmentCalendarEvent;
+use App\Exceptions\GoogleCalendarBusyException;
+use App\Jobs\SyncAppointmentCalendarEvent;
 use App\Models\Appointment;
 use App\Models\BusinessHour;
 use App\Models\Customer;
