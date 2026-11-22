@@ -8,6 +8,9 @@ type PageProps = {
         users_total: number;
         whatsapp_connections: number;
         calendar_connections: number;
+        messages_total: number;
+        conversations_total: number;
+        appointments_total: number;
         queue_pending: number | null;
         queue_failed: number | null;
     };
@@ -21,6 +24,9 @@ type PageProps = {
         users: number;
         whatsapp_connections: number;
         calendar_connections: number;
+        messages: number;
+        conversations: number;
+        appointments: number;
         created_at: string | null;
         }[];
         links: { url: string | null; label: string; active: boolean }[];
@@ -45,6 +51,9 @@ export default function PlatformDashboard() {
         ['Registered users', metrics.users_total],
         ['Active WhatsApp connections', metrics.whatsapp_connections],
         ['Connected calendars', metrics.calendar_connections],
+        ['Messages processed', metrics.messages_total],
+        ['Conversations', metrics.conversations_total],
+        ['Appointments', metrics.appointments_total],
         ['Queued jobs', metrics.queue_pending ?? 'Not available'],
         ['Failed jobs', metrics.queue_failed ?? 'Not available'],
     ] as const;
@@ -77,8 +86,8 @@ export default function PlatformDashboard() {
                         <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">Business tenants</h2><p className="mt-1 text-xs text-slate-500">{tenants.total.toLocaleString()} total workspaces</p></div><a href={exportHref} className="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800">Export CSV</a></div>
                         <form method="get" action="/platform" className="mt-4 flex flex-wrap gap-2"><input name="q" defaultValue={filters.q} placeholder="Search workspace name or slug" className="min-w-56 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600"/><select name="status" defaultValue={filters.status} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"><option value="">All statuses</option><option value="active">Active</option><option value="suspended">Suspended</option></select><button type="submit" className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-500">Filter</button><a href="/platform" className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">Reset</a></form>
                         <div className="mt-4 overflow-x-auto">
-                            <table className="w-full min-w-[760px] text-left text-sm">
-                                <thead className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-500"><tr><th className="py-3 pr-4">Workspace</th><th className="py-3 pr-4">Status</th><th className="py-3 pr-4">Users</th><th className="py-3 pr-4">WhatsApp</th><th className="py-3 pr-4">Calendar</th><th className="py-3">Timezone</th></tr></thead>
+                            <table className="w-full min-w-[1040px] text-left text-sm">
+                                <thead className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-500"><tr><th className="py-3 pr-4">Workspace</th><th className="py-3 pr-4">Status</th><th className="py-3 pr-4">Users</th><th className="py-3 pr-4">WhatsApp</th><th className="py-3 pr-4">Calendar</th><th className="py-3 pr-4">Messages</th><th className="py-3 pr-4">Conversations</th><th className="py-3 pr-4">Appointments</th><th className="py-3">Timezone</th></tr></thead>
                                 <tbody className="divide-y divide-slate-800">
                                     {tenants.data.map(tenant => <tr key={tenant.id}>
                                         <td className="py-3 pr-4"><p className="font-semibold text-slate-200">{tenant.name}</p><p className="mt-1 text-xs text-slate-500">{tenant.slug}</p></td>
@@ -86,9 +95,12 @@ export default function PlatformDashboard() {
                                         <td className="py-3 pr-4 tabular-nums">{tenant.users}</td>
                                         <td className="py-3 pr-4 tabular-nums">{tenant.whatsapp_connections}</td>
                                         <td className="py-3 pr-4 tabular-nums">{tenant.calendar_connections}</td>
+                                        <td className="py-3 pr-4 tabular-nums">{tenant.messages.toLocaleString()}</td>
+                                        <td className="py-3 pr-4 tabular-nums">{tenant.conversations.toLocaleString()}</td>
+                                        <td className="py-3 pr-4 tabular-nums">{tenant.appointments.toLocaleString()}</td>
                                         <td className="py-3 text-slate-400">{tenant.timezone}</td>
                                     </tr>)}
-                                    {tenants.data.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-slate-500">No business tenants have been created.</td></tr>}
+                                    {tenants.data.length === 0 && <tr><td colSpan={9} className="py-8 text-center text-slate-500">No business tenants have been created.</td></tr>}
                                 </tbody>
                             </table>
                         </div>
