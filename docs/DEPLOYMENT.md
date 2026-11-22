@@ -57,7 +57,7 @@ The committed `.env.example` contains placeholder-only values. Configure real va
 - APP_ENV, APP_KEY, APP_DEBUG=false, APP_URL
 - DB_CONNECTION=pgsql, DB_URL, DB_SSLMODE=require
 - QUEUE_CONNECTION=database, SESSION_DRIVER=file, CACHE_STORE=file
-- META_APP_ID, META_APP_SECRET, META_WEBHOOK_VERIFY_TOKEN, META_GRAPH_API_VERSION
+- META_APP_ID, META_APP_SECRET, META_WEBHOOK_VERIFY_TOKEN, META_GRAPH_API_VERSION, META_APPOINTMENT_REMINDER_TEMPLATE, META_APPOINTMENT_REMINDER_LANGUAGE
 - MAIL_MAILER, MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM_ADDRESS, MAIL_FROM_NAME (configure a working SMTP transport before enabling password recovery in production)
 - GROQ_API_KEY, GROQ_MODEL
 - GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI (must exactly match the registered Google OAuth redirect URI)
@@ -96,7 +96,7 @@ Configure Laravel's scheduler with a separate cron entry (after confirming the r
 * * * * * cd /home/ACCOUNT/domains/DOMAIN/public_html/APP_ROOT && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-This runs the scheduled `appointments:expire-holds` and `appointments:dispatch-reminders` tasks. The queue worker and scheduler are separate concerns; both need monitoring and bounded execution. Reminder jobs send free-form WhatsApp text only inside the 24-hour customer-service window; outside-window reminders remain blocked until approved template sending is implemented. The 20-second limit is a starting value to validate, not a guaranteed Hostinger allowance.
+This runs the scheduled `appointments:expire-holds` and `appointments:dispatch-reminders` tasks. The queue worker and scheduler are separate concerns; both need monitoring and bounded execution. Reminder jobs use free-form text only for other in-window workflows; appointment reminders use the configured approved Meta template even outside the 24-hour customer-service window. Set `META_APPOINTMENT_REMINDER_TEMPLATE` and `META_APPOINTMENT_REMINDER_LANGUAGE` to the exact synced approved template. The current reminder mapper expects exactly two sequential BODY variables: `{{1}}` = service name and `{{2}}` = appointment date/time in the business timezone. If the approved template is unavailable or does not match, the reminder is safely held rather than sending an unapproved/free-form message. The 20-second limit is a starting value to validate, not a guaranteed Hostinger allowance.
 
 ## 9. Rollback and recovery
 
