@@ -8,6 +8,7 @@ use App\Models\Appointment;
 use App\Models\AppointmentReminder;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\WhatsAppTemplate;
 use App\Models\WhatsAppConnection;
 use App\Services\Meta\MetaWhatsAppGraphApi;
 use Illuminate\Http\Client\ConnectionException;
@@ -158,4 +159,128 @@ class WhatsAppMessageService
             return $message;
         });
     }
+
+    public function sendTemplate(Conversation $conversation, WhatsAppTemplate $template, array $parameters, ?string $reminderId = null): Message
+    {
+        if ($template->status !== 'APPROVED') {
+            throw ValidationException::withMessages(['template' => 'Only Meta-approved WhatsApp templates can be sent.']);
+        }
+
+        $body = collect($template->components ?? [])->first(
+            fn ($component): bool => is_array($component) && strtoupper((string) ($component['type'] ?? '')) === 'BODY',
+        );
+        $bodyText = is_string($body['text'] ?? null) ? $body['text'] : '';
+        preg_match_all('/\{\{(\d+)\}\}/', $bodyText, $matches);
+        $indexes = array_values(array_unique(array_map('intval', $matches[1] ?? [])));
+        sort($indexes);
+
+        foreach ($template->components ?? [] as $component) {
+            if (! is_array($component) || strtoupper((string) ($component['type'] ?? '')) === 'BODY') {
+                continue;
+            }
+
+            if (preg_match('/\{\{\s*[^}]+\s*\}\}/', (string) ($component['text'] ?? ''))) {
+                throw ValidationException::withMessages(['template' => 'This template uses unsupported non-body variables.']);
+            }
+        }
+
+        $expectedIndexes = $indexes === [] ? [] : range(1, count($indexes));
+        if ($indexes !== $expectedIndexes || count($parameters) !== count($indexes)) {
+            throw ValidationException::withMessages([
+                'parameters' => 'Provide exactly one value for each sequential BODY placeholder in the approved template.',
+            ]);
+        }
+
+        $normalizedParameters = [];
+        foreach (array_values($parameters) as $parameter) {
+            if (! is_scalar($parameter) || trim((string) $parameter) === '' || mb_strlen((string) $parameter) > 1024) {
+                throw ValidationException::withMessages(['parameters' => 'Template parameters must be non-empty text values up to 1024 characters.']);
+            }
+            $normalizedParameters[] = trim((string) $parameter);
+        }
+
+        $components = $normalizedParameters === [] ? [] : [[
+            'type' => 'body',
+            'parameters' => array_map(
+                fn (string $value): array => ['type' => 'text', 'text' => $value],
+                $normalizedParameters,
+            ),
+        ]];
+
+        return DB::transaction(function () use ($conversation, $template, $components, $normalizedParameters, $reminderId): Message {
+            if ($reminderId !== null) {
+                $existing = Message::query()->where('reminder_id', $reminderId)->first();
+                if ($existing) {
+                    if ($existing->conversation_id !== $conversation->id) {
+                        throw ValidationException::withMessages(['reminder' => 'This reminder was already sent to a different conversation.']);
+                    }
+                    return $existing;
+                }
+
+                $reminder = AppointmentReminder::query()->lockForUpdate()->findOrFail($reminderId);
+                $appointment = Appointment::query()->lockForUpdate()->findOrFail($reminder->appointment_id);
+                if ($reminder->status !== 'processing' || $appointment->status !== 'confirmed'
+                    || $appointment->customer_id !== $conversation->customer_id) {
+                    throw ValidationException::withMessages(['reminder' => 'This appointment reminder is no longer eligible to send.']);
+                }
+            }
+
+            $lockedConversation = Conversation::query()->lockForUpdate()->findOrFail($conversation->id);
+            if ($lockedConversation->status !== 'open' || $lockedConversation->automation_state !== 'AUTO_ACTIVE') {
+                throw ValidationException::withMessages(['conversation' => 'The conversation is closed or under human control.']);
+            }
+
+            $connection = $template->connection()->where('status', 'active')->first();
+            if (! $connection) {
+                throw ValidationException::withMessages(['connection' => 'The template is not attached to a verified active WhatsApp connection.']);
+            }
+
+            $customer = $lockedConversation->customer()->firstOrFail();
+            $message = Message::query()->create([
+                'conversation_id' => $lockedConversation->id,
+                'reminder_id' => $reminderId,
+                'direction' => 'outbound',
+                'message_type' => 'template',
+                'body' => 'WhatsApp template: '.$template->name,
+                'delivery_status' => 'pending',
+                'metadata' => [
+                    'template_id' => $template->provider_template_id,
+                    'template_name' => $template->name,
+                    'template_language' => $template->language,
+                    'parameters' => $normalizedParameters,
+                ],
+            ]);
+
+            try {
+                $providerMessageId = $this->graphApi->sendTemplate(
+                    $connection,
+                    $customer->whatsapp_wa_id,
+                    $template->name,
+                    $template->language,
+                    $components,
+                );
+            } catch (ConnectionException) {
+                $message->forceFill(['delivery_status' => 'unknown'])->save();
+                $lockedConversation->forceFill(['last_message_at' => now()])->save();
+                return $message;
+            } catch (MetaWhatsAppApiException $exception) {
+                $message->forceFill([
+                    'delivery_status' => $exception->outcomeUnknown ? 'unknown' : 'failed',
+                ])->save();
+                $lockedConversation->forceFill(['last_message_at' => now()])->save();
+                return $message;
+            }
+
+            $message->forceFill([
+                'provider_message_id' => $providerMessageId,
+                'delivery_status' => 'sent',
+                'sent_at' => now(),
+            ])->save();
+            $lockedConversation->forceFill(['last_message_at' => now()])->save();
+
+            return $message;
+        });
+    }
+
+
 }
