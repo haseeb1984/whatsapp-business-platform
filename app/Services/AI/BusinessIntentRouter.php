@@ -41,7 +41,7 @@ class BusinessIntentRouter
     {
         $services = Service::query()->where('active', true)->orderBy('name')->limit(12)->get();
         if ($services->isEmpty()) {
-            return new BusinessIntentResult('handoff', null, 'services_not_configured');
+            return new BusinessIntentResult('not_handled', null, 'services_not_configured');
         }
 
         $lines = [$includePrices ? 'Here are our current services and prices:' : 'Here are the services we currently offer:'];
@@ -80,7 +80,7 @@ class BusinessIntentRouter
 
             $hours = BusinessHour::query()->where('weekday', $date->dayOfWeekIso - 1)->first();
             if (! $hours) {
-                return new BusinessIntentResult('handoff', null, 'business_hours_not_configured');
+                return new BusinessIntentResult('not_handled', null, 'business_hours_not_configured');
             }
             if ($hours->is_closed) {
                 return new BusinessIntentResult('answered', 'We are closed '.strtolower($label).'.', $isTomorrow ? 'tomorrow_hours' : 'today_hours');
@@ -120,7 +120,7 @@ class BusinessIntentRouter
     {
         $profile = BusinessProfile::query()->first();
         if (! $profile) {
-            return new BusinessIntentResult('handoff', null, 'business_contact_not_configured');
+            return new BusinessIntentResult('not_handled', null, 'business_contact_not_configured');
         }
 
         $lines = [];
