@@ -24,6 +24,7 @@ class TenantOwnedModelTest extends TestCase
         Schema::create('tenant_owned_test_records', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->uuid('tenant_id')->index();
+            $table->unique(['tenant_id', 'id']);
             $table->string('value');
             $table->timestamps();
         });
