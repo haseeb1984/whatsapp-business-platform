@@ -116,6 +116,48 @@ class AppointmentRescheduleServiceTest extends TestCase
             'appointment_id' => $appointment->id,
             'event_type' => 'reschedule_calendar_update_unknown',
         ]);
+
+        TenantContext::runForTenant($tenant->id, function () use ($appointment): void {
+            $availability = app(\App\Services\Booking\AppointmentAvailabilityService::class);
+            $oldSlots = $availability->availableSlots($appointment->service_id, '2026-11-24', $appointment->staff_id, null, false);
+            $newSlots = $availability->availableSlots($appointment->service_id, '2026-11-25', $appointment->staff_id, null, false);
+            $this->assertNotContains('10:00', array_column($oldSlots, 'local_start'));
+            $this->assertNotContains('11:00', array_column($newSlots, 'local_start'));
+        });
+    }
+
+    public function test_retry_job_reconciles_an_unknown_reschedule_and_commits_the_new_time(): void
+    {
+        [$tenant, $appointment] = $this->confirmedAppointment('reschedule-reconcile');
+        Queue::fake();
+        $firstCalendar = Mockery::mock(GoogleCalendarService::class);
+        $firstCalendar->shouldReceive('updateAppointmentEvent')
+            ->once()
+            ->andThrow(new RuntimeException('Google Calendar API request failed with HTTP 500.'));
+        $this->app->instance(GoogleCalendarService::class, $firstCalendar);
+
+        try {
+            TenantContext::runForTenant($tenant->id, fn () => app(AppointmentRescheduleService::class)->reschedule(
+                $appointment->id,
+                CarbonImmutable::parse('2026-11-25 11:00:00', 'Asia/Karachi'),
+                'reschedule-reconcile-key',
+            ));
+        } catch (RuntimeException) {
+            // The durable request remains unknown and is retried below.
+        }
+
+        $request = TenantContext::runForTenant($tenant->id, fn () => \App\Models\AppointmentReschedule::query()->where('idempotency_key', 'reschedule-reconcile-key')->firstOrFail());
+        $retryCalendar = Mockery::mock(GoogleCalendarService::class);
+        $retryCalendar->shouldReceive('updateAppointmentEvent')->once()->andReturn('google-event-reschedule');
+        $this->app->instance(GoogleCalendarService::class, $retryCalendar);
+
+        (new SyncAppointmentReschedule($tenant->id, $request->id))->handle(app(AppointmentRescheduleService::class));
+
+        $updated = TenantContext::runForTenant($tenant->id, fn () => Appointment::query()->findOrFail($appointment->id));
+        $this->assertSame('confirmed', $updated->status);
+        $this->assertSame('synced', $updated->calendar_sync_status);
+        $this->assertTrue($updated->starts_at->equalTo(CarbonImmutable::parse('2026-11-25 11:00:00', 'Asia/Karachi')->utc()));
+        $this->assertDatabaseHas('appointment_reschedules', ['id' => $request->id, 'status' => 'synced']);
     }
 
     private function confirmedAppointment(string $slug): array
