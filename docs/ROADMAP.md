@@ -20,7 +20,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Run migrations and the feature suite against a disposable PostgreSQL 16 CI database.
 - [x] Obtain a passing CI run for PHP tests and frontend production build.
 
-**Status:** Source scaffold committed; CI validates Composer, runs 173 feature tests (713 assertions) on SQLite and PostgreSQL 16, and builds the frontend. Database-level cross-tenant relational-integrity tests cover customer/conversation, staff/service, message/conversation and message-reply references; queued FAQ-job isolation is also tested. A separate connection/migration rehearsal against the actual Neon project remains pending.
+**Status:** Source scaffold committed; CI validates Composer, runs 174 feature tests (718 assertions) on SQLite and PostgreSQL 16, and builds the frontend. Database-level cross-tenant relational-integrity tests cover customer/conversation, staff/service, message/conversation and message-reply references; queued FAQ-job, appointment-reminder and booking-reply isolation are also tested. A separate connection/migration rehearsal against the actual Neon project remains pending.
 
 ## Milestone 2 — Identity, tenancy, and authorization
 - [x] Implement email/password registration, login and logout with session regeneration/invalidation.
@@ -46,7 +46,7 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Implement tenant-scoped repositories/policies and composite tenant-aware foreign keys.
 - [ ] Add cross-tenant negative authorization tests for read, update, delete and background jobs.
 
-**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. Current business modules use business-admin role middleware. Remaining work is broader tenant-model coverage, composite foreign keys for all cross-entity references and end-to-end queued-job isolation. Configure production SMTP before sending verification or password-reset emails. Latest verified CI run [45045230274](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45045230274) passed on commit `e751b07abf0a468f5016c6fff251c8857ce16004`: 173 tests / 713 assertions on both SQLite and PostgreSQL 16, clean Composer and npm production dependency audits, and the Vite build. Live Neon connection rehearsal remains pending.
+**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. Current business modules use business-admin role middleware. Remaining work is broader tenant-model coverage, composite foreign keys for all cross-entity references and end-to-end queued-job isolation. Configure production SMTP before sending verification or password-reset emails. Latest verified CI run [45045230274](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45045230274) passed on commit `5962ff8bd8801c9f165cbd24c60bdd74b3cf2094`: 174 tests / 718 assertions on both SQLite and PostgreSQL 16, clean Composer and npm production dependency audits, and the Vite build. Live Neon connection rehearsal remains pending.
 
 **Exit gate:** A user from tenant A cannot read, update, delete or infer tenant B data through any tested route or job.
 
