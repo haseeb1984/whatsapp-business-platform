@@ -169,6 +169,26 @@ class AutomatedFaqReplyJobTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_queued_faq_job_cannot_read_another_tenants_conversation(): void
+    {
+        Http::fake();
+        [$ownerTenant, $conversation, $inbound] = $this->conversation('auto-faq-owner-tenant', 'AUTO_ACTIVE', 'What are your opening hours?');
+        $otherTenant = Tenant::query()->create([
+            'name' => 'Different Workspace',
+            'slug' => 'auto-faq-other-tenant',
+        ]);
+
+        (new GenerateAutomatedFaqReply($otherTenant->id, $conversation->id, $inbound->id))->handle(
+            app(GroundedFaqAssistant::class),
+            app(BusinessIntentRouter::class),
+            app(WhatsAppMessageService::class),
+        );
+
+        $this->assertDatabaseCount('messages', 1);
+        Http::assertNothingSent();
+        $this->assertFalse(app()->bound(TenantContext::class), 'A completed background job must not leak tenant context.');
+    }
+
     private function conversation(string $slug, string $state, string $body): array
     {
         $tenant = Tenant::query()->create(['name' => 'Automated FAQ Workspace', 'slug' => $slug]);
