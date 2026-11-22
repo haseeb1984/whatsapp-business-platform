@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-use App\Enums\MessageActor;
 use App\Models\Appointment;
 use App\Models\AppointmentReminder;
 use App\Models\Conversation;
