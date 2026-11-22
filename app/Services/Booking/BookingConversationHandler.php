@@ -105,7 +105,7 @@ class BookingConversationHandler
             return true;
         }
 
-        if (preg_match('/\b(book|booking|schedule|reserve|appointment|need|want|like|get)\b/i', $message) !== 1) {
+        if (preg_match('/\b(book|booking|schedule|reserve|appointment|need|want|get)\b|\b(i would like|i\'d like)\b/i', $message) !== 1) {
             return false;
         }
 
