@@ -12,6 +12,7 @@ use App\Services\Booking\AppointmentAvailabilityService;
 use App\Services\Booking\AppointmentBookingService;
 use App\Services\Booking\AppointmentCalendarOrchestrator;
 use App\Services\Booking\AppointmentLifecycleService;
+use App\Services\Booking\AppointmentRescheduleService;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -148,6 +149,23 @@ class AppointmentController extends Controller
         $calendar->confirm($appointmentId);
 
         return back()->with('success', 'Appointment confirmed after Google Calendar synchronization.');
+    }
+
+    public function reschedule(Request $request, string $appointmentId, AppointmentRescheduleService $reschedules): RedirectResponse
+    {
+        $validated = $request->validate([
+            'starts_at' => ['required', 'date_format:Y-m-d\\TH:i:sP'],
+            'idempotency_key' => ['required', 'string', 'max:128'],
+        ]);
+
+        $requestedStart = CarbonImmutable::createFromFormat('!Y-m-d\\TH:i:sP', $validated['starts_at'], 'UTC');
+        if (! $requestedStart || $requestedStart->format('Y-m-d\\TH:i:sP') !== $validated['starts_at']) {
+            throw ValidationException::withMessages(['starts_at' => 'Provide the selected slot as an ISO-8601 timestamp with an explicit UTC offset.']);
+        }
+
+        $appointment = $reschedules->reschedule($appointmentId, $requestedStart, $validated['idempotency_key']);
+
+        return back()->with('success', 'Appointment rescheduled after Google Calendar confirmed the updated event.');
     }
 
     public function cancelConfirmed(string $appointmentId, AppointmentCalendarOrchestrator $calendar): RedirectResponse
