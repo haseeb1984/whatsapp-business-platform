@@ -40,7 +40,12 @@ jobs:
       - name: Run PHP tests (SQLite)
         run: php artisan test
       - name: Verify SQLite migration rollback and replay
-        run: php artisan migrate:reset && php artisan migrate --force
+        run: |
+          touch database/ci-migrations.sqlite
+          DB_CONNECTION=sqlite DB_DATABASE=database/ci-migrations.sqlite php artisan migrate --force
+          DB_CONNECTION=sqlite DB_DATABASE=database/ci-migrations.sqlite php artisan migrate:reset
+          DB_CONNECTION=sqlite DB_DATABASE=database/ci-migrations.sqlite php artisan migrate --force
+          rm database/ci-migrations.sqlite
       - name: Run PHP tests (PostgreSQL 16)
         env:
           DB_CONNECTION: pgsql
