@@ -15,6 +15,8 @@ use App\Models\Staff;
 use App\Models\StaffService;
 use App\Models\StaffWorkingHour;
 use App\Models\Tenant;
+use App\Models\WhatsAppConnection;
+use App\Models\WhatsAppTemplate;
 use App\Services\Booking\AppointmentBookingService;
 use App\Services\Booking\AppointmentLifecycleService;
 use App\Services\Messaging\WhatsAppMessageService;
@@ -41,7 +43,7 @@ class AppointmentReminderJobTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_reminder_outside_customer_service_window_is_held_for_template_support(): void
+    public function test_reminder_is_held_when_no_approved_template_is_configured(): void
     {
         [$tenant, $appointment, $reminder, $conversation] = $this->confirmedReminder('reminder-window-closed', 'AUTO_ACTIVE', 25);
         $messenger = Mockery::mock(WhatsAppMessageService::class);
@@ -52,7 +54,7 @@ class AppointmentReminderJobTest extends TestCase
         $this->assertDatabaseHas('appointment_reminders', [
             'id' => $reminder->id,
             'status' => 'blocked_template_required',
-            'last_error' => 'customer_service_window_closed',
+            'last_error' => 'approved_template_unavailable',
         ]);
     }
 
@@ -82,14 +84,26 @@ class AppointmentReminderJobTest extends TestCase
         ]);
 
         $messenger = Mockery::mock(WhatsAppMessageService::class);
-        $messenger->shouldReceive('sendText')
+        $template = TenantContext::runForTenant($tenant->id, function () {
+            $connection = WhatsAppConnection::query()->firstOrFail();
+            return WhatsAppTemplate::query()->create([
+                'whatsapp_connection_id' => $connection->id,
+                'provider_template_id' => 'reminder-template-provider-id',
+                'name' => 'appointment_reminder',
+                'language' => 'en_US',
+                'category' => 'UTILITY',
+                'status' => 'APPROVED',
+                'components' => [['type' => 'BODY', 'text' => 'Your {{1}} appointment is at {{2}}.']],
+                'synced_at' => now(),
+            ]);
+        });
+
+        $messenger->shouldReceive('sendTemplate')
             ->once()
             ->with(
                 Mockery::type(Conversation::class),
-                Mockery::type('string'),
-                MessageActor::Automation,
-                null,
-                null,
+                Mockery::type(WhatsAppTemplate::class),
+                ['Consultation', 'Tue, 24 Nov 2026 10:00'],
                 $reminder->id,
             )
             ->andReturn($outbound);
@@ -131,6 +145,13 @@ class AppointmentReminderJobTest extends TestCase
         ]);
 
         [$service, $staff, $customer, $conversation] = TenantContext::runForTenant($tenant->id, function () use ($automationState, $inboundAgeHours): array {
+            WhatsAppConnection::query()->create([
+                'phone_number_id' => '123456789012345',
+                'waba_id' => '987654321098765',
+                'access_token' => 'reminder-long-lived-access-token',
+                'status' => 'active',
+                'verified_at' => now(),
+            ]);
             $service = Service::query()->create([
                 'name' => 'Consultation',
                 'price_amount' => '100.00',
