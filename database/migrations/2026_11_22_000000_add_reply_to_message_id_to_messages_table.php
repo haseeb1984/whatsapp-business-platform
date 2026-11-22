@@ -18,7 +18,7 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table('messages', function (Blueprint $table): void {
-            $table->dropForeign('messages_reply_same_tenant_fk');
+            $table->dropForeign(['tenant_id', 'reply_to_message_id']);
             $table->dropUnique('messages_tenant_reply_unique');
             $table->dropColumn('reply_to_message_id');
         });
