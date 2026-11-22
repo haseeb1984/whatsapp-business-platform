@@ -63,6 +63,38 @@ class FaqTest extends TestCase
         });
     }
 
+    public function test_user_cannot_update_or_delete_another_tenants_faq_by_guessing_its_id(): void
+    {
+        [$userA, $tenantA] = $this->workspace('faq-owner-a@example.test');
+        [, $tenantB] = $this->workspace('faq-owner-b@example.test');
+
+        $foreignFaq = TenantContext::runForTenant($tenantB->id, fn () => Faq::query()->create([
+            'question' => 'Private tenant B question',
+            'answer' => 'Private tenant B answer',
+            'locale' => 'en',
+            'status' => 'published',
+            'published_at' => now(),
+        ]));
+
+        $this->actingAs($userA)->withSession(['current_tenant_id' => $tenantA->id]);
+
+        $this->put('/business/faqs/'.$foreignFaq->id, [
+            'question' => 'Hijacked question',
+            'answer' => 'Hijacked answer',
+            'locale' => 'en',
+            'status' => 'published',
+        ])->assertNotFound();
+
+        $this->delete('/business/faqs/'.$foreignFaq->id)->assertNotFound();
+
+        $this->assertDatabaseHas('faqs', [
+            'id' => $foreignFaq->id,
+            'tenant_id' => $tenantB->id,
+            'question' => 'Private tenant B question',
+            'answer' => 'Private tenant B answer',
+        ]);
+    }
+
     public function test_faq_validation_rejects_invalid_locale_status_and_duplicate_question(): void
     {
         [$user] = $this->workspace('faq-validation@example.test');
