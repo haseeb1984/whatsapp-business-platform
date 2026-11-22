@@ -107,6 +107,8 @@ class GoogleCalendarConnectionTest extends TestCase
 
     public function test_user_cannot_map_another_tenants_staff_to_their_calendar(): void
     {
+        Http::fake();
+
         [$userA, $tenantA] = $this->workspace('google-foreign-a@example.test');
         [, $tenantB] = $this->workspace('google-foreign-b@example.test');
 
@@ -125,6 +127,7 @@ class GoogleCalendarConnectionTest extends TestCase
         $this->actingAs($userA)->withSession(['current_tenant_id' => $tenantA->id]);
         $this->put('/business/calendar/staff/'.$foreignStaff->id, ['calendar_id' => 'primary'])->assertNotFound();
 
+        Http::assertNothingSent();
         $this->assertDatabaseHas('staff_members', [
             'id' => $foreignStaff->id,
             'tenant_id' => $tenantB->id,
