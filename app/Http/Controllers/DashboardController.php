@@ -26,6 +26,7 @@ class DashboardController extends Controller
         $upcomingAppointments = Appointment::query()
             ->with(['customer', 'staff'])
             ->where('status', 'confirmed')
+            ->where('calendar_sync_status', 'synced')
             ->where('starts_at', '>=', now())
             ->orderBy('starts_at')
             ->limit(6)
@@ -62,7 +63,8 @@ class DashboardController extends Controller
                 'customers' => Customer::query()->count(),
                 'open_conversations' => Conversation::query()->where('status', 'open')->count(),
                 'waiting_for_staff' => Conversation::query()->where('status', 'open')->where('automation_state', 'WAITING_FOR_STAFF')->count(),
-                'upcoming_appointments' => Appointment::query()->where('status', 'confirmed')->where('starts_at', '>=', now())->count(),
+                'upcoming_appointments' => Appointment::query()->where('status', 'confirmed')->where('calendar_sync_status', 'synced')->where('starts_at', '>=', now())->count(),
+                'calendar_attention' => Appointment::query()->whereIn('status', ['calendar_pending', 'confirmed'])->whereIn('calendar_sync_status', ['pending', 'unknown', 'failed'])->count(),
                 'active_services' => Service::query()->where('active', true)->count(),
                 'active_staff' => Staff::query()->where('active', true)->count(),
                 'pending_reminders' => AppointmentReminder::query()->whereIn('status', ['pending', 'queued', 'processing', 'blocked_template_required'])->where('scheduled_at', '>=', now())->count(),
