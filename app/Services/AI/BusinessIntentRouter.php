@@ -83,7 +83,7 @@ class BusinessIntentRouter
                 return new BusinessIntentResult('handoff', null, 'business_hours_not_configured');
             }
             if ($hours->is_closed) {
-                return new BusinessIntentResult('answered', 'We are closed '.$label.'.', 'today_hours');
+                return new BusinessIntentResult('answered', 'We are closed '.$label.'.', $isTomorrow ? 'tomorrow_hours' : 'today_hours');
             }
 
             $open = substr((string) $hours->opens_at, 0, 5);
