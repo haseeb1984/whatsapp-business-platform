@@ -131,28 +131,55 @@ class TenantOwnedModelTest extends TestCase
         }
     }
 
-    public function test_tenant_owned_bulk_insert_operations_are_blocked(): void
+    public function test_tenant_owned_bulk_inserts_bind_rows_to_the_active_tenant(): void
+    {
+        $tenantA = Tenant::query()->create(['name' => 'Tenant A', 'slug' => 'tenant-a']);
+        $tenantB = Tenant::query()->create(['name' => 'Tenant B', 'slug' => 'tenant-b']);
+        $this->setTenant($tenantA);
+
+        TenantOwnedTestRecord::query()->insert([
+            ['id' => (string) str()->uuid(), 'value' => 'first'],
+            ['id' => (string) str()->uuid(), 'value' => 'second'],
+        ]);
+
+        $this->assertSame(2, TenantOwnedTestRecord::query()->count());
+        $this->assertSame(
+            2,
+            TenantOwnedTestRecord::withoutGlobalScopes()->where('tenant_id', $tenantA->id)->count(),
+        );
+
+        try {
+            TenantOwnedTestRecord::query()->insert([
+                'id' => (string) str()->uuid(),
+                'tenant_id' => $tenantB->id,
+                'value' => 'spoofed',
+            ]);
+            $this->fail('A bulk insert must not spoof another tenant ID.');
+        } catch (LogicException $exception) {
+            $this->assertStringContainsString('another tenant', $exception->getMessage());
+        }
+    }
+
+    public function test_tenant_owned_upserts_require_tenant_in_unique_key(): void
     {
         $tenant = Tenant::query()->create(['name' => 'Tenant A', 'slug' => 'tenant-a']);
         $this->setTenant($tenant);
 
         try {
-            TenantOwnedTestRecord::query()->insert(['id' => (string) str()->uuid(), 'tenant_id' => $tenant->id, 'value' => 'unsafe']);
-            $this->fail('Bulk insert should be blocked.');
-        } catch (LogicException $exception) {
-            $this->assertStringContainsString('Bulk inserts are disabled', $exception->getMessage());
-        }
-
-        try {
             TenantOwnedTestRecord::query()->upsert([
-                ['id' => (string) str()->uuid(), 'tenant_id' => $tenant->id, 'value' => 'unsafe'],
+                ['id' => (string) str()->uuid(), 'value' => 'unsafe'],
             ], ['id'], ['value']);
-            $this->fail('Bulk upsert should be blocked.');
+            $this->fail('Upsert without tenant_id in its unique key should be blocked.');
         } catch (LogicException $exception) {
-            $this->assertStringContainsString('Bulk upserts are disabled', $exception->getMessage());
+            $this->assertStringContainsString('include tenant_id', $exception->getMessage());
         }
 
-        $this->assertSame(0, TenantOwnedTestRecord::query()->count());
+        $id = (string) str()->uuid();
+        TenantOwnedTestRecord::query()->upsert([
+            ['id' => $id, 'value' => 'safe'],
+        ], ['tenant_id', 'id'], ['value']);
+
+        $this->assertSame('safe', TenantOwnedTestRecord::query()->findOrFail($id)->value);
     }
 
     public function test_tenant_owned_update_or_insert_is_blocked(): void
