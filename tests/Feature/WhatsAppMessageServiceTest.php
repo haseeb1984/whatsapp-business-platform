@@ -179,7 +179,7 @@ class WhatsAppMessageServiceTest extends TestCase
             $this->assertArrayHasKey('template', $exception->errors());
         }
 
-        $template->forceFill(['status' => 'APPROVED'])->save();
+        TenantContext::runForTenant($tenant->id, fn () => $template->forceFill(['status' => 'APPROVED'])->save());
         try {
             TenantContext::runForTenant($tenant->id, fn () => app(WhatsAppMessageService::class)
                 ->sendTemplate($conversation, $template, ['Amina']));
