@@ -104,6 +104,40 @@ class AppointmentControllerTest extends TestCase
             ->assertUnprocessable();
     }
 
+    public function test_user_cannot_reschedule_or_cancel_another_tenants_appointment(): void
+    {
+        [$user, $tenantA] = $this->workspace('appointment-cross-tenant-a@example.test', 'business_admin');
+        [, $tenantB, $serviceB, $staffB, $customerB] = $this->workspace('appointment-cross-tenant-b@example.test', 'business_admin');
+
+        $foreignAppointment = TenantContext::runForTenant($tenantB->id, fn () => app(\App\Services\Booking\AppointmentBookingService::class)->createHold(
+            $customerB->id,
+            $serviceB->id,
+            $staffB->id,
+            CarbonImmutable::parse('2026-11-23 10:00:00', 'Asia/Karachi'),
+            'foreign-appointment-hold',
+            'dashboard',
+        ));
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenantA->id]);
+
+        $this->post('/business/appointments/'.$foreignAppointment->id.'/cancel-hold')->assertNotFound();
+        $this->put('/business/appointments/'.$foreignAppointment->id.'/reschedule', [
+            'starts_at' => '2026-11-24T11:00',
+            'idempotency_key' => 'cross-tenant-reschedule-attempt',
+        ])->assertNotFound();
+
+        $this->assertDatabaseHas('appointments', [
+            'id' => $foreignAppointment->id,
+            'tenant_id' => $tenantB->id,
+            'status' => 'pending_hold',
+            'starts_at' => $foreignAppointment->starts_at,
+        ]);
+        $this->assertDatabaseMissing('appointment_events', [
+            'appointment_id' => $foreignAppointment->id,
+            'event_type' => 'hold_cancelled',
+        ]);
+    }
+
     public function test_staff_can_cancel_only_temporary_pending_holds(): void
     {
         [$user, $tenant, $service, $staff, $customer] = $this->workspace('appointment-api-cancel@example.test', 'staff');
