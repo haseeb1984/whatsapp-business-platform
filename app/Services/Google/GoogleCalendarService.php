@@ -276,14 +276,14 @@ class GoogleCalendarService
             // Resolve a lost PATCH response by reading the same event and comparing its actual time.
             try {
                 $existing = $this->getEvent($connection, $this->accessToken($connection), $calendarId, $eventId);
-                $private = $existing['extendedProperties']['private'] ?? [];
                 $actualStart = isset($existing['start']['dateTime']) ? CarbonImmutable::parse($existing['start']['dateTime'])->utc() : null;
                 $actualEnd = isset($existing['end']['dateTime']) ? CarbonImmutable::parse($existing['end']['dateTime'])->utc() : null;
 
-                if (($private['platformAppointmentId'] ?? null) === $appointment->id
-                    && ($private['platformTenantId'] ?? null) === $appointment->tenant_id
-                    && $actualStart?->equalTo($startsAt->utc())
-                    && $actualEnd?->equalTo($endsAt->utc())) {
+                // The stored external_event_id is already bound to this tenant's appointment.
+                // Confirm both the event identity and exact UTC interval before treating the PATCH as successful.
+                if (($existing['id'] ?? null) === $eventId
+                    && $actualStart?->getTimestamp() === $startsAt->utc()->getTimestamp()
+                    && $actualEnd?->getTimestamp() === $endsAt->utc()->getTimestamp()) {
                     return $eventId;
                 }
             } catch (Throwable) {
