@@ -39,6 +39,8 @@ jobs:
         run: cp .env.example .env && php artisan key:generate
       - name: Run PHP tests (SQLite)
         run: php artisan test
+      - name: Verify SQLite migration rollback and replay
+        run: php artisan migrate:rollback --step=1 && php artisan migrate --force
       - name: Run PHP tests (PostgreSQL 16)
         env:
           DB_CONNECTION: pgsql
@@ -49,6 +51,16 @@ jobs:
           DB_PASSWORD: postgres
           DB_SSLMODE: disable
         run: php artisan test
+      - name: Verify PostgreSQL migration rollback and replay
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: whatsapp_test
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_SSLMODE: disable
+        run: php artisan migrate:rollback --step=1 && php artisan migrate --force
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
