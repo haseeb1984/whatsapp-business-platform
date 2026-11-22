@@ -39,8 +39,8 @@ class DashboardController extends Controller
         $tenantQuery = Tenant::query()
             ->withCount('users')
             ->when($filters['q'] ?? null, fn ($query, $term) => $query->where(function ($search) use ($term): void {
-                $search->where('name', 'like', '%'.$term.'%')
-                    ->orWhere('slug', 'like', '%'.$term.'%');
+                $search->whereRaw('LOWER(name) LIKE ?', ['%'.mb_strtolower($term).'%'])
+                    ->orWhereRaw('LOWER(slug) LIKE ?', ['%'.mb_strtolower($term).'%']);
             }))
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->orderByDesc('created_at');
@@ -120,8 +120,8 @@ class DashboardController extends Controller
         $query = Tenant::query()
             ->withCount('users')
             ->when($filters['q'] ?? null, fn ($builder, $term) => $builder->where(function ($search) use ($term): void {
-                $search->where('name', 'like', '%'.$term.'%')
-                    ->orWhere('slug', 'like', '%'.$term.'%');
+                $search->whereRaw('LOWER(name) LIKE ?', ['%'.mb_strtolower($term).'%'])
+                    ->orWhereRaw('LOWER(slug) LIKE ?', ['%'.mb_strtolower($term).'%']);
             }))
             ->when($filters['status'] ?? null, fn ($builder, $status) => $builder->where('status', $status))
             ->orderBy('name');
