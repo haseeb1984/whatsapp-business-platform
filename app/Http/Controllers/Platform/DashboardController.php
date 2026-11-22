@@ -133,10 +133,10 @@ class DashboardController extends Controller
                 foreach ($tenants as $tenant) {
                     fputcsv($output, [
                         $tenant->id,
-                        $tenant->name,
-                        $tenant->slug,
-                        $tenant->status,
-                        $tenant->timezone,
+                        $this->safeCsvCell($tenant->name),
+                        $this->safeCsvCell($tenant->slug),
+                        $this->safeCsvCell($tenant->status),
+                        $this->safeCsvCell($tenant->timezone),
                         $tenant->users_count,
                         $tenant->created_at?->toDateTimeString(),
                     ]);
@@ -146,6 +146,14 @@ class DashboardController extends Controller
         }, 'platform-tenants-'.now()->format('Ymd-His').'.csv', [
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
+    }
+
+
+    private function safeCsvCell(?string $value): string
+    {
+        $value = (string) $value;
+
+        return preg_match('/^[\t\r ]*[=+\-@]/', $value) === 1 ? "'".$value : $value;
     }
 
 }
