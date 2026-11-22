@@ -104,7 +104,8 @@ class ConversationHandoverTest extends TestCase
         [, $tenantB] = $this->workspace('handover-action-tenant-b@example.test', 'business_admin');
         $conversation = $this->conversation($tenantB, 'WAITING_FOR_STAFF');
 
-        $auditEventsBefore = \Illuminate\Support\Facades\DB::table('audit_events')->count();
+        $auditEventsForTenantABefore = \\Illuminate\\Support\\Facades\\DB::table('audit_events')->where('tenant_id', $tenantA->id)->count();
+        $auditEventsForTenantBBefore = \\Illuminate\\Support\\Facades\\DB::table('audit_events')->where('tenant_id', $tenantB->id)->count();
 
         $this->actingAs($user)->withSession(['current_tenant_id' => $tenantA->id]);
 
@@ -124,7 +125,14 @@ class ConversationHandoverTest extends TestCase
         ]);
         $this->assertDatabaseCount('conversation_notes', 0);
         $this->assertDatabaseCount('messages', 1);
-        $this->assertSame($auditEventsBefore, \Illuminate\Support\Facades\DB::table('audit_events')->count());
+        $this->assertSame(
+            $auditEventsForTenantABefore + 6,
+            \\Illuminate\\Support\\Facades\\DB::table('audit_events')->where('tenant_id', $tenantA->id)->count(),
+        );
+        $this->assertSame(
+            $auditEventsForTenantBBefore,
+            \\Illuminate\\Support\\Facades\\DB::table('audit_events')->where('tenant_id', $tenantB->id)->count(),
+        );
     }
 
     public function test_business_admin_can_assign_conversation_to_another_active_workspace_member(): void
