@@ -17,10 +17,10 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Add initial users, jobs and tenant/membership migrations.
 - [x] Add health endpoints and starter CI workflow.
 - [x] Install Composer and npm dependencies in GitHub Actions CI.
-- [ ] Run migrations against a disposable PostgreSQL database.
+- [x] Run migrations and the feature suite against a disposable PostgreSQL 16 CI database.
 - [x] Obtain a passing CI run for PHP tests and frontend production build.
 
-**Status:** Source scaffold committed; CI dependency installation, feature tests and frontend build pass. PostgreSQL migration rehearsal remains pending.
+**Status:** Source scaffold committed; CI validates Composer, runs 160 feature tests (651 assertions) on SQLite and PostgreSQL 16, and builds the frontend. A separate connection/migration rehearsal against the actual Neon project remains pending.
 
 ## Milestone 2 — Identity, tenancy, and authorization
 - [x] Implement email/password registration, login and logout with session regeneration/invalidation.
@@ -163,6 +163,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] PostgreSQL 16 migration/test compatibility matrix in CI; live Neon connectivity and TLS validation remain pending.
 - [ ] Security review and dependency checks.
 - [ ] Load/latency tests for cron-backed processing.
+- [ ] Neon project connection and migration rehearsal.
 - [ ] Hostinger + Neon deployment rehearsal.
 - [ ] Backup/restore drill and rollback plan.
 - [ ] Meta production onboarding readiness review.
