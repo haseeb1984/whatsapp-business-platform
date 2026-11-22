@@ -105,6 +105,10 @@ class BookingConversationHandler
             return true;
         }
 
+        if (preg_match('/\b(price|pricing|cost|fee|fees|how much|rate|charges|offer|provide|availability)\b/i', $message) === 1) {
+            return false;
+        }
+
         if (preg_match('/\b(book|booking|schedule|reserve|appointment|need|want|get)\b|\b(i would like|i\'d like)\b/i', $message) !== 1) {
             return false;
         }
