@@ -20,7 +20,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Run migrations and the feature suite against a disposable PostgreSQL 16 CI database.
 - [x] Obtain a passing CI run for PHP tests and frontend production build.
 
-**Status:** Source scaffold committed; CI validates Composer, runs 174 feature tests (718 assertions) on SQLite and PostgreSQL 16, and builds the frontend. Database-level cross-tenant relational-integrity tests cover customer/conversation, staff/service, message/conversation and message-reply references; queued FAQ-job, appointment-reminder and booking-reply isolation are also tested. A separate connection/migration rehearsal against the actual Neon project remains pending.
+**Status:** Source scaffold committed; CI validates Composer, runs 176 feature tests (731 assertions) on SQLite and PostgreSQL 16, and builds the frontend. Database-level cross-tenant relational-integrity tests cover customer/conversation, staff/service, message/conversation and message-reply references; queued FAQ-job, appointment-reminder and booking-reply isolation are also tested. A separate connection/migration rehearsal against the actual Neon project remains pending.
 
 ## Milestone 2 — Identity, tenancy, and authorization
 - [x] Implement email/password registration, login and logout with session regeneration/invalidation.
@@ -42,11 +42,11 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Add a fail-closed `BelongsToTenant` Eloquent concern with context-derived tenant assignment and tenant ID immutability.
 - [x] Block tenant reassignment through Eloquent bulk `update()` operations on tenant-owned models.
 - [x] Add explicit background-work tenant context lifecycle with active-tenant validation and context restoration.
-- [ ] Apply the concern to every tenant-owned model as modules are created.
-- [ ] Implement tenant-scoped repositories/policies and composite tenant-aware foreign keys.
-- [ ] Add cross-tenant negative authorization tests for read, update, delete and background jobs.
+- [x] Apply the fail-closed tenant concern to all 22 tenant-owned models currently present and enforce tenant ID immutability.
+- [x] Implement composite tenant-aware foreign keys for cross-entity references, including customer/conversation, staff/service, messages/replies, appointments, reminders, booking sessions and reschedules.
+- [ ] Complete the remaining cross-tenant negative authorization matrix for every route and mutation (read, update, delete); background-job isolation is covered for FAQ, booking replies, reminders, Calendar sync, reschedules and Meta webhooks.
 
-**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. Current business modules use business-admin role middleware. Remaining work is broader tenant-model coverage, composite foreign keys for all cross-entity references and end-to-end queued-job isolation. Configure production SMTP before sending verification or password-reset emails. Latest verified CI run [45045230274](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45045230274) passed on commit `5962ff8bd8801c9f165cbd24c60bdd74b3cf2094`: 174 tests / 718 assertions on both SQLite and PostgreSQL 16, clean Composer and npm production dependency audits, and the Vite build. Live Neon connection rehearsal remains pending.
+**Status:** Authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. All 22 tenant-owned models currently in the repository use the fail-closed tenant concern; cross-entity relationships use tenant-aware composite foreign keys. Dedicated isolation tests cover queued FAQ, booking reply, reminder, Calendar sync, reschedule and Meta webhook work, including tenant-context restoration. The remaining exit work is a complete route-level read/update/delete negative authorization matrix and any new models added in future modules. Configure production SMTP before sending verification or password-reset emails. Latest verified CI run [45045230274](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45045230274) passed on commit `5962ff8bd8801c9f165cbd24c60bdd74b3cf2094`: 176 tests / 731 assertions on both SQLite and PostgreSQL 16, clean Composer and npm production dependency audits, and the Vite build. Live Neon connection rehearsal remains pending.
 
 **Exit gate:** A user from tenant A cannot read, update, delete or infer tenant B data through any tested route or job.
 
@@ -159,7 +159,7 @@ This roadmap distinguishes planned work from implemented work.
 
 
 ## Milestone 10 — Production hardening and deployment
-- [x] Automated tests across critical workflows (168 tests / 704 assertions on SQLite and PostgreSQL 16; new relational-integrity tests pending CI).
+- [x] Automated tests across critical workflows (176 tests / 731 assertions on SQLite and PostgreSQL 16).
 - [x] PostgreSQL 16 migration/test compatibility matrix in CI; live Neon connectivity and TLS validation remain pending.
 - [x] Automated PHP and frontend production dependency audits in GitHub Actions.
 - [x] Baseline browser security headers; HSTS only on secure production requests.
@@ -172,7 +172,7 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Backup/restore drill and rollback plan.
 - [ ] Meta production onboarding readiness review.
 
-**Status:** SQLite and PostgreSQL 16 suites both pass in CI (168 tests / 704 assertions per database on commit `d2c3786`; latest relational-integrity tests are pending CI). Composer/npm production audits report no advisories. Baseline browser security headers are active, and production session cookies default to Secure; deployed HTTPS/proxy/HSTS behavior still needs Hostinger verification. Baseline authorization, tenant isolation, token/payload encryption, webhook HMAC/size limits, admin audit logging and high-cost mutation throttles have been reviewed and tested. Penetration/abuse testing, live Neon TLS/credential validation, Hostinger deployment, queue/cron configuration, backups and rollback remain acceptance gates.
+**Status:** SQLite and PostgreSQL 16 suites both pass in CI (176 tests / 731 assertions per database on commit `f57bfe62b8bfea93d7d1038ee36f3d8f14723759`). Composer/npm production audits report no advisories. Baseline browser security headers are active, and production session cookies default to Secure; deployed HTTPS/proxy/HSTS behavior still needs Hostinger verification. Baseline authorization, tenant isolation, token/payload encryption, webhook HMAC/size limits, admin audit logging and high-cost mutation throttles have been reviewed and tested. Penetration/abuse testing, live Neon TLS/credential validation, Hostinger deployment, queue/cron configuration, backups and rollback remain acceptance gates.
 
 ## Development rules
 
