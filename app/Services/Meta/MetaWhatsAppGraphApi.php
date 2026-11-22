@@ -146,6 +146,48 @@ class MetaWhatsAppGraphApi
         return $messageId;
     }
 
+
+    public function sendTemplate(WhatsAppConnection $connection, string $recipient, string $name, string $language, array $components): string
+    {
+        $version = $this->configuredVersion();
+        if ($version === null) {
+            throw new MetaWhatsAppApiException('Configure META_GRAPH_API_VERSION before sending messages.');
+        }
+        if (! ctype_digit($recipient)) {
+            throw new MetaWhatsAppApiException('The WhatsApp recipient ID is invalid.');
+        }
+
+        $response = Http::withToken($connection->access_token)
+            ->acceptJson()
+            ->timeout(15)
+            ->post("https://graph.facebook.com/{$version}/{$connection->phone_number_id}/messages", [
+                'messaging_product' => 'whatsapp',
+                'recipient_type' => 'individual',
+                'to' => $recipient,
+                'type' => 'template',
+                'template' => [
+                    'name' => $name,
+                    'language' => ['code' => $language],
+                    'components' => $components,
+                ],
+            ]);
+
+        if (! $response->successful()) {
+            $status = $response->status();
+            throw new MetaWhatsAppApiException(
+                'Meta rejected the WhatsApp template request.',
+                $status === 429 || $status >= 500,
+            );
+        }
+
+        $messageId = $response->json('messages.0.id');
+        if (! is_string($messageId) || $messageId === '') {
+            throw new MetaWhatsAppApiException('Meta accepted the template request without returning a message ID.', true);
+        }
+
+        return $messageId;
+    }
+
     private function configuredVersion(): ?string
     {
         $version = config('services.meta.graph_api_version');
