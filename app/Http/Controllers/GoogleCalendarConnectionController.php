@@ -163,11 +163,12 @@ class GoogleCalendarConnectionController extends Controller
     public function updateStaffCalendar(Request $request, string $staffId, GoogleCalendarService $calendar): RedirectResponse
     {
         $validated = $request->validate(['calendar_id' => ['nullable', 'string', 'max:255']]);
+        $staff = Staff::query()->findOrFail($staffId);
+
         if (is_string($validated['calendar_id'] ?? null) && $validated['calendar_id'] !== '') {
             $this->assertCalendarExists($calendar, $validated['calendar_id']);
         }
 
-        $staff = Staff::query()->findOrFail($staffId);
         $staff->forceFill(['google_calendar_id' => $validated['calendar_id'] ?: null])->save();
 
         return back()->with('success', 'Staff calendar mapping updated.');
