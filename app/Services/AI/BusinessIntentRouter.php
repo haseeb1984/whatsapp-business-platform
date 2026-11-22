@@ -14,7 +14,7 @@ class BusinessIntentRouter
     public function route(string $message, string $locale): BusinessIntentResult
     {
         $message = mb_strtolower(trim($message));
-        if ($message === '') {
+        if ($message === '' || ! str_starts_with(mb_strtolower($locale), 'en')) {
             return new BusinessIntentResult('not_handled');
         }
 
@@ -71,10 +71,10 @@ class BusinessIntentRouter
             $holiday = BusinessHoliday::query()->whereDate('date', $date->toDateString())->first();
             if ($holiday) {
                 if ($holiday->is_closed) {
-                    return new BusinessIntentResult('answered', 'We are closed '.$label.' '.($holiday->name ? 'for '.$holiday->name : '').'.', 'today_hours');
+                    return new BusinessIntentResult('answered', 'We are closed '.$label.' '.($holiday->name ? 'for '.$holiday->name : '').'.', $isTomorrow ? 'tomorrow_hours' : 'today_hours');
                 }
                 if ($holiday->opens_at && $holiday->closes_at) {
-                    return new BusinessIntentResult('answered', $label.'’s hours'.($holiday->name ? ' ('.$holiday->name.')' : '').' are '.substr((string) $holiday->opens_at, 0, 5).'–'.substr((string) $holiday->closes_at, 0, 5).' '.$timezone.'.', 'today_hours');
+                    return new BusinessIntentResult('answered', $label.'’s hours'.($holiday->name ? ' ('.$holiday->name.')' : '').' are '.substr((string) $holiday->opens_at, 0, 5).'–'.substr((string) $holiday->closes_at, 0, 5).' '.$timezone.'.', ($isTomorrow ? 'tomorrow_hours' : 'today_hours'));
                 }
             }
 
