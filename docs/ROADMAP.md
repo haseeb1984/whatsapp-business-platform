@@ -46,7 +46,7 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Implement tenant-scoped repositories/policies and composite tenant-aware foreign keys.
 - [ ] Add cross-tenant negative authorization tests for read, update, delete and background jobs.
 
-**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. Current business modules use business-admin role middleware. Remaining work is broader tenant-model coverage, composite foreign keys for all cross-entity references and end-to-end queued-job isolation. Configure production SMTP before sending verification or password-reset emails. Latest verified CI run [44969997248](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44969997248) passed on commit `8e873dde6ad2ee0e8fb47b8fafc31a102c7b150e` (145 tests / 541 assertions); tests use SQLite and PostgreSQL rehearsal remains pending.
+**Status:** Initial authentication, password recovery, workspace selection and suspended-tenant access checks are committed and CI-tested. Current business modules use business-admin role middleware. Remaining work is broader tenant-model coverage, composite foreign keys for all cross-entity references and end-to-end queued-job isolation. Configure production SMTP before sending verification or password-reset emails. Latest verified CI run [44970332348](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44970332348) passed on commit `0fa809e6d2418d8d86ce032d8a15e5a8a1e4bd78` (146 tests / 573 assertions); tests use SQLite and PostgreSQL rehearsal remains pending.
 
 **Exit gate:** A user from tenant A cannot read, update, delete or infer tenant B data through any tested route or job.
 
@@ -146,8 +146,10 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Validate against a dedicated live Google test account and verify revocation/permission-loss behavior.
 
 
+**Status:** Business dashboard is implemented and CI-tested. Platform-admin tenant/integration/queue views, usage metrics, audit history, integration health detail and export controls remain pending.
+
 ## Milestone 9 — Dashboards, usage and platform administration
-- [ ] Business dashboard and role-based screens.
+- [x] Tenant-scoped business dashboard with role-aware actions, integration health, operational metrics, recent conversations and upcoming appointments.
 - [ ] Platform admin tenant/integration/queue views.
 - [ ] Usage metrics, audit log and integration health.
 - [ ] Search, filtering, pagination and export controls.
