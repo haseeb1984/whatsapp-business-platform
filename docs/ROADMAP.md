@@ -81,12 +81,16 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Bounded retryable webhook processing job with transactional tenant context and normalized customer/conversation/message persistence (CI passing).
 - [x] Inbound message and delivery-status event normalization with encrypted message content (CI passing).
 - [x] Text-only outbound adapter with 24-hour customer-service-window enforcement, actor/state gate, persisted send attempt and ambiguous-outcome handling (CI passing).
-- [x] Synchronize Meta message-template catalog (ID, name, language, category, approval status and components) into tenant-scoped storage; expose status in WhatsApp settings and restrict sync to verified active connections.\n- [ ] Send approved templates with validated parameter mapping, delivery-state tracking and out-of-window reminder integration.
+- [x] Synchronize Meta message-template catalog (ID, name, language, category, approval status and components) into tenant-scoped storage; expose status in WhatsApp settings and restrict sync to verified active connections.
+- [x] Send Meta-approved templates with sequential BODY parameter validation, persisted send state and provider delivery-status correlation.
+- [x] Send appointment reminders outside the 24-hour window using the configured approved `appointment_reminder` template; map `{{1}}` to service name and `{{2}}` to the business-local appointment time.
 - [x] Provider-side phone-number and WABA membership verification; only verified connections can become active.
 - [x] Durable encrypted webhook event persistence with SHA-256 idempotency key and duplicate suppression.
 - [x] Tenant routing through verified active phone_number_id; unknown/disabled connections are quarantined as unmatched.
 
-**Current checkpoint:** Template catalog retrieval, tenant-scoped persistence, manual sync action and settings UI are implemented. Automated template sending and appointment-reminder parameter mapping remain pending; a green CI run is required before treating this increment as verified.\n\n## Milestone 5 — Conversations and human handover
+**Current checkpoint:** Template catalog retrieval, tenant-scoped persistence, manual sync action, settings UI, approved-template sending, parameter validation and out-of-window appointment-reminder integration are implemented. The reminder template is selected by `META_APPOINTMENT_REMINDER_TEMPLATE` and `META_APPOINTMENT_REMINDER_LANGUAGE`; it must contain exactly two sequential BODY variables. A green CI run is required before treating this increment as verified.
+
+## Milestone 5 — Conversations and human handover
 - [x] Customer/conversation/message persistence for inbound WhatsApp events with encrypted message content.
 - [x] Tenant-scoped inbox and conversation detail screens with state/search filters.
 - [x] Staff assignment to active users in the same tenant; only business admins can assign or close/reopen conversations.
@@ -123,7 +127,8 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Idempotent 24-hour/2-hour reminder scheduling after Calendar confirmation.
 - [x] Bounded cron dispatch, retryable tenant-scoped reminder jobs, delivery-state tracking and appointment cancellation handling.
 - [x] Enforce WhatsApp 24-hour customer-service window and human-handover gate for reminder sends; outside-window reminders are held pending approved template support.
-- [ ] Approved template reminders, rescheduling and reminder schedule replacement.
+- [x] Approved template reminders outside the 24-hour window, with strict parameter mapping and safe blocking when the configured approved template is unavailable.
+- [ ] Rescheduling and reminder schedule replacement.
 - [ ] Retry-safe automated reconciliation for ambiguous Calendar operations.
 
 ## Milestone 8 — Google Calendar integration
