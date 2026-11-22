@@ -11,6 +11,7 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
+use Throwable;
 
 class GoogleCalendarService
 {
