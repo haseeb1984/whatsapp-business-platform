@@ -70,6 +70,23 @@ class DashboardController extends Controller
                 'failed_at' => $job->failed_at,
             ])->all()
             : [];
+        $recentAuditEvents = Schema::hasTable('audit_events')
+            ? DB::table('audit_events')
+                ->leftJoin('tenants', 'tenants.id', '=', 'audit_events.tenant_id')
+                ->leftJoin('users', 'users.id', '=', 'audit_events.actor_user_id')
+                ->orderByDesc('audit_events.created_at')
+                ->limit(10)
+                ->get(['audit_events.id', 'audit_events.event', 'audit_events.subject_type', 'audit_events.subject_id', 'audit_events.ip_address', 'audit_events.created_at', 'tenants.name as tenant_name', 'users.email as actor_email'])
+                ->map(fn ($event): array => [
+                    'id' => (string) $event->id,
+                    'event' => $event->event,
+                    'subject' => $event->subject_type && $event->subject_id ? $event->subject_type.' #'.$event->subject_id : null,
+                    'tenant' => $event->tenant_name ?: 'Platform-level',
+                    'actor' => $event->actor_email ?: 'System',
+                    'ip_address' => $event->ip_address,
+                    'created_at' => $event->created_at,
+                ])->all()
+            : [];
 
         return Inertia::render('Platform/Dashboard', [
             'metrics' => [
@@ -82,12 +99,14 @@ class DashboardController extends Controller
                 'messages_total' => DB::table('messages')->count(),
                 'conversations_total' => DB::table('conversations')->count(),
                 'appointments_total' => DB::table('appointments')->count(),
+                'audit_events_total' => Schema::hasTable('audit_events') ? DB::table('audit_events')->count() : null,
                 'queue_pending' => $queuePending,
                 'queue_failed' => $queueFailed,
             ],
             'tenants' => $tenants,
             'filters' => ['q' => $filters['q'] ?? '', 'status' => $filters['status'] ?? ''],
             'recent_failures' => $recentFailures,
+            'recent_audit_events' => $recentAuditEvents,
         ]);
     }
 
