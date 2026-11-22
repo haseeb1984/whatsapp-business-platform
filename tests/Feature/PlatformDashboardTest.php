@@ -43,6 +43,29 @@ class PlatformDashboardTest extends TestCase
         $this->actingAs($user)->get('/platform')->assertForbidden();
     }
 
+
+    public function test_platform_tenant_search_filters_and_csv_export_are_available(): void
+    {
+        config(['platform.admin_emails' => ['platform-admin@example.test']]);
+        $admin = $this->user('platform-admin@example.test');
+        Tenant::query()->create(['name' => 'Salon North', 'slug' => 'salon-north', 'status' => 'active']);
+        Tenant::query()->create(['name' => 'Clinic South', 'slug' => 'clinic-south', 'status' => 'suspended']);
+
+        $this->actingAs($admin)->get('/platform?q=Salon&status=active')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.q', 'Salon')
+                ->where('filters.status', 'active')
+                ->where('tenants.total', 1)
+                ->where('tenants.data.0.name', 'Salon North')
+            );
+
+        $this->actingAs($admin)->get('/platform/tenants/export?q=Salon')
+            ->assertOk()
+            ->assertHeader('content-type', 'text/csv; charset=UTF-8')
+            ->assertHeader('content-disposition');
+    }
+
     private function user(string $email): User
     {
         $user = User::query()->create([
