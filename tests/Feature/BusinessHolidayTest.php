@@ -93,6 +93,34 @@ class BusinessHolidayTest extends TestCase
         });
     }
 
+    public function test_user_cannot_update_or_delete_another_tenants_holiday(): void
+    {
+        [$userA, $tenantA] = $this->workspace('holiday-foreign-a@example.test');
+        [, $tenantB] = $this->workspace('holiday-foreign-b@example.test');
+        $foreignHoliday = TenantContext::runForTenant($tenantB->id, fn () => BusinessHoliday::query()->create([
+            'date' => '2026-12-26',
+            'name' => 'Tenant B private holiday',
+            'is_closed' => true,
+        ]));
+
+        $this->actingAs($userA)->withSession(['current_tenant_id' => $tenantA->id]);
+        $this->put('/business/holidays/'.$foreignHoliday->id, [
+            'date' => '2026-12-26',
+            'name' => 'Tampered holiday',
+            'is_closed' => true,
+            'opens_at' => null,
+            'closes_at' => null,
+        ])->assertNotFound();
+        $this->delete('/business/holidays/'.$foreignHoliday->id)->assertNotFound();
+
+        $this->assertDatabaseHas('business_holidays', [
+            'id' => $foreignHoliday->id,
+            'tenant_id' => $tenantB->id,
+            'name' => 'Tenant B private holiday',
+            'is_closed' => true,
+        ]);
+    }
+
     public function test_staff_cannot_manage_holidays(): void
     {
         [$user, $tenant] = $this->workspace('holiday-staff@example.test', 'staff');
