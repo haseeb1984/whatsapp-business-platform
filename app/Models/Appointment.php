@@ -61,6 +61,11 @@ class Appointment extends Model
         return $this->belongsTo(Staff::class);
     }
 
+    public function reschedules(): HasMany
+    {
+        return $this->hasMany(AppointmentReschedule::class);
+    }
+
     public function reminders(): HasMany
     {
         return $this->hasMany(AppointmentReminder::class);
