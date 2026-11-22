@@ -1,8 +1,8 @@
 <?php
 
-namespace App\\Models\\Concerns;
+namespace App\Models\Concerns;
 
-use Illuminate\\Database\\Eloquent\\Builder;
+use Illuminate\Database\Eloquent\Builder;
 use LogicException;
 
 class TenantOwnedBuilder extends Builder
