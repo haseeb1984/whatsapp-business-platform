@@ -62,6 +62,47 @@ class BookingPolicyAndStaffExceptionsTest extends TestCase
         ]);
     }
 
+    public function test_user_cannot_read_or_mutate_another_tenants_staff_exceptions(): void
+    {
+        [$userA, $tenantA] = $this->workspace('policy-foreign-a@example.test', 'business_admin');
+        [, $tenantB, $staffB] = $this->workspace('policy-foreign-b@example.test', 'business_admin');
+
+        $foreignException = TenantContext::runForTenant($tenantB->id, fn () => StaffAvailabilityException::query()->create([
+            'staff_id' => $staffB->id,
+            'date' => '2026-12-02',
+            'is_closed' => true,
+            'opens_at' => null,
+            'closes_at' => null,
+            'reason' => 'Tenant B private leave',
+        ]));
+
+        $this->actingAs($userA)->withSession(['current_tenant_id' => $tenantA->id]);
+
+        $this->get('/business/staff/'.$staffB->id.'/exceptions')->assertNotFound();
+        $this->post('/business/staff/'.$staffB->id.'/exceptions', [
+            'date' => '2026-12-03',
+            'is_closed' => true,
+            'reason' => 'Unauthorized exception',
+        ])->assertNotFound();
+        $this->put('/business/staff/'.$staffB->id.'/exceptions/'.$foreignException->id, [
+            'date' => '2026-12-02',
+            'is_closed' => false,
+            'opens_at' => '12:00',
+            'closes_at' => '16:00',
+            'reason' => 'Tampered exception',
+        ])->assertNotFound();
+        $this->delete('/business/staff/'.$staffB->id.'/exceptions/'.$foreignException->id)->assertNotFound();
+
+        $this->assertDatabaseHas('staff_availability_exceptions', [
+            'id' => $foreignException->id,
+            'tenant_id' => $tenantB->id,
+            'staff_id' => $staffB->id,
+            'is_closed' => true,
+            'reason' => 'Tenant B private leave',
+        ]);
+        $this->assertDatabaseCount('staff_availability_exceptions', 1);
+    }
+
     public function test_staff_cannot_change_booking_policy_or_staff_exceptions(): void
     {
         [$staffUser, $tenant, $staff] = $this->workspace('policy-staff@example.test', 'staff');
