@@ -63,7 +63,7 @@ class PlatformDashboardTest extends TestCase
         $this->actingAs($admin)->get('/platform/tenants/export?q=Salon')
             ->assertOk()
             ->assertHeader('content-type', 'text/csv; charset=UTF-8')
-            ->assertHeader('content-disposition');
+            ->assertDownload();
     }
 
     private function user(string $email): User
