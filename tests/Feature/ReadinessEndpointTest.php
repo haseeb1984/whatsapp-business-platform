@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class ReadinessEndpointTest extends TestCase
@@ -22,5 +23,21 @@ class ReadinessEndpointTest extends TestCase
                     'queue_storage' => true,
                 ],
             ]);
+    
+    public function test_readiness_returns_degraded_without_exposing_database_exception_details(): void
+    {
+        DB::shouldReceive('connection')->once()->andThrow(new \RuntimeException('database credentials must stay private'));
+
+        $this->getJson('/health/ready')
+            ->assertStatus(503)
+            ->assertExactJson([
+                'status' => 'degraded',
+                'checks' => [
+                    'database' => false,
+                    'queue_storage' => false,
+                ],
+            ]);
     }
+
+}
 }
