@@ -76,6 +76,37 @@ class StaffTest extends TestCase
         });
     }
 
+    public function test_user_cannot_update_or_delete_another_tenants_staff_member(): void
+    {
+        [$userA, $tenantA] = $this->workspace('staff-foreign-a@example.test');
+        [, $tenantB] = $this->workspace('staff-foreign-b@example.test');
+
+        $foreignStaff = TenantContext::runForTenant($tenantB->id, fn () => Staff::query()->create([
+            'name' => 'Tenant B private staff',
+            'active' => true,
+        ]));
+
+        $this->actingAs($userA)->withSession(['current_tenant_id' => $tenantA->id]);
+
+        $payload = [
+            'name' => 'Tampered staff',
+            'email' => null,
+            'phone' => null,
+            'active' => false,
+            'service_ids' => [],
+        ];
+
+        $this->put('/business/staff/'.$foreignStaff->id, $payload)->assertNotFound();
+        $this->delete('/business/staff/'.$foreignStaff->id)->assertNotFound();
+
+        $this->assertDatabaseHas('staff_members', [
+            'id' => $foreignStaff->id,
+            'tenant_id' => $tenantB->id,
+            'name' => 'Tenant B private staff',
+            'active' => true,
+        ]);
+    }
+
     public function test_staff_role_cannot_manage_team_members(): void
     {
         [$user, $tenant] = $this->workspace('staff-role@example.test', 'staff');
