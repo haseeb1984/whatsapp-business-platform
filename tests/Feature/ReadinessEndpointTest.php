@@ -42,7 +42,7 @@ class ReadinessEndpointTest extends TestCase
         $this->withServerVariables(['HTTPS' => 'on'])
             ->getJson('/health/ready')
             ->assertOk()
-            ->assertHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+            ->assertHeader('Strict-Transport-Security', 'max-age=31536000');
 
         $this->withServerVariables(['HTTPS' => 'off'])
             ->getJson('/health/ready')
