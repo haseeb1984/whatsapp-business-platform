@@ -27,6 +27,8 @@ export default function AppointmentManagement() {
     const [slots, setSlots] = useState<Slot[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [rescheduleFor, setRescheduleFor] = useState<string | null>(null);
+    const [rescheduleLocal, setRescheduleLocal] = useState('');
 
     async function findSlots() {
         if (!serviceId || !date) {
@@ -72,6 +74,20 @@ export default function AppointmentManagement() {
         }, { onSuccess: () => { setSlots([]); } });
     }
 
+    function submitReschedule(appointmentId: string) {
+        if (!rescheduleLocal) {
+            setError('Choose a new date and time in the business timezone.');
+            return;
+        }
+        setError('');
+        router.post('/business/appointments/' + appointmentId + '/reschedule', {
+            starts_at: rescheduleLocal,
+            idempotency_key: crypto.randomUUID(),
+        }, {
+            onSuccess: () => { setRescheduleFor(null); setRescheduleLocal(''); },
+        });
+    }
+
     function savePolicy(event: FormEvent) {
         event.preventDefault();
         policy.put('/business/appointments/policy');
@@ -112,7 +128,22 @@ export default function AppointmentManagement() {
                 </section>
                 <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
                     <h2 className="text-lg font-semibold text-slate-900">Recent appointments and holds</h2>
-                    {appointments.length === 0 ? <p className="mt-3 text-sm text-slate-500">No appointments yet.</p> : <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-b border-slate-200 text-xs uppercase text-slate-500"><tr><th className="py-2 pr-3">Customer / service</th><th className="py-2 pr-3">Staff</th><th className="py-2 pr-3">Time</th><th className="py-2 pr-3">Status</th><th className="py-2 pr-3">Price</th><th className="py-2">Action</th></tr></thead><tbody className="divide-y divide-slate-100">{appointments.map(item => <tr key={item.id}><td className="py-3 pr-3"><p className="font-medium text-slate-800">{item.customer || 'Customer'}</p><p className="text-xs text-slate-500">{item.service}</p></td><td className="py-3 pr-3">{item.staff || '—'}</td><td className="py-3 pr-3 whitespace-nowrap">{item.starts_at_label}</td><td className="py-3 pr-3"><span className="rounded-full bg-amber-50 px-2 py-1 text-xs text-amber-800">{item.status === 'pending_hold' ? 'Temporary hold' : item.status}</span><p className="mt-1 text-xs text-slate-500">{item.calendar_sync_status}</p>{item.reminders.length > 0 && <p className="mt-1 text-xs text-slate-500">Reminders: {item.reminders.map(reminder => `${reminder.type.replace('_', ' ')} — ${reminder.status}`).join('; ')}</p>}</td><td className="py-3 pr-3">{item.price}</td><td className="py-3">{(item.status === 'pending_hold' || item.status === 'calendar_pending') && <div className="flex flex-col gap-2"><button onClick={() => router.post('/business/appointments/' + item.id + '/confirm-calendar')} className="text-xs font-semibold text-blue-700 hover:underline">{item.status === 'pending_hold' ? 'Confirm with Calendar' : 'Reconcile Calendar'}</button>{item.status === 'pending_hold' && <button onClick={() => router.post('/business/appointments/' + item.id + '/cancel-hold')} className="text-xs text-red-700 hover:underline">Cancel hold</button>}{item.status === 'confirmed' && isAdmin && <button onClick={() => router.post('/business/appointments/' + item.id + '/cancel')} className="text-xs text-red-700 hover:underline">Cancel booking</button>}{calendar_connected && isAdmin && (item.status === 'pending_hold' || item.status === 'calendar_pending') && <button onClick={() => router.post('/business/appointments/' + item.id + '/confirm-calendar')} className="text-xs text-blue-700 hover:underline">{item.status === 'calendar_pending' ? 'Retry Calendar sync' : 'Sync and confirm'}</button>}{item.status === 'calendar_pending' && <span className="text-xs text-amber-700">Calendar reconciliation pending</span>}</div>}{item.status === 'confirmed' && <button onClick={() => router.post('/business/appointments/' + item.id + '/cancel')} className="text-xs text-red-700 hover:underline">Cancel appointment</button>}</td></tr>)}</tbody></table></div>}
+                    {appointments.length === 0 ? <p className="mt-3 text-sm text-slate-500">No appointments yet.</p> : <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-b border-slate-200 text-xs uppercase text-slate-500"><tr><th className="py-2 pr-3">Customer / service</th><th className="py-2 pr-3">Staff</th><th className="py-2 pr-3">Time</th><th className="py-2 pr-3">Status</th><th className="py-2 pr-3">Price</th><th className="py-2">Action</th></tr></thead><tbody className="divide-y divide-slate-100">{appointments.map(item => <tr key={item.id}><td className="py-3 pr-3"><p className="font-medium text-slate-800">{item.customer || 'Customer'}</p><p className="text-xs text-slate-500">{item.service}</p></td><td className="py-3 pr-3">{item.staff || '—'}</td><td className="py-3 pr-3 whitespace-nowrap">{item.starts_at_label}</td><td className="py-3 pr-3"><span className="rounded-full bg-amber-50 px-2 py-1 text-xs text-amber-800">{item.status === 'pending_hold' ? 'Temporary hold' : item.status}</span><p className="mt-1 text-xs text-slate-500">{item.calendar_sync_status}</p>{item.reminders.length > 0 && <p className="mt-1 text-xs text-slate-500">Reminders: {item.reminders.map(reminder => `${reminder.type.replace('_', ' ')} — ${reminder.status}`).join('; ')}</p>}</td><td className="py-3 pr-3">{item.price}</td><td className="py-3">
+                            {(item.status === 'pending_hold' || item.status === 'calendar_pending') && <div className="flex flex-col gap-2">
+                                <button onClick={() => router.post('/business/appointments/' + item.id + '/confirm-calendar')} className="text-xs font-semibold text-blue-700 hover:underline">{item.status === 'pending_hold' ? 'Confirm with Calendar' : 'Reconcile Calendar'}</button>
+                                {item.status === 'pending_hold' && <button onClick={() => router.post('/business/appointments/' + item.id + '/cancel-hold')} className="text-xs text-red-700 hover:underline">Cancel hold</button>}
+                                {item.status === 'calendar_pending' && <span className="text-xs text-amber-700">Calendar reconciliation pending</span>}
+                            </div>}
+                            {item.status === 'confirmed' && isAdmin && item.calendar_sync_status === 'synced' && <div className="flex flex-col gap-2">
+                                <button onClick={() => router.post('/business/appointments/' + item.id + '/cancel')} className="text-xs text-red-700 hover:underline">Cancel appointment</button>
+                                <button onClick={() => { setRescheduleFor(rescheduleFor === item.id ? null : item.id); setRescheduleLocal(item.starts_at.slice(0, 16)); setError(''); }} className="text-xs font-semibold text-blue-700 hover:underline">Reschedule</button>
+                                {rescheduleFor === item.id && <div className="mt-2 min-w-56 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                                    <label className="block text-xs font-medium text-slate-700">New date and time ({timezone})<input type="datetime-local" min={today_local + 'T00:00'} className={field} value={rescheduleLocal} onChange={event => setRescheduleLocal(event.target.value)} /></label>
+                                    <div className="mt-2 flex gap-2"><button type="button" onClick={() => submitReschedule(item.id)} className="rounded-md bg-blue-700 px-3 py-2 text-xs font-semibold text-white">Save time</button><button type="button" onClick={() => { setRescheduleFor(null); setRescheduleLocal(''); }} className="rounded-md border border-slate-300 px-3 py-2 text-xs text-slate-700">Close</button></div>
+                                </div>}
+                            </div>}
+                            {item.status === 'confirmed' && item.calendar_sync_status !== 'synced' && <p className="text-xs text-amber-700">Calendar update unresolved. Both time slots remain reserved until reconciliation.</p>}
+                        </td></tr>)}</tbody></table></div>}
                 </section>
             </div>
         </main>
