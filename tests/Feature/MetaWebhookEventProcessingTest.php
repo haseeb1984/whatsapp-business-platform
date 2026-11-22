@@ -58,11 +58,11 @@ class MetaWebhookEventProcessingTest extends TestCase
         TenantContext::runForTenant($otherTenant->id, function () use ($event, $ownerTenant, $otherTenant): void {
             (new ProcessMetaWebhookEvent($event->id))->handle();
 
-            $this->assertSame($otherTenant->id, TenantContext::id());
+            $this->assertSame($otherTenant->id, app(TenantContext::class)->id());
             $this->assertSame(0, Customer::query()->count());
         });
 
-        $this->assertNull(TenantContext::id());
+        $this->assertFalse(app()->bound(TenantContext::class));
         TenantContext::runForTenant($ownerTenant->id, function (): void {
             $this->assertSame(1, Customer::query()->count());
             $this->assertSame(1, Conversation::query()->count());
