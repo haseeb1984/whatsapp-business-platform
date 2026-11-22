@@ -170,6 +170,12 @@ class WhatsAppMessageService
             fn ($component): bool => is_array($component) && strtoupper((string) ($component['type'] ?? '')) === 'BODY',
         );
         $bodyText = is_string($body['text'] ?? null) ? $body['text'] : '';
+        preg_match_all('/\{\{\s*([^}]+)\s*\}\}/', $bodyText, $allPlaceholders);
+        foreach ($allPlaceholders[1] ?? [] as $placeholder) {
+            if (! ctype_digit(trim($placeholder))) {
+                throw ValidationException::withMessages(['template' => 'Only sequential numeric BODY placeholders are supported for this sender.']);
+            }
+        }
         preg_match_all('/\{\{(\d+)\}\}/', $bodyText, $matches);
         $indexes = array_values(array_unique(array_map('intval', $matches[1] ?? [])));
         sort($indexes);
