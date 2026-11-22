@@ -92,6 +92,22 @@ class BookingConversationHandlerTest extends TestCase
         $this->assertSame('awaiting_service', $session->state);
     }
 
+
+    public function test_service_name_in_a_natural_request_starts_booking_flow(): void
+    {
+        [$tenant, $conversation] = $this->conversation('booking-service-intent');
+
+        $reply = TenantContext::runForTenant($tenant->id, fn () => app(BookingConversationHandler::class)->handle(
+            $conversation,
+            'I want a consultation',
+            'wamid.booking-service-intent',
+        ));
+
+        $this->assertStringContainsString('which service would you like to book', strtolower($reply));
+        $session = TenantContext::runForTenant($tenant->id, fn () => ConversationBookingSession::query()->firstOrFail());
+        $this->assertSame('awaiting_service', $session->state);
+    }
+
     private function conversation(string $slug): array
     {
         $user = User::query()->create([
