@@ -102,7 +102,7 @@ class BusinessIntentRouter
 
         $weeklyHours = BusinessHour::query()->orderBy('weekday')->get();
         if ($weeklyHours->isEmpty()) {
-            return new BusinessIntentResult('handoff', null, 'business_hours_not_configured');
+            return new BusinessIntentResult('not_handled', null, 'business_hours_not_configured');
         }
 
         $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -136,7 +136,7 @@ class BusinessIntentRouter
         }
 
         if ($lines === []) {
-            return new BusinessIntentResult('handoff', null, 'business_contact_not_configured');
+            return new BusinessIntentResult('not_handled', null, 'business_contact_not_configured');
         }
 
         return new BusinessIntentResult('answered', implode("\n", $lines), 'business_contact');
