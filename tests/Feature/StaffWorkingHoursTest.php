@@ -110,13 +110,45 @@ class StaffWorkingHoursTest extends TestCase
     {
         [, $tenantA] = $this->workspace('staff-hours-owner-a@example.test');
         [$userB, $tenantB] = $this->workspace('staff-hours-owner-b@example.test');
-        $staffA = TenantContext::runForTenant($tenantA->id, fn () => Staff::query()->create([
-            'name' => 'Private staff member',
-            'active' => true,
-        ]));
+        $staffA = TenantContext::runForTenant($tenantA->id, function (): Staff {
+            $staff = Staff::query()->create([
+                'name' => 'Private staff member',
+                'active' => true,
+            ]);
+            StaffWorkingHour::query()->create([
+                'staff_id' => $staff->id,
+                'weekday' => 0,
+                'is_closed' => false,
+                'opens_at' => '09:00',
+                'closes_at' => '17:00',
+            ]);
+
+            return $staff;
+        });
+
+        $days = [];
+        for ($weekday = 0; $weekday < 7; $weekday++) {
+            $days[] = [
+                'weekday' => $weekday,
+                'is_closed' => true,
+                'opens_at' => null,
+                'closes_at' => null,
+            ];
+        }
 
         $this->actingAs($userB)->withSession(['current_tenant_id' => $tenantB->id]);
         $this->get('/business/staff/'.$staffA->id.'/hours')->assertNotFound();
+        $this->put('/business/staff/'.$staffA->id.'/hours', ['days' => $days])->assertNotFound();
+
+        $this->assertDatabaseHas('staff_working_hours', [
+            'tenant_id' => $tenantA->id,
+            'staff_id' => $staffA->id,
+            'weekday' => 0,
+            'is_closed' => false,
+            'opens_at' => '09:00',
+            'closes_at' => '17:00',
+        ]);
+        $this->assertDatabaseCount('staff_working_hours', 1);
     }
 
     private function workspace(string $email, string $role = 'business_admin'): array
