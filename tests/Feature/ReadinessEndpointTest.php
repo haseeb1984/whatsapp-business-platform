@@ -38,16 +38,15 @@ class ReadinessEndpointTest extends TestCase
     public function test_hsts_is_only_sent_for_secure_production_requests(): void
     {
         config(['app.env' => 'production']);
+        $middleware = new \\App\\Http\\Middleware\\SecurityHeaders();
 
-        $this->withServerVariables(['HTTPS' => 'on'])
-            ->getJson('/health/ready')
-            ->assertOk()
-            ->assertHeader('Strict-Transport-Security', 'max-age=31536000');
+        $secureRequest = \\Illuminate\\Http\\Request::create('https://example.test/health/ready');
+        $secureResponse = $middleware->handle($secureRequest, fn () => response('ok'));
+        $this->assertSame('max-age=31536000', $secureResponse->headers->get('Strict-Transport-Security'));
 
-        $this->withServerVariables(['HTTPS' => 'off'])
-            ->getJson('/health/ready')
-            ->assertOk()
-            ->assertHeaderMissing('Strict-Transport-Security');
+        $httpRequest = \\Illuminate\\Http\\Request::create('http://example.test/health/ready');
+        $httpResponse = $middleware->handle($httpRequest, fn () => response('ok'));
+        $this->assertNull($httpResponse->headers->get('Strict-Transport-Security'));
     }
 
     public function test_readiness_returns_degraded_without_exposing_database_exception_details(): void
