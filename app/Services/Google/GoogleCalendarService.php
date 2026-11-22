@@ -364,6 +364,7 @@ class GoogleCalendarService
             $response = match ($method) {
                 'get' => $request->get($url),
                 'post' => $request->post($url, $payload ?? []),
+                'patch' => $request->patch($url, $payload ?? []),
                 'delete' => $request->delete($url),
                 default => throw new RuntimeException('Unsupported Google Calendar operation.'),
             };
