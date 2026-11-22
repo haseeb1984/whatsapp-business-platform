@@ -5,6 +5,8 @@ namespace App\Jobs;
 use App\Enums\MessageActor;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Services\AI\BusinessIntentRouter;
+use App\Services\AI\FaqAssistantResult;
 use App\Services\AI\GroundedFaqAssistant;
 use App\Services\Messaging\WhatsAppMessageService;
 use App\Support\Tenancy\TenantContext;
@@ -36,9 +38,9 @@ class GenerateAutomatedFaqReply implements ShouldQueue
         return [10, 30];
     }
 
-    public function handle(GroundedFaqAssistant $assistant, WhatsAppMessageService $messenger): void
+    public function handle(GroundedFaqAssistant $assistant, BusinessIntentRouter $intents, WhatsAppMessageService $messenger): void
     {
-        TenantContext::runForTenant($this->tenantId, function () use ($assistant, $messenger): void {
+        TenantContext::runForTenant($this->tenantId, function () use ($assistant, $intents, $messenger): void {
             $context = DB::transaction(function (): ?array {
                 $conversation = Conversation::query()->lockForUpdate()->find($this->conversationId);
                 if (! $conversation || $conversation->status !== 'open' || $conversation->automation_state !== 'AUTO_ACTIVE') {
@@ -76,7 +78,12 @@ class GenerateAutomatedFaqReply implements ShouldQueue
                 return;
             }
 
-            $result = $assistant->answer($context['inbound']->body, $context['locale']);
+            $intent = $intents->route($context['inbound']->body, $context['locale']);
+            $result = match ($intent->status) {
+                'answered' => new FaqAssistantResult('answered', $intent->answer, [], 'business_fact:'.$intent->intent),
+                'handoff' => new FaqAssistantResult('handoff', null, [], 'business_fact_unavailable:'.$intent->intent),
+                default => $assistant->answer($context['inbound']->body, $context['locale']),
+            };
 
             if ($result->status !== 'answered' || ! is_string($result->answer) || trim($result->answer) === '' || mb_strlen($result->answer) > 4096) {
                 DB::transaction(function (): void {
@@ -95,7 +102,9 @@ class GenerateAutomatedFaqReply implements ShouldQueue
                         $conversation->forceFill([
                             'automation_state' => 'WAITING_FOR_STAFF',
                             'handover_requested_at' => now(),
-                            'handover_reason' => 'No sufficiently relevant approved FAQ answer was available.',
+                            'handover_reason' => str_starts_with($result->source, 'business_fact_unavailable:')
+                                ? 'Requested business information is not configured: '.substr($result->source, strlen('business_fact_unavailable:'))
+                                : 'No sufficiently relevant approved FAQ answer was available.',
                         ])->save();
                     }
                 });
