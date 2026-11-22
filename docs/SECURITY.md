@@ -7,7 +7,7 @@
 - Scope business roles to tenant membership. The request tenant context now carries the verified membership role, and role-restricted middleware protects business profile, weekly hours, holidays, services, staff, staff working hours/date exceptions, booking policies, FAQs, WhatsApp connections, Google Calendar connection/mapping, conversation inbox/handover actions and appointment availability/hold/Calendar lifecycle endpoints. Continue applying it to every future module route.
 - Protect platform administration with separate privileged permissions and audit logging.
 - Rate-limit login, password reset, public endpoints, and sensitive operations.
-- Use secure, HTTP-only, SameSite cookies and HTTPS in production.
+- Use secure, HTTP-only, SameSite cookies and HTTPS in production. `SESSION_SECURE_COOKIE` now defaults to `true` when `APP_ENV=production` (explicit environment override remains possible); keep it enabled behind the production HTTPS endpoint. Browser responses also receive `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, and a restrictive `Permissions-Policy`. HSTS is emitted only for secure requests in production; proxy/TLS behavior must be verified during Hostinger deployment.
 
 ## 2. Tenant isolation
 
@@ -15,7 +15,7 @@
 - Never trust client-supplied tenant identifiers.
 - Scope all reads, writes, exports, jobs, and integration calls. A `BelongsToTenant` Eloquent concern now provides a fail-closed tenant global scope, context-derived tenant assignment, tenant ID immutability for model saves, and a custom builder that blocks bulk Eloquent tenant-ID updates for models that opt in. `BusinessProfile`, `BusinessHour`, `BusinessHoliday`, `Service`, `Staff`, `StaffService`, `StaffWorkingHour`, `StaffAvailabilityException`, `BookingPolicy`, `Faq`, `WhatsAppConnection`, `WhatsAppTemplate`, `GoogleCalendarConnection`, `Customer`, `Conversation`, `ConversationNote`, `Message`, `Appointment`, `AppointmentEvent` and `AppointmentReminder` opt in; `WebhookEvent` is a platform-owned inbox table and intentionally has no tenant global scope. Other tenant-owned models must opt in when introduced. Staff-service assignments and staff working hours use composite tenant-aware foreign keys to their parent records.
 - Use composite foreign keys and unique constraints to prevent cross-tenant references.
-- Add automated tests proving cross-tenant access is denied. The tenant-owned model contract now has tests for read/update/delete isolation, tenant ID assignment/tampering, and missing-context failure. Request middleware now restores/clears the tenant context in `finally`, and workspace selection/login exclude suspended tenants. A `TenantContext::runForTenant()` helper now provides explicit tenant scoping for background work and restores the previous context; tests cover restoration and suspended-tenant rejection. ResolveTenant also redirects unverified users before tenant resolution and runs before tenant-scoped route model binding. Full production model coverage, tenant-aware foreign keys for cross-entity references and end-to-end queued-job isolation tests are still required. Profile, weekly-hours, holiday, service, staff, staff-working-hours and FAQ feature tests cover tenant separation, cross-tenant service assignment rejection and staff denial, and the latest verified CI suite passes 160 tests / 651 assertions on both SQLite and PostgreSQL 16. The PostgreSQL CI service verifies engine compatibility; an actual Neon connection/migration rehearsal remains pending.
+- Add automated tests proving cross-tenant access is denied. The tenant-owned model contract now has tests for read/update/delete isolation, tenant ID assignment/tampering, and missing-context failure. Request middleware now restores/clears the tenant context in `finally`, and workspace selection/login exclude suspended tenants. A `TenantContext::runForTenant()` helper now provides explicit tenant scoping for background work and restores the previous context; tests cover restoration and suspended-tenant rejection. ResolveTenant also redirects unverified users before tenant resolution and runs before tenant-scoped route model binding. Full production model coverage, tenant-aware foreign keys for cross-entity references and end-to-end queued-job isolation tests are still required. Profile, weekly-hours, holiday, service, staff, staff-working-hours and FAQ feature tests cover tenant separation, cross-tenant service assignment rejection and staff denial, and the latest verified CI suite passes 166 tests / 681 assertions on both SQLite and PostgreSQL 16 (commit `7e67b61`). The PostgreSQL CI service verifies engine compatibility; an actual Neon connection/migration rehearsal remains pending.
 - Audit platform staff cross-tenant access.
 
 ## 3. Secrets and encryption
@@ -63,7 +63,7 @@
 
 ## 8. Production launch checklist
 
-- HTTPS enforced and HTTP redirected.
+- HTTPS enforced and HTTP redirected; production session cookies default to `Secure`, and baseline browser security headers are emitted. Verify HTTPS redirects, trusted proxy behavior and HSTS at the deployed Hostinger endpoint.
 - Debug mode disabled.
 - APP_KEY and all credentials unique and securely stored.
 - Database TLS verified.
