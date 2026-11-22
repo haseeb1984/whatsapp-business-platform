@@ -71,7 +71,7 @@ class BusinessIntentRouter
                     return new BusinessIntentResult('answered', 'We are closed today'.($holiday->name ? ' for '.$holiday->name : '').'.', 'today_hours');
                 }
                 if ($holiday->opens_at && $holiday->closes_at) {
-                    return new BusinessIntentResult('answered', 'Today’s hours'.($holiday->name ? ' ('.$holiday->name.')' : '').' are '.$holiday->opens_at.'–'.$holiday->closes_at.' '.$timezone.'.', 'today_hours');
+                    return new BusinessIntentResult('answered', 'Today’s hours'.($holiday->name ? ' ('.$holiday->name.')' : '').' are '.substr((string) $holiday->opens_at, 0, 5).'–'.substr((string) $holiday->closes_at, 0, 5).' '.$timezone.'.', 'today_hours');
                 }
             }
 
@@ -83,8 +83,8 @@ class BusinessIntentRouter
                 return new BusinessIntentResult('answered', 'We are closed today.', 'today_hours');
             }
 
-            $open = $hours->opens_at;
-            $close = $hours->closes_at;
+            $open = substr((string) $hours->opens_at, 0, 5);
+            $close = substr((string) $hours->closes_at, 0, 5);
             $currentlyOpen = $today->format('H:i') >= $open && $today->format('H:i') < $close;
             return new BusinessIntentResult(
                 'answered',
@@ -102,7 +102,7 @@ class BusinessIntentRouter
         $lines = ['Our regular business hours are:'];
         foreach ($weeklyHours as $hours) {
             $day = $days[$hours->weekday] ?? 'Day '.$hours->weekday;
-            $lines[] = $day.': '.($hours->is_closed ? 'Closed' : $hours->opens_at.'–'.$hours->closes_at);
+            $lines[] = $day.': '.($hours->is_closed ? 'Closed' : substr((string) $hours->opens_at, 0, 5).'–'.substr((string) $hours->closes_at, 0, 5));
         }
         $lines[] = 'Timezone: '.$timezone.'.';
 
