@@ -112,6 +112,24 @@ class BusinessIntentRouterTest extends TestCase
         $this->assertSame('not_handled', $other->status);
     }
 
+
+    public function test_tomorrow_hours_use_the_next_business_local_weekday(): void
+    {
+        $tenant = $this->tenant('intent-tomorrow-hours');
+        TenantContext::runForTenant($tenant->id, fn () => BusinessHour::query()->create([
+            'weekday' => 0,
+            'is_closed' => false,
+            'opens_at' => '10:00',
+            'closes_at' => '16:00',
+        ]));
+
+        $result = TenantContext::runForTenant($tenant->id, fn () => app(BusinessIntentRouter::class)->route('Are you open tomorrow?', 'en'));
+
+        $this->assertSame('answered', $result->status);
+        $this->assertSame('tomorrow_hours', $result->intent);
+        $this->assertSame('Tomorrow’s hours are 10:00–16:00 Asia/Karachi.', $result->answer);
+    }
+
     private function tenant(string $slug): Tenant
     {
         return Tenant::query()->create([
