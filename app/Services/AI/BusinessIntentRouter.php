@@ -71,7 +71,7 @@ class BusinessIntentRouter
             $holiday = BusinessHoliday::query()->whereDate('date', $date->toDateString())->first();
             if ($holiday) {
                 if ($holiday->is_closed) {
-                    return new BusinessIntentResult('answered', 'We are closed '.$label.' '.($holiday->name ? 'for '.$holiday->name : '').'.', $isTomorrow ? 'tomorrow_hours' : 'today_hours');
+                    return new BusinessIntentResult('answered', 'We are closed '.strtolower($label).' '.($holiday->name ? 'for '.$holiday->name : '').'.', $isTomorrow ? 'tomorrow_hours' : 'today_hours');
                 }
                 if ($holiday->opens_at && $holiday->closes_at) {
                     return new BusinessIntentResult('answered', $label.'’s hours'.($holiday->name ? ' ('.$holiday->name.')' : '').' are '.substr((string) $holiday->opens_at, 0, 5).'–'.substr((string) $holiday->closes_at, 0, 5).' '.$timezone.'.', ($isTomorrow ? 'tomorrow_hours' : 'today_hours'));
@@ -83,7 +83,7 @@ class BusinessIntentRouter
                 return new BusinessIntentResult('handoff', null, 'business_hours_not_configured');
             }
             if ($hours->is_closed) {
-                return new BusinessIntentResult('answered', 'We are closed '.$label.'.', $isTomorrow ? 'tomorrow_hours' : 'today_hours');
+                return new BusinessIntentResult('answered', 'We are closed '.strtolower($label).'.', $isTomorrow ? 'tomorrow_hours' : 'today_hours');
             }
 
             $open = substr((string) $hours->opens_at, 0, 5);
