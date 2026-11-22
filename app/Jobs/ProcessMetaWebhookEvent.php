@@ -185,6 +185,23 @@ class ProcessMetaWebhookEvent implements ShouldQueue
             throw new \UnexpectedValueException('Provider status arrived before the outbound message record was committed.');
         }
 
+        // Meta may deliver status webhooks out of order. Delivery progress is monotonic:
+        // a late "sent" or "delivered" event must never downgrade a message already read.
+        if ($message->direction !== 'outbound') {
+            return;
+        }
+
+        $current = $message->delivery_status;
+        $progress = ['pending' => 0, 'unknown' => 0, 'sent' => 1, 'delivered' => 2, 'read' => 3];
+
+        if ($current === 'failed' || ($status === 'failed' && ($progress[$current] ?? 0) > 0)) {
+            return;
+        }
+
+        if ($status !== 'failed' && ($progress[$status] ?? -1) <= ($progress[$current] ?? -1)) {
+            return;
+        }
+
         $message->forceFill(['delivery_status' => $status])->save();
     }
 }
