@@ -159,10 +159,11 @@ This roadmap distinguishes planned work from implemented work.
 
 
 ## Milestone 10 — Production hardening and deployment
-- [x] Automated tests across critical workflows (160 tests / 651 assertions on SQLite and PostgreSQL 16).
+- [x] Automated tests across critical workflows (162 tests / 663 assertions on SQLite and PostgreSQL 16).
 - [x] PostgreSQL 16 migration/test compatibility matrix in CI; live Neon connectivity and TLS validation remain pending.
 - [x] Automated PHP and frontend production dependency audits in GitHub Actions.
-- [ ] Application security review and remediation.
+- [x] Baseline application security review: tenant scoping/role gates, verified platform-email allowlist, encrypted tokens/messages/webhook payloads, signed Meta webhooks with a 1 MB cap, payload-safe audit history and mutation throttles.
+- [ ] Penetration/abuse testing and production security-header/WAF review.
 - [ ] Load/latency tests for cron-backed processing.
 - [ ] Neon project connection and migration rehearsal.
 - [ ] Hostinger + Neon deployment rehearsal.
