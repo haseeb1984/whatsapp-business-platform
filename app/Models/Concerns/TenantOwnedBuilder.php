@@ -1,9 +1,9 @@
 <?php
 
-namespace App\\Models\\Concerns;
+namespace App\Models\Concerns;
 
-use App\\Support\\Tenancy\\TenantContext;
-use Illuminate\\Database\\Eloquent\\Builder;
+use App\Support\Tenancy\TenantContext;
+use Illuminate\Database\Eloquent\Builder;
 use LogicException;
 
 class TenantOwnedBuilder extends Builder
