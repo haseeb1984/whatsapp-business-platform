@@ -6,7 +6,7 @@ use App\Enums\MessageActor;
 use App\Models\Appointment;
 use App\Models\AppointmentReminder;
 use App\Models\Conversation;
-use App\Models\Message;
+use App\Models\WhatsAppTemplate;
 use App\Services\Messaging\WhatsAppMessageService;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
@@ -102,29 +102,29 @@ class ProcessAppointmentReminder implements ShouldQueue
                 return;
             }
 
-            $lastInbound = Message::query()
-                ->where('conversation_id', $conversation->id)
-                ->where('direction', 'inbound')
-                ->orderByDesc('sent_at')
-                ->orderByDesc('created_at')
+            $templateName = (string) config('services.meta.appointment_reminder_template', 'appointment_reminder');
+            $templateLanguage = (string) config('services.meta.appointment_reminder_language', 'en_US');
+            $template = WhatsAppTemplate::query()
+                ->where('name', $templateName)
+                ->where('language', $templateLanguage)
+                ->where('status', 'APPROVED')
+                ->whereHas('connection', fn ($query) => $query->where('status', 'active'))
                 ->first();
 
-            if (! $lastInbound?->sent_at || $lastInbound->sent_at->lessThan(now()->subHours(24))) {
-                $this->finish($reminder->id, 'blocked_template_required', 'customer_service_window_closed');
+            if (! $template) {
+                $this->finish($reminder->id, 'blocked_template_required', 'approved_template_unavailable');
                 return;
             }
 
             $timezone = app(TenantContext::class)->tenant()->timezone ?: 'UTC';
             $localStart = $appointment->starts_at->setTimezone($timezone)->format('D, d M Y H:i');
-            $body = 'Reminder: your '.$appointment->service_name.' appointment is scheduled for '.$localStart.'. Reply here if you need help.';
+            $parameters = [$appointment->service_name, $localStart];
 
             try {
-                $message = $messenger->sendText(
+                $message = $messenger->sendTemplate(
                     $conversation,
-                    $body,
-                    MessageActor::Automation,
-                    null,
-                    null,
+                    $template,
+                    $parameters,
                     $reminder->id,
                 );
 
