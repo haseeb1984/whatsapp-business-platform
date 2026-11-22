@@ -14,11 +14,24 @@ class RecordAuditEvent
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $response = $next($request);
         if (! in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
-            return $response;
+            return $next($request);
         }
 
+        try {
+            $response = $next($request);
+        } catch (Throwable $exception) {
+            $this->record($request, 500);
+            throw $exception;
+        }
+
+        $this->record($request, $response->getStatusCode());
+
+        return $response;
+    }
+
+    private function record(Request $request, int $statusCode): void
+    {
         try {
             $route = $request->route();
             $parameters = $route?->parameters() ?? [];
@@ -49,7 +62,7 @@ class RecordAuditEvent
                 'user_agent' => substr((string) $request->userAgent(), 0, 1000),
                 'metadata' => [
                     'method' => $request->method(),
-                    'status_code' => $response->getStatusCode(),
+                    'status_code' => $statusCode,
                 ],
                 'created_at' => now(),
             ]);
@@ -59,7 +72,6 @@ class RecordAuditEvent
                 'exception' => $exception::class,
             ]);
         }
-
-        return $response;
     }
+
 }
