@@ -11,6 +11,7 @@ type PageProps = {
         messages_total: number;
         conversations_total: number;
         appointments_total: number;
+        audit_events_total: number | null;
         queue_pending: number | null;
         queue_failed: number | null;
     };
@@ -36,10 +37,11 @@ type PageProps = {
     };
     filters: { q: string; status: string };
     recent_failures: { id: string; queue: string; failed_at: string }[];
+    recent_audit_events: { id: string; event: string; subject: string | null; tenant: string; actor: string; ip_address: string | null; created_at: string }[];
 };
 
 export default function PlatformDashboard() {
-    const { metrics, tenants, filters, recent_failures } = usePage<PageProps>().props;
+    const { metrics, tenants, filters, recent_failures, recent_audit_events } = usePage<PageProps>().props;
     const exportQuery = new URLSearchParams();
     if (filters.q) exportQuery.set('q', filters.q);
     if (filters.status) exportQuery.set('status', filters.status);
@@ -54,6 +56,7 @@ export default function PlatformDashboard() {
         ['Messages processed', metrics.messages_total],
         ['Conversations', metrics.conversations_total],
         ['Appointments', metrics.appointments_total],
+        ['Audit events', metrics.audit_events_total ?? 'Not available'],
         ['Queued jobs', metrics.queue_pending ?? 'Not available'],
         ['Failed jobs', metrics.queue_failed ?? 'Not available'],
     ] as const;
@@ -110,6 +113,11 @@ export default function PlatformDashboard() {
                     <section className="mt-6 rounded-2xl border border-slate-800 bg-slate-900 p-5">
                         <div className="flex items-center justify-between"><h2 className="font-semibold">Recent failed jobs</h2><span className="text-xs text-slate-500">Sensitive exception payloads are intentionally hidden</span></div>
                         {recent_failures.length === 0 ? <p className="mt-4 text-sm text-slate-500">No failed jobs recorded, or the failed-jobs table is not configured.</p> : <div className="mt-3 overflow-x-auto"><table className="w-full min-w-[480px] text-left text-sm"><thead className="border-b border-slate-800 text-xs uppercase text-slate-500"><tr><th className="py-3 pr-4">Job ID</th><th className="py-3 pr-4">Queue</th><th className="py-3">Failed at</th></tr></thead><tbody className="divide-y divide-slate-800">{recent_failures.map(job => <tr key={job.id}><td className="py-3 pr-4 font-mono text-xs text-slate-400">{job.id}</td><td className="py-3 pr-4">{job.queue}</td><td className="py-3 text-slate-400">{job.failed_at}</td></tr>)}</tbody></table></div>}
+                    </section>
+
+                    <section className="mt-6 rounded-2xl border border-slate-800 bg-slate-900 p-5">
+                        <div className="flex items-center justify-between"><h2 className="font-semibold">Recent admin audit history</h2><span className="text-xs text-slate-500">Mutation metadata only · no request payloads</span></div>
+                        {recent_audit_events.length === 0 ? <p className="mt-4 text-sm text-slate-500">No admin mutations have been recorded yet.</p> : <div className="mt-3 overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b border-slate-800 text-xs uppercase text-slate-500"><tr><th className="py-3 pr-4">Action</th><th className="py-3 pr-4">Workspace</th><th className="py-3 pr-4">Actor</th><th className="py-3 pr-4">Subject</th><th className="py-3">Time</th></tr></thead><tbody className="divide-y divide-slate-800">{recent_audit_events.map(event => <tr key={event.id}><td className="py-3 pr-4 font-mono text-xs text-slate-300">{event.event}</td><td className="py-3 pr-4">{event.tenant}</td><td className="py-3 pr-4 text-slate-300">{event.actor}</td><td className="py-3 pr-4 text-slate-400">{event.subject || '—'}</td><td className="py-3 text-slate-400">{event.created_at}</td></tr>)}</tbody></table></div>}
                     </section>
                     <footer className="mt-8 border-t border-slate-800 pt-4 text-xs text-slate-500">Access is restricted to emails listed in PLATFORM_ADMIN_EMAILS. This console is read-only.</footer>
                 </div>
