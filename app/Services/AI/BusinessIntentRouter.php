@@ -63,28 +63,35 @@ class BusinessIntentRouter
         $timezone = $tenant->timezone ?: 'UTC';
         $today = CarbonImmutable::now($timezone);
         $isToday = preg_match('/\b(today|now|currently|right now)\b/u', $message) === 1;
+        $isTomorrow = preg_match('/\btomorrow\b/u', $message) === 1;
 
-        if ($isToday) {
-            $holiday = BusinessHoliday::query()->whereDate('date', $today->toDateString())->first();
+        if ($isToday || $isTomorrow) {
+            $date = $isTomorrow ? $today->addDay() : $today;
+            $label = $isTomorrow ? 'Tomorrow' : 'Today';
+            $holiday = BusinessHoliday::query()->whereDate('date', $date->toDateString())->first();
             if ($holiday) {
                 if ($holiday->is_closed) {
-                    return new BusinessIntentResult('answered', 'We are closed today'.($holiday->name ? ' for '.$holiday->name : '').'.', 'today_hours');
+                    return new BusinessIntentResult('answered', 'We are closed '.$label.' '.($holiday->name ? 'for '.$holiday->name : '').'.', 'today_hours');
                 }
                 if ($holiday->opens_at && $holiday->closes_at) {
-                    return new BusinessIntentResult('answered', 'Today’s hours'.($holiday->name ? ' ('.$holiday->name.')' : '').' are '.substr((string) $holiday->opens_at, 0, 5).'–'.substr((string) $holiday->closes_at, 0, 5).' '.$timezone.'.', 'today_hours');
+                    return new BusinessIntentResult('answered', $label.'’s hours'.($holiday->name ? ' ('.$holiday->name.')' : '').' are '.substr((string) $holiday->opens_at, 0, 5).'–'.substr((string) $holiday->closes_at, 0, 5).' '.$timezone.'.', 'today_hours');
                 }
             }
 
-            $hours = BusinessHour::query()->where('weekday', $today->dayOfWeekIso - 1)->first();
+            $hours = BusinessHour::query()->where('weekday', $date->dayOfWeekIso - 1)->first();
             if (! $hours) {
                 return new BusinessIntentResult('handoff', null, 'business_hours_not_configured');
             }
             if ($hours->is_closed) {
-                return new BusinessIntentResult('answered', 'We are closed today.', 'today_hours');
+                return new BusinessIntentResult('answered', 'We are closed '.$label.'.', 'today_hours');
             }
 
             $open = substr((string) $hours->opens_at, 0, 5);
             $close = substr((string) $hours->closes_at, 0, 5);
+            if ($isTomorrow) {
+                return new BusinessIntentResult('answered', 'Tomorrow’s hours are '.$open.'–'.$close.' '.$timezone.'.', 'tomorrow_hours');
+            }
+
             $currentlyOpen = $today->format('H:i') >= $open && $today->format('H:i') < $close;
             return new BusinessIntentResult(
                 'answered',
