@@ -189,6 +189,76 @@ class MetaWebhookEventProcessingTest extends TestCase
         $this->assertDatabaseCount('customers', 0);
     }
 
+    public function test_out_of_order_meta_status_events_never_downgrade_delivery_progress(): void
+    {
+        $tenant = $this->tenant('processor-monotonic-status');
+        $message = TenantContext::runForTenant($tenant->id, function (): Message {
+            $customer = Customer::query()->create(['whatsapp_wa_id' => '923001112233']);
+            $conversation = Conversation::query()->create(['customer_id' => $customer->id]);
+
+            return Message::query()->create([
+                'conversation_id' => $conversation->id,
+                'direction' => 'outbound',
+                'message_type' => 'text',
+                'body' => 'Hello',
+                'provider_message_id' => 'wamid.monotonic-status',
+                'delivery_status' => 'sent',
+            ]);
+        });
+
+        foreach (['read', 'delivered', 'sent', 'failed'] as $index => $status) {
+            $event = WebhookEvent::query()->create([
+                'tenant_id' => $tenant->id,
+                'provider' => 'meta_whatsapp',
+                'provider_event_key' => hash('sha256', 'monotonic-status-'.$index),
+                'event_type' => 'message.status',
+                'payload' => ['id' => 'wamid.monotonic-status', 'status' => $status],
+                'status' => 'pending',
+                'attempts' => 0,
+                'received_at' => now(),
+            ]);
+
+            (new ProcessMetaWebhookEvent($event->id))->handle();
+        }
+
+        $this->assertDatabaseHas('messages', ['id' => $message->id, 'delivery_status' => 'read']);
+    }
+
+    public function test_failed_delivery_is_not_replaced_by_a_late_sent_event(): void
+    {
+        $tenant = $this->tenant('processor-failed-terminal');
+        $message = TenantContext::runForTenant($tenant->id, function (): Message {
+            $customer = Customer::query()->create(['whatsapp_wa_id' => '923001112233']);
+            $conversation = Conversation::query()->create(['customer_id' => $customer->id]);
+
+            return Message::query()->create([
+                'conversation_id' => $conversation->id,
+                'direction' => 'outbound',
+                'message_type' => 'text',
+                'body' => 'Hello',
+                'provider_message_id' => 'wamid.failed-terminal',
+                'delivery_status' => 'pending',
+            ]);
+        });
+
+        foreach (['failed', 'sent'] as $index => $status) {
+            $event = WebhookEvent::query()->create([
+                'tenant_id' => $tenant->id,
+                'provider' => 'meta_whatsapp',
+                'provider_event_key' => hash('sha256', 'failed-terminal-'.$index),
+                'event_type' => 'message.status',
+                'payload' => ['id' => 'wamid.failed-terminal', 'status' => $status],
+                'status' => 'pending',
+                'attempts' => 0,
+                'received_at' => now(),
+            ]);
+
+            (new ProcessMetaWebhookEvent($event->id))->handle();
+        }
+
+        $this->assertDatabaseHas('messages', ['id' => $message->id, 'delivery_status' => 'failed']);
+    }
+
     private function inboundEvent(string $tenantId, string $providerMessageId): WebhookEvent
     {
         return WebhookEvent::query()->create([
