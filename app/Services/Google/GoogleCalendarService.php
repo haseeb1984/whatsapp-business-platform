@@ -6,6 +6,7 @@ use App\Exceptions\GoogleCalendarBusyException;
 use App\Models\Appointment;
 use App\Models\GoogleCalendarConnection;
 use App\Models\Staff;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
@@ -235,6 +236,64 @@ class GoogleCalendarService
         }
     }
 
+    public function updateAppointmentEvent(Appointment $appointment, CarbonImmutable $startsAt, CarbonImmutable $endsAt): string
+    {
+        if (! $appointment->external_event_id) {
+            throw new RuntimeException('The appointment has no linked Google Calendar event.');
+        }
+
+        $connection = $this->connectedConnection();
+        $token = $this->accessToken($connection);
+        $staff = Staff::query()->findOrFail($appointment->staff_id);
+        $calendarId = $staff->google_calendar_id ?: $connection->default_calendar_id;
+        $eventId = $appointment->external_event_id;
+        $payload = [
+            'summary' => $appointment->service_name,
+            'description' => 'WhatsApp Business appointment '.$appointment->id,
+            'start' => ['dateTime' => $startsAt->toIso8601String()],
+            'end' => ['dateTime' => $endsAt->toIso8601String()],
+            'extendedProperties' => ['private' => [
+                'platformAppointmentId' => $appointment->id,
+                'platformTenantId' => $appointment->tenant_id,
+            ]],
+        ];
+
+        try {
+            $response = $this->apiRequest(
+                $connection,
+                $token,
+                'patch',
+                '/calendars/'.rawurlencode($calendarId).'/events/'.rawurlencode($eventId),
+                $payload,
+            );
+
+            if (($response['id'] ?? null) !== $eventId) {
+                throw new RuntimeException('Google Calendar returned a different event ID during rescheduling.');
+            }
+
+            return $eventId;
+        } catch (Throwable $exception) {
+            // Resolve a lost PATCH response by reading the same event and comparing its actual time.
+            try {
+                $existing = $this->getEvent($connection, $this->accessToken($connection), $calendarId, $eventId);
+                $private = $existing['extendedProperties']['private'] ?? [];
+                $actualStart = isset($existing['start']['dateTime']) ? CarbonImmutable::parse($existing['start']['dateTime'])->utc() : null;
+                $actualEnd = isset($existing['end']['dateTime']) ? CarbonImmutable::parse($existing['end']['dateTime'])->utc() : null;
+
+                if (($private['platformAppointmentId'] ?? null) === $appointment->id
+                    && ($private['platformTenantId'] ?? null) === $appointment->tenant_id
+                    && $actualStart?->equalTo($startsAt->utc())
+                    && $actualEnd?->equalTo($endsAt->utc())) {
+                    return $eventId;
+                }
+            } catch (Throwable) {
+                // Preserve the original failure; the reschedule request remains pending for reconciliation.
+            }
+
+            throw $exception;
+        }
+    }
+
     public function deleteAppointmentEvent(Appointment $appointment): void
     {
         if (! $appointment->external_event_id) {
@@ -294,6 +353,7 @@ class GoogleCalendarService
         $response = match ($method) {
             'get' => $request->get($url),
             'post' => $request->post($url, $payload ?? []),
+            'patch' => $request->patch($url, $payload ?? []),
             'delete' => $request->delete($url),
             default => throw new RuntimeException('Unsupported Google Calendar operation.'),
         };
