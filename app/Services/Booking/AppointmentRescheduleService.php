@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\AppointmentEvent;
 use App\Models\AppointmentReschedule;
 use App\Models\Tenant;
+use App\Jobs\SyncAppointmentReschedule;
 use App\Services\Google\GoogleCalendarService;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
@@ -38,6 +39,9 @@ class AppointmentRescheduleService
 
         $existing = AppointmentReschedule::query()->where('idempotency_key', $idempotencyKey)->first();
         if ($existing) {
+            if ($existing->appointment_id !== $appointmentId) {
+                throw ValidationException::withMessages(['idempotency_key' => 'This idempotency key belongs to a different appointment.']);
+            }
             if (! $existing->new_starts_at->equalTo($newStart->utc())) {
                 throw ValidationException::withMessages(['idempotency_key' => 'This idempotency key was already used for a different reschedule time.']);
             }
@@ -46,9 +50,6 @@ class AppointmentRescheduleService
             }
             if (in_array($existing->status, ['failed', 'cancelled'], true)) {
                 throw ValidationException::withMessages(['reschedule' => 'This reschedule request is no longer retryable. Use a new idempotency key.']);
-            }
-            if ($existing->appointment_id !== $appointmentId) {
-                throw ValidationException::withMessages(['idempotency_key' => 'This idempotency key belongs to a different appointment.']);
             }
             $reschedule = $existing;
         } else {
@@ -132,7 +133,10 @@ class AppointmentRescheduleService
                 $reschedule->new_ends_at,
             );
         } catch (Throwable $exception) {
-            $this->recordCalendarFailure($appointmentId, $reschedule->id, $exception);
+            $definite = $this->recordCalendarFailure($appointmentId, $reschedule->id, $exception);
+            if (! $definite) {
+                SyncAppointmentReschedule::dispatch($tenantId, $reschedule->id);
+            }
             throw $exception;
         }
 
@@ -184,7 +188,7 @@ class AppointmentRescheduleService
         }
     }
 
-    private function recordCalendarFailure(string $appointmentId, string $rescheduleId, Throwable $exception): void
+    private function recordCalendarFailure(string $appointmentId, string $rescheduleId, Throwable $exception): bool
     {
         $definite = $exception instanceof ValidationException
             || ($exception instanceof RuntimeException
@@ -208,5 +212,7 @@ class AppointmentRescheduleService
                 'metadata' => ['reschedule_id' => $rescheduleId, 'reason_code' => $definite ? 'provider_rejected' : 'provider_outcome_unknown'],
             ]);
         });
+
+        return $definite;
     }
 }
