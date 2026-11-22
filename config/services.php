@@ -1,6 +1,6 @@
 <?php
 return [
-    'meta' => ['app_id' => env('META_APP_ID'), 'app_secret' => env('META_APP_SECRET'), 'webhook_verify_token' => env('META_WEBHOOK_VERIFY_TOKEN'), 'graph_api_version' => env('META_GRAPH_API_VERSION')],
+    'meta' => ['app_id' => env('META_APP_ID'), 'app_secret' => env('META_APP_SECRET'), 'webhook_verify_token' => env('META_WEBHOOK_VERIFY_TOKEN'), 'graph_api_version' => env('META_GRAPH_API_VERSION'), 'appointment_reminder_template' => env('META_APPOINTMENT_REMINDER_TEMPLATE', 'appointment_reminder'), 'appointment_reminder_language' => env('META_APPOINTMENT_REMINDER_LANGUAGE', 'en_US')],
     'groq' => [
         'api_key' => env('GROQ_API_KEY'),
         'model' => env('GROQ_MODEL'),
