@@ -58,8 +58,17 @@ class GoogleCalendarRescheduleApiTest extends TestCase
                 ], 200),
         ]);
 
-        $eventId = TenantContext::runForTenant($tenant->id, fn () => app(GoogleCalendarService::class)
-            ->updateAppointmentEvent($appointment, $newStart, $newEnd));
+        try {
+            $eventId = TenantContext::runForTenant($tenant->id, fn () => app(GoogleCalendarService::class)
+                ->updateAppointmentEvent($appointment, $newStart, $newEnd));
+        } catch (\RuntimeException $exception) {
+            $requests = Http::recorded();
+            $this->assertCount(2, $requests, 'The ambiguous update should perform one PATCH and one read-back GET.');
+            $this->assertSame('PATCH', $requests[0][0]->method());
+            $this->assertSame('GET', $requests[1][0]->method());
+            $this->assertSame('google-event-reschedule', $requests[1][1]->json('id'));
+            throw $exception;
+        }
 
         $this->assertSame('google-event-reschedule', $eventId);
         Http::assertSent(fn ($request) => $request->method() === 'PATCH');
