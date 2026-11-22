@@ -23,7 +23,8 @@ class ReadinessEndpointTest extends TestCase
                     'queue_storage' => true,
                 ],
             ]);
-    
+    }
+
     public function test_readiness_returns_degraded_without_exposing_database_exception_details(): void
     {
         DB::shouldReceive('connection')->once()->andThrow(new \RuntimeException('database credentials must stay private'));
@@ -38,6 +39,4 @@ class ReadinessEndpointTest extends TestCase
                 ],
             ]);
     }
-
-}
 }
