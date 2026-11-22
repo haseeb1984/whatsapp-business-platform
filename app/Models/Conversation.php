@@ -58,6 +58,6 @@ class Conversation extends Model
 
     public function latestMessage(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(Message::class)->latestOfMany('created_at');
+        return $this->hasOne(Message::class)->orderByDesc('created_at')->orderByDesc('id');
     }
 }
