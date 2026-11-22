@@ -1,0 +1,71 @@
+<?php
+
+namespace App\Http\Controllers\Platform;
+
+use App\Http\Controllers\Controller;
+use App\Models\Tenant;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class DashboardController extends Controller
+{
+    public function index(): Response
+    {
+        $whatsappCounts = DB::table('whatsapp_connections')
+            ->select('tenant_id', DB::raw('COUNT(*) as total'))
+            ->where('status', 'active')
+            ->groupBy('tenant_id')
+            ->pluck('total', 'tenant_id');
+
+        $calendarCounts = DB::table('google_calendar_connections')
+            ->select('tenant_id', DB::raw('COUNT(*) as total'))
+            ->where('status', 'connected')
+            ->groupBy('tenant_id')
+            ->pluck('total', 'tenant_id');
+
+        $tenants = Tenant::query()
+            ->withCount('users')
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get(['id', 'name', 'slug', 'status', 'timezone', 'created_at'])
+            ->map(fn (Tenant $tenant): array => [
+                'id' => $tenant->id,
+                'name' => $tenant->name,
+                'slug' => $tenant->slug,
+                'status' => $tenant->status,
+                'timezone' => $tenant->timezone,
+                'users' => $tenant->users_count,
+                'whatsapp_connections' => (int) ($whatsappCounts[$tenant->id] ?? 0),
+                'calendar_connections' => (int) ($calendarCounts[$tenant->id] ?? 0),
+                'created_at' => $tenant->created_at?->toDateTimeString(),
+            ])->all();
+
+        $queuePending = Schema::hasTable('jobs') ? DB::table('jobs')->count() : null;
+        $queueFailed = Schema::hasTable('failed_jobs') ? DB::table('failed_jobs')->count() : null;
+        $recentFailures = Schema::hasTable('failed_jobs')
+            ? DB::table('failed_jobs')->orderByDesc('failed_at')->limit(8)->get(['id', 'queue', 'failed_at'])->map(fn ($job): array => [
+                'id' => (string) $job->id,
+                'queue' => $job->queue,
+                'failed_at' => $job->failed_at,
+            ])->all()
+            : [];
+
+        return Inertia::render('Platform/Dashboard', [
+            'metrics' => [
+                'tenants_total' => Tenant::query()->count(),
+                'tenants_active' => Tenant::query()->where('status', 'active')->count(),
+                'tenants_suspended' => Tenant::query()->where('status', 'suspended')->count(),
+                'users_total' => User::query()->count(),
+                'whatsapp_connections' => (int) $whatsappCounts->sum(),
+                'calendar_connections' => (int) $calendarCounts->sum(),
+                'queue_pending' => $queuePending,
+                'queue_failed' => $queueFailed,
+            ],
+            'tenants' => $tenants,
+            'recent_failures' => $recentFailures,
+        ]);
+    }
+}
