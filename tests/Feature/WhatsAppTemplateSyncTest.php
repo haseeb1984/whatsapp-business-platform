@@ -105,6 +105,60 @@ class WhatsAppTemplateSyncTest extends TestCase
         $this->assertDatabaseCount('whatsapp_templates', 1);
     }
 
+
+    public function test_template_sync_follows_meta_cursor_and_imports_later_pages(): void
+    {
+        config(['services.meta.graph_api_version' => 'v24.0']);
+        Http::fake([
+            'https://graph.facebook.com/v24.0/987654321098765/message_templates*' => function ($request) {
+                if (($request['after'] ?? null) === 'cursor-page-2') {
+                    return Http::response([
+                        'data' => [[
+                            'id' => 'template-provider-page-2',
+                            'name' => 'second_template',
+                            'language' => 'en_US',
+                            'category' => 'UTILITY',
+                            'status' => 'APPROVED',
+                            'components' => [],
+                        ]],
+                    ], 200);
+                }
+
+                return Http::response([
+                    'data' => [[
+                        'id' => 'template-provider-page-1',
+                        'name' => 'first_template',
+                        'language' => 'en_US',
+                        'category' => 'UTILITY',
+                        'status' => 'APPROVED',
+                        'components' => [],
+                    ]],
+                    'paging' => [
+                        'next' => 'https://graph.facebook.com/v24.0/987654321098765/message_templates?after=cursor-page-2',
+                        'cursors' => ['after' => 'cursor-page-2'],
+                    ],
+                ], 200);
+            },
+        ]);
+
+        [$user, $tenant] = $this->workspace('template-pagination@example.test');
+        $connection = TenantContext::runForTenant($tenant->id, fn () => WhatsAppConnection::query()->create([
+            'phone_number_id' => '123456789012348',
+            'waba_id' => '987654321098765',
+            'access_token' => 'long-lived-meta-access-token-for-tests',
+            'status' => 'active',
+            'verified_at' => now(),
+        ]));
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id])
+            ->post('/business/whatsapp/'.$connection->id.'/templates/sync')
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('whatsapp_templates', 2);
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'after=cursor-page-2'));
+    }
+
     private function workspace(string $email): array
     {
         $user = User::query()->create([
