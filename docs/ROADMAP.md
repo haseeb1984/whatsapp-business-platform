@@ -159,7 +159,7 @@ This roadmap distinguishes planned work from implemented work.
 
 
 ## Milestone 10 — Production hardening and deployment
-- [x] Automated tests across critical workflows (162 tests / 663 assertions on SQLite and PostgreSQL 16).
+- [x] Automated tests across critical workflows (166 tests / 681 assertions on SQLite and PostgreSQL 16).
 - [x] PostgreSQL 16 migration/test compatibility matrix in CI; live Neon connectivity and TLS validation remain pending.
 - [x] Automated PHP and frontend production dependency audits in GitHub Actions.
 - [x] Baseline browser security headers; HSTS only on secure production requests.
@@ -172,7 +172,7 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Backup/restore drill and rollback plan.
 - [ ] Meta production onboarding readiness review.
 
-**Status:** SQLite and PostgreSQL 16 suites both pass in CI (166 tests / 681 assertions per database on commit `7e67b61`). Composer/npm production audits report no advisories. Baseline browser security headers are active, and production session cookies default to Secure; deployed HTTPS/proxy/HSTS behavior still needs Hostinger verification. Baseline authorization, tenant isolation, token/payload encryption, webhook HMAC/size limits, admin audit logging and high-cost mutation throttles have been reviewed and tested. Penetration/abuse testing, live Neon TLS/credential validation, Hostinger deployment, queue/cron configuration, backups and rollback remain acceptance gates.
+**Status:** SQLite and PostgreSQL 16 suites both pass in CI (166 tests / 681 assertions per database on commit `7e67b61`; latest config/docs commits are pending CI). Composer/npm production audits report no advisories. Baseline browser security headers are active, and production session cookies default to Secure; deployed HTTPS/proxy/HSTS behavior still needs Hostinger verification. Baseline authorization, tenant isolation, token/payload encryption, webhook HMAC/size limits, admin audit logging and high-cost mutation throttles have been reviewed and tested. Penetration/abuse testing, live Neon TLS/credential validation, Hostinger deployment, queue/cron configuration, backups and rollback remain acceptance gates.
 
 ## Development rules
 
