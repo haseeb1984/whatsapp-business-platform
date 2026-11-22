@@ -4,27 +4,19 @@ A reusable multi-tenant WhatsApp Business automation platform using the official
 
 ## Current implementation status
 
-**Milestone 0:** Product requirements, architecture, database, security and deployment specifications committed. Actual Hostinger/Neon account limits still need verification.
+**Foundation and tenancy:** Laravel 13 / React 19 / TypeScript / Inertia application, registration/login, password recovery, email verification, multi-workspace switching, tenant context, role authorization and fail-closed tenant-owned model scoping are implemented. Remaining hardening includes broader tenant-aware foreign-key coverage and queued-job isolation checks.
 
-**Milestone 1:** Laravel 13 / React 19 / TypeScript / Inertia application shell, CI dependency installation, SQLite feature-test setup and production frontend build are working. A disposable Neon/PostgreSQL migration rehearsal remains pending.
+**Business configuration:** Tenant-scoped business profile, timezone/locale, weekly hours, holidays/special hours, services/pricing, staff and assignments, staff schedules/exceptions, booking policies and FAQ management are implemented.
 
-**Milestone 2:** Registration, login/logout, password recovery, signed email verification, multi-workspace selection/switching, tenant context, role middleware, suspended-tenant protection and fail-closed tenant-owned Eloquent model scoping are implemented. Broader tenant-aware foreign-key coverage and end-to-end queued-job isolation remain hardening tasks.
+**WhatsApp and automation:** Official Meta Cloud API connection setup, encrypted credentials, phone/WABA verification, signed and idempotent webhooks, retryable event processing, encrypted messages, delivery-status correlation, policy-aware text sending, approved template catalog synchronization and approved-template sending are implemented. The Groq FAQ assistant uses published FAQ evidence, deterministic business facts and safe human handover; unsupported questions are not answered with invented facts.
 
-**Milestone 3:** Business profile, timezone/locale, weekly hours, holidays/special hours, services/pricing, staff/service assignments, staff weekly hours and date-specific exceptions, booking policies, and FAQ CRUD/publication/search are implemented with tenant scoping and admin controls. Full business dashboards and remaining UX polish are still in progress.
+**Inbox and booking:** Tenant-scoped inbox, staff assignment/takeover, manual replies, internal notes and automation pause/resume are implemented. Booking includes timezone-aware availability, staff/service eligibility, temporary holds, Google FreeBusy, calendar-backed confirmation/cancellation, WhatsApp booking conversations, reminder scheduling, approved-template reminders outside the 24-hour window, delivery-state tracking, rescheduling and recovery for ambiguous Calendar outcomes.
 
-**Milestone 4:** Official Meta WhatsApp Cloud API connection setup, encrypted credentials, phone/WABA verification, signed/idempotent webhook ingestion, retryable event processing, encrypted message persistence, delivery-status handling and policy-aware text sending are implemented. Approved template lifecycle and Embedded Signup remain pending.
+**Google Calendar and dashboards:** OAuth with state/PKCE, encrypted token storage, refresh/revocation, writable calendar selection, per-staff mappings, FreeBusy and event reconciliation are implemented. Business and platform-admin dashboards, tenant usage summaries, audit history, tenant search and CSV export are implemented.
 
-**Milestone 5:** Tenant-scoped inbox, staff assignment/takeover, manual replies, encrypted internal notes, automation pause/resume and close/reopen controls are implemented. Staff notifications/invitations, real-time updates and expanded audit history remain pending.
+**Production acceptance still pending:** Live Meta and Google account validation, expanded security/dependency review, cron load/latency testing, actual Neon connection/migration rehearsal, Hostinger plan/runtime validation, deployment rehearsal, backup/restore drill and Meta production onboarding.
 
-**Milestone 6:** Provider-independent Groq integration, published-FAQ grounding, approved-answer-only output, queued inbound reply workflow, rate-limit fallback, prompt-injection checks and safe human handover are implemented. Broader intent routing, structured business-fact retrieval and allowlisted booking tools remain pending.
-
-**Milestone 7:** Tenant-timezone availability, staff/service eligibility, business hours/holidays, staff schedules/date exceptions, booking policies, local and Google FreeBusy conflict checks, idempotent temporary holds, bounded expiry, and the appointment dashboard are implemented. Calendar-backed confirmation/cancellation, idempotent 24h/2h reminder scheduling, bounded cron dispatch and delivery-state tracking are implemented. A booking-first WhatsApp conversation flow now guides customers through service, date, staff preference and available time selection; it creates a temporary hold, performs Google Calendar confirmation, and only then sends a confirmed status. Human handover and the WhatsApp 24-hour window remain enforced. Rescheduling and approved template reminders remain pending.
-
-**Milestone 8:** Google OAuth with state + PKCE validation, encrypted access/refresh tokens, refresh/revocation, writable calendar listing, tenant default and per-staff calendar mapping, FreeBusy, deterministic event creation/reconciliation lookup and event deletion are implemented. Live Google test-account validation and event update/reschedule remain pending.
-
-**Current CI:** GitHub Actions run [44952606640](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44952606640) passed on commit `b910d33dc1058112c5f0d2d41abc83e696545292`: **134 Laravel tests (490 assertions)**, Composer manifest validation/dependency installation and Vite production build. Tests currently use SQLite; Neon/PostgreSQL migration and constraint rehearsal remains outstanding.
-
-**Not production-ready yet:** WhatsApp approved template management (including out-of-window reminders), booking rescheduling and automated Calendar reconciliation, full platform/business administration dashboards, expanded tenant isolation and operational hardening, Neon rehearsal, Hostinger deployment validation, live Meta/Google acceptance tests, backup/restore and production onboarding.
+**Current CI:** GitHub Actions now validates Composer, runs the 160-test / 651-assertion suite on SQLite and PostgreSQL 16, audits PHP and frontend production dependencies, and builds the Vite frontend. The latest CI run is [44972575073](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44972575073); check its status before treating the current branch as green.
 
 ## Approved stack
 
@@ -100,11 +92,16 @@ Open `http://127.0.0.1:8000`. New users can register an account and create an in
 
 ## Verification
 
-- `composer validate`
-- `php artisan test`
-- `npm run build`
+GitHub Actions is the source of truth for the full verification pipeline:
 
-GitHub Actions run [44947637029](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44947637029) passed on commit `230e365adc4be1a655d26db20205c255d4a63fa7`: Composer manifest validation, dependency installation, **111 Laravel tests (410 assertions)**, npm dependency installation and Vite production build. The tests use SQLite; a separate Neon PostgreSQL migration/constraint rehearsal is still required.
+- Composer manifest validation and dependency installation
+- PHP feature suite on SQLite
+- PHP feature suite on PostgreSQL 16
+- PHP dependency audit
+- Frontend production dependency audit
+- Vite production build
+
+Run the checks locally with `composer validate`, `php artisan test`, and `npm run build`. The CI PostgreSQL service is a compatibility gate; it does not replace a connection and migration rehearsal against the actual Neon project.
 
 ## Development principles
 
