@@ -65,7 +65,7 @@ Route::middleware('auth')->group(function (): void {
 
     Route::get('/workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
     Route::post('/workspaces/switch', [WorkspaceController::class, 'switch'])->middleware('throttle:20,1')->name('workspaces.switch');
-    Route::middleware(['verified', 'platform.admin'])->group(function (): void {
+    Route::middleware(['verified', 'platform.admin', 'audit'])->group(function (): void {
         Route::get('/platform', [PlatformDashboardController::class, 'index'])->name('platform.dashboard');
         Route::get('/platform/tenants/export', [PlatformDashboardController::class, 'exportTenants'])->name('platform.tenants.export');
     });
@@ -73,7 +73,7 @@ Route::middleware('auth')->group(function (): void {
 
 Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::middleware('tenant.role:business_admin')->group(function (): void {
+    Route::middleware(['tenant.role:business_admin', 'audit'])->group(function (): void {
         Route::get('/business/profile', [BusinessProfileController::class, 'edit'])->name('business.profile.edit');
         Route::put('/business/profile', [BusinessProfileController::class, 'update'])->name('business.profile.update');
         Route::get('/business/hours', [BusinessHoursController::class, 'edit'])->name('business.hours.edit');
@@ -122,7 +122,7 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::get('/business/appointments/availability', [AppointmentController::class, 'availability'])->name('business.appointments.availability');
         Route::post('/business/appointments/holds', [AppointmentController::class, 'createHold'])->name('business.appointments.holds.store');
         Route::post('/business/appointments/{appointment}/cancel-hold', [AppointmentController::class, 'cancelHold'])->name('business.appointments.holds.cancel');
-        Route::middleware('tenant.role:business_admin')->group(function (): void {
+        Route::middleware(['tenant.role:business_admin', 'audit'])->group(function (): void {
             Route::put('/business/appointments/policy', [BookingPolicyController::class, 'update'])->name('business.appointments.policy.update');
             Route::post('/business/appointments/{appointment}/confirm-calendar', [AppointmentController::class, 'confirmCalendar'])->name('business.appointments.confirm-calendar');
             Route::post('/business/appointments/{appointment}/cancel', [AppointmentController::class, 'cancelConfirmed'])->name('business.appointments.cancel');
