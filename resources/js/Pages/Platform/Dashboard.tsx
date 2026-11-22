@@ -12,6 +12,7 @@ type PageProps = {
         queue_failed: number | null;
     };
     tenants: {
+        data: {
         id: string;
         name: string;
         slug: string;
@@ -21,12 +22,22 @@ type PageProps = {
         whatsapp_connections: number;
         calendar_connections: number;
         created_at: string | null;
-    }[];
+        }[];
+        links: { url: string | null; label: string; active: boolean }[];
+        total: number;
+        current_page: number;
+        last_page: number;
+    };
+    filters: { q: string; status: string };
     recent_failures: { id: string; queue: string; failed_at: string }[];
 };
 
 export default function PlatformDashboard() {
-    const { metrics, tenants, recent_failures } = usePage<PageProps>().props;
+    const { metrics, tenants, filters, recent_failures } = usePage<PageProps>().props;
+    const exportQuery = new URLSearchParams();
+    if (filters.q) exportQuery.set('q', filters.q);
+    if (filters.status) exportQuery.set('status', filters.status);
+    const exportHref = '/platform/tenants/export' + (exportQuery.toString() ? '?' + exportQuery.toString() : '');
     const cards = [
         ['Total tenants', metrics.tenants_total],
         ['Active tenants', metrics.tenants_active],
@@ -63,12 +74,13 @@ export default function PlatformDashboard() {
                     </section>
 
                     <section className="mt-6 rounded-2xl border border-slate-800 bg-slate-900 p-5">
-                        <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold">Business tenants</h2><span className="text-xs text-slate-500">Most recently created · up to 20</span></div>
+                        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">Business tenants</h2><p className="mt-1 text-xs text-slate-500">{tenants.total.toLocaleString()} total workspaces</p></div><a href={exportHref} className="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800">Export CSV</a></div>
+                        <form method="get" action="/platform" className="mt-4 flex flex-wrap gap-2"><input name="q" defaultValue={filters.q} placeholder="Search workspace name or slug" className="min-w-56 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600"/><select name="status" defaultValue={filters.status} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"><option value="">All statuses</option><option value="active">Active</option><option value="suspended">Suspended</option></select><button type="submit" className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-500">Filter</button><a href="/platform" className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">Reset</a></form>
                         <div className="mt-4 overflow-x-auto">
                             <table className="w-full min-w-[760px] text-left text-sm">
                                 <thead className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-500"><tr><th className="py-3 pr-4">Workspace</th><th className="py-3 pr-4">Status</th><th className="py-3 pr-4">Users</th><th className="py-3 pr-4">WhatsApp</th><th className="py-3 pr-4">Calendar</th><th className="py-3">Timezone</th></tr></thead>
                                 <tbody className="divide-y divide-slate-800">
-                                    {tenants.map(tenant => <tr key={tenant.id}>
+                                    {tenants.data.map(tenant => <tr key={tenant.id}>
                                         <td className="py-3 pr-4"><p className="font-semibold text-slate-200">{tenant.name}</p><p className="mt-1 text-xs text-slate-500">{tenant.slug}</p></td>
                                         <td className="py-3 pr-4"><span className={tenant.status === 'active' ? 'rounded-full bg-emerald-950 px-2 py-1 text-xs text-emerald-300' : 'rounded-full bg-amber-950 px-2 py-1 text-xs text-amber-300'}>{tenant.status}</span></td>
                                         <td className="py-3 pr-4 tabular-nums">{tenant.users}</td>
@@ -76,10 +88,11 @@ export default function PlatformDashboard() {
                                         <td className="py-3 pr-4 tabular-nums">{tenant.calendar_connections}</td>
                                         <td className="py-3 text-slate-400">{tenant.timezone}</td>
                                     </tr>)}
-                                    {tenants.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-slate-500">No business tenants have been created.</td></tr>}
+                                    {tenants.data.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-slate-500">No business tenants have been created.</td></tr>}
                                 </tbody>
                             </table>
                         </div>
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 pt-4"><p className="text-xs text-slate-500">Page {tenants.current_page} of {tenants.last_page}</p><nav className="flex flex-wrap gap-1">{tenants.links.map((link, index) => <a key={index} href={link.url || '#'} aria-disabled={!link.url} className={link.active ? 'rounded-md bg-violet-600 px-3 py-2 text-xs font-semibold text-white' : link.url ? 'rounded-md border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800' : 'pointer-events-none rounded-md border border-slate-800 px-3 py-2 text-xs text-slate-600'}>{link.label.replace('&laquo;', '‹').replace('&raquo;', '›')}</a>)}</nav></div>
                     </section>
 
                     <section className="mt-6 rounded-2xl border border-slate-800 bg-slate-900 p-5">
