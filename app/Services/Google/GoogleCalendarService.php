@@ -275,7 +275,7 @@ class GoogleCalendarService
         } catch (Throwable $exception) {
             // Resolve a lost PATCH response by reading the same event and comparing its actual time.
             try {
-                $existing = $this->getEvent($connection, $this->accessToken($connection), $calendarId, $eventId);
+                $existing = $this->getEvent($connection, $token, $calendarId, $eventId);
                 $actualStart = isset($existing['start']['dateTime']) ? CarbonImmutable::parse($existing['start']['dateTime'])->utc() : null;
                 $actualEnd = isset($existing['end']['dateTime']) ? CarbonImmutable::parse($existing['end']['dateTime'])->utc() : null;
 
