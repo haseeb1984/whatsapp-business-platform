@@ -8,6 +8,7 @@ type PageProps = {
         open_conversations: number;
         waiting_for_staff: number;
         upcoming_appointments: number;
+        calendar_attention: number;
         active_services: number;
         active_staff: number;
         pending_reminders: number;
@@ -49,6 +50,7 @@ export default function Dashboard() {
         { label: 'Upcoming appointments', value: metrics.upcoming_appointments, detail: 'Confirmed bookings', href: '/business/appointments' },
         { label: 'Customers', value: metrics.customers, detail: 'Known WhatsApp customers', href: '/conversations' },
         { label: 'Pending reminders', value: metrics.pending_reminders, detail: 'Scheduled or awaiting send', href: '/business/appointments' },
+        { label: 'Calendar attention', value: metrics.calendar_attention, detail: 'Sync or reschedule needs confirmation', href: '/business/appointments' },
         ...(isAdmin ? [
             { label: 'Active services', value: metrics.active_services, detail: 'Available for booking', href: '/business/services' },
             { label: 'Active staff', value: metrics.active_staff, detail: 'Available team members', href: '/business/staff' },
@@ -80,7 +82,7 @@ export default function Dashboard() {
                         </a>)}
                     </section>
 
-                    <section className="mt-6 grid gap-4 md:grid-cols-2">
+                    {isAdmin && <section className="mt-6 grid gap-4 md:grid-cols-2">
                         <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
                             <div className="flex items-center justify-between gap-3"><h2 className="font-semibold">Integrations</h2><span className="text-xs text-slate-500">Current workspace</span></div>
                             <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -96,7 +98,7 @@ export default function Dashboard() {
                                 {isAdmin && adminActions.map(([label, href]) => <a key={href} href={href} className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">{label}</a>)}
                             </div>
                         </div>
-                    </section>
+                    </section>}
 
                     <section className="mt-6 grid gap-4 lg:grid-cols-2">
                         <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
