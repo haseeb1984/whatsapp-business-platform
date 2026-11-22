@@ -118,6 +118,25 @@ class AppointmentReminderJobTest extends TestCase
     }
 
 
+    public function test_reminder_job_cannot_process_another_tenants_reminder(): void
+    {
+        [$ownerTenant, $appointment, $reminder] = $this->confirmedReminder('reminder-owner-tenant', 'AUTO_ACTIVE', 1);
+        $otherTenant = Tenant::query()->create([
+            'name' => 'Different Reminder Workspace',
+            'slug' => 'reminder-other-tenant',
+        ]);
+        $messenger = Mockery::mock(WhatsAppMessageService::class);
+        $messenger->shouldNotReceive('sendTemplate');
+
+        (new ProcessAppointmentReminder($otherTenant->id, $reminder->id))->handle($messenger);
+
+        $this->assertDatabaseHas('appointment_reminders', [
+            'id' => $reminder->id,
+            'status' => 'queued',
+        ]);
+        $this->assertFalse(app()->bound(TenantContext::class), 'A completed reminder job must not leak tenant context.');
+    }
+
     public function test_scheduler_dispatches_due_reminders_in_a_tenant_scoped_batch(): void
     {
         [$tenant, $appointment, $reminder] = $this->confirmedReminder('reminder-scheduler', 'AUTO_ACTIVE', 1);
