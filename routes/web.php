@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BusinessProfileController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\BusinessHoursController;
 use App\Http\Controllers\BusinessHolidayController;
 use App\Http\Controllers\ServiceController;
@@ -66,7 +67,7 @@ Route::middleware('auth')->group(function (): void {
 });
 
 Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
-    Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::middleware('tenant.role:business_admin')->group(function (): void {
         Route::get('/business/profile', [BusinessProfileController::class, 'edit'])->name('business.profile.edit');
         Route::put('/business/profile', [BusinessProfileController::class, 'update'])->name('business.profile.update');
