@@ -104,6 +104,8 @@ class ConversationHandoverTest extends TestCase
         [, $tenantB] = $this->workspace('handover-action-tenant-b@example.test', 'business_admin');
         $conversation = $this->conversation($tenantB, 'WAITING_FOR_STAFF');
 
+        $auditEventsBefore = \Illuminate\Support\Facades\DB::table('audit_events')->count();
+
         $this->actingAs($user)->withSession(['current_tenant_id' => $tenantA->id]);
 
         $this->post('/conversations/'.$conversation->id.'/take')->assertNotFound();
@@ -122,7 +124,7 @@ class ConversationHandoverTest extends TestCase
         ]);
         $this->assertDatabaseCount('conversation_notes', 0);
         $this->assertDatabaseCount('messages', 1);
-        $this->assertDatabaseCount('audit_events', 0);
+        $this->assertSame($auditEventsBefore, \Illuminate\Support\Facades\DB::table('audit_events')->count());
     }
 
     public function test_business_admin_can_assign_conversation_to_another_active_workspace_member(): void
