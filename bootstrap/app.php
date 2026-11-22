@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\RecordAuditEvent;
 use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\RequireTenantRole;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
