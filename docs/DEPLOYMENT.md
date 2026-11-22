@@ -14,7 +14,7 @@ No additional paid hosting, database tier, queue service, or AI provider may be 
 
 ## 2. Current application runtime
 
-The repository contains a Laravel 13 / React / TypeScript / Inertia application with tenant-aware authentication and business configuration, official Meta WhatsApp Cloud API connection and webhook processing, encrypted message storage, outbound text and approved-template sending, a Groq-grounded FAQ assistant, queued inbound replies, a staff inbox/handover workflow, and a timezone-aware booking engine. Booking includes service/staff availability, temporary holds, Google FreeBusy checks, calendar-backed confirmation/cancellation, WhatsApp booking conversations, reminder scheduling and delivery-state tracking, approved-template reminders outside the 24-hour window, rescheduling, and reconciliation for ambiguous Google Calendar outcomes. Google OAuth uses PKCE and encrypted token storage, supports writable calendar selection and per-staff mappings, and includes token refresh/revocation. Business and platform-admin dashboards are implemented. Production deployment is not complete: live Meta and Google account acceptance, full security/dependency review, cron load/latency measurement, Hostinger + Neon deployment rehearsal, backup/restore drill, and Meta production onboarding remain outstanding. CI now runs the full suite against both SQLite and PostgreSQL 16. Run [44972417403](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44972417403) passed on commit `e3c13da00eebf9db78c5512a677514c5056a25ad`: 160 tests / 651 assertions, Composer validation/dependency installation, PostgreSQL 16 tests, and the Vite production build. This validates PostgreSQL compatibility in CI but is not a substitute for a final migration/connection rehearsal against the actual Neon project.
+The repository contains a Laravel 13 / React / TypeScript / Inertia application with tenant-aware authentication and business configuration, official Meta WhatsApp Cloud API connection and webhook processing, encrypted message storage, outbound text and approved-template sending, a Groq-grounded FAQ assistant, queued inbound replies, a staff inbox/handover workflow, and a timezone-aware booking engine. Booking includes service/staff availability, temporary holds, Google FreeBusy checks, calendar-backed confirmation/cancellation, WhatsApp booking conversations, reminder scheduling and delivery-state tracking, approved-template reminders outside the 24-hour window, rescheduling, and reconciliation for ambiguous Google Calendar outcomes. Google OAuth uses PKCE and encrypted token storage, supports writable calendar selection and per-staff mappings, and includes token refresh/revocation. Business and platform dashboards, tenant search/pagination/CSV export, per-tenant usage metrics and append-only admin/staff mutation audit history are implemented. Production deployment is not complete: penetration/abuse testing, live Meta and Google account acceptance, cron load/latency measurement, Hostinger + Neon deployment rehearsal, backup/restore drill and Meta production onboarding remain outstanding. CI runs the full suite against SQLite and PostgreSQL 16. Latest run [44972968776](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44972968776) passed on commit `607ade7ad9ef7e0a04b8dd8ac267cbcea08ed52e`: 162 tests / 663 assertions on each database, Composer and npm production dependency audits, and the Vite production build. This validates PostgreSQL compatibility in CI but is not a substitute for a final migration/connection rehearsal against the actual Neon project.
 
 Laravel 13 requires PHP 8.3 or higher. Hostinger's current PHP selector documentation lists PHP 8.2 and newer options, including 8.3–8.5. Select PHP 8.3+ for this application and verify required extensions in the actual site's PHP Info page. Do not assume the account's current PHP setting.
 
@@ -38,7 +38,7 @@ In Hostinger hPanel, verify the exact plan variant and current limits:
 - SSL certificate and custom-domain routing;
 - backup and restore options.
 
-The actual Hostinger account has not been inspected through a connected account tool; these checks remain outstanding.
+The actual Hostinger account has not been inspected through a connected account tool; these checks remain outstanding. For production, set `SESSION_SECURE_COOKIE=true`, keep `APP_DEBUG=false`, and never regenerate `APP_KEY` after encrypted integration credentials have been stored.
 
 ## 5. Neon configuration
 
@@ -54,9 +54,10 @@ The actual Hostinger account has not been inspected through a connected account 
 ## 6. Environment variables
 
 The committed `.env.example` contains placeholder-only values. Configure real values in the hosting environment:
-- APP_ENV, APP_KEY, APP_DEBUG=false, APP_URL
+- APP_ENV=production, APP_KEY (stable and backed up), APP_DEBUG=false, APP_URL
 - DB_CONNECTION=pgsql, DB_URL, DB_SSLMODE=require
-- QUEUE_CONNECTION=database, SESSION_DRIVER=file, CACHE_STORE=file
+- QUEUE_CONNECTION=database, SESSION_DRIVER=file, CACHE_STORE=file, SESSION_SECURE_COOKIE=true
+- PLATFORM_ADMIN_EMAILS (comma-separated verified email addresses; only these accounts can access `/platform`)
 - META_APP_ID, META_APP_SECRET, META_WEBHOOK_VERIFY_TOKEN, META_GRAPH_API_VERSION, META_APPOINTMENT_REMINDER_TEMPLATE, META_APPOINTMENT_REMINDER_LANGUAGE
 - MAIL_MAILER, MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM_ADDRESS, MAIL_FROM_NAME (configure a working SMTP transport before enabling password recovery in production)
 - GROQ_API_KEY, GROQ_MODEL
@@ -70,7 +71,7 @@ Never commit real values. Keep `.env` outside the public web root and ensure the
 2. Provision Neon environment and credentials.
 3. Configure domain and HTTPS on Hostinger.
 4. Deploy the repository and install PHP dependencies with `composer install --no-dev --optimize-autoloader`.
-5. Build frontend assets in a compatible build environment using `npm ci` (after a lockfile is committed) or `npm install`, then `npm run build`.
+5. Build frontend assets in a compatible build environment using `npm ci`, then `npm run build`.
 6. Set production environment variables securely.
 7. Run `php artisan migrate --force` after a database backup.
 8. Run `php artisan optimize` only after verifying the environment configuration.
