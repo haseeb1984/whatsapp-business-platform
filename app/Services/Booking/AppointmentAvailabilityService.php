@@ -3,6 +3,7 @@
 namespace App\Services\Booking;
 
 use App\Models\Appointment;
+use App\Models\AppointmentReschedule;
 use App\Models\BookingPolicy;
 use App\Models\BusinessHoliday;
 use App\Models\GoogleCalendarConnection;
@@ -248,7 +249,7 @@ class AppointmentAvailabilityService
 
     private function isBusy(string $staffId, CarbonImmutable $reservedStart, CarbonImmutable $reservedEnd): bool
     {
-        return Appointment::query()
+        $appointmentBusy = Appointment::query()
             ->where('staff_id', $staffId)
             ->where(function ($query): void {
                 $query->whereIn('status', ['calendar_pending', 'confirmed'])
@@ -260,6 +261,15 @@ class AppointmentAvailabilityService
             ->where('reserved_starts_at', '<', $reservedEnd->utc())
             ->where('reserved_ends_at', '>', $reservedStart->utc())
             ->exists();
+
+        $pendingRescheduleBusy = AppointmentReschedule::query()
+            ->whereIn('status', ['pending', 'unknown'])
+            ->whereHas('appointment', fn ($query) => $query->where('staff_id', $staffId))
+            ->where('new_reserved_starts_at', '<', $reservedEnd->utc())
+            ->where('new_reserved_ends_at', '>', $reservedStart->utc())
+            ->exists();
+
+        return $appointmentBusy || $pendingRescheduleBusy;
     }
 
     private function parseLocalDate(string $localDate, string $timezone): CarbonImmutable
