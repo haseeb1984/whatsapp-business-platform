@@ -15,7 +15,7 @@ class AppointmentReminderService
                 continue;
             }
 
-            $key = 'appointment:'.$appointment->id.':reminder:'.$type;
+            $key = 'appointment:'.$appointment->id.':reminder:'.$type.':'.$appointment->starts_at->timestamp;
             $existing = AppointmentReminder::query()->where('idempotency_key', $key)->first();
             if ($existing) {
                 continue;
