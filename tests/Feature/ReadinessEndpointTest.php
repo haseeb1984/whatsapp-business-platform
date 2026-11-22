@@ -25,6 +25,31 @@ class ReadinessEndpointTest extends TestCase
             ]);
     }
 
+    public function test_responses_include_baseline_browser_security_headers(): void
+    {
+        $this->getJson('/health/ready')
+            ->assertOk()
+            ->assertHeader('X-Content-Type-Options', 'nosniff')
+            ->assertHeader('X-Frame-Options', 'DENY')
+            ->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+            ->assertHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    }
+
+    public function test_hsts_is_only_sent_for_secure_production_requests(): void
+    {
+        config(['app.env' => 'production']);
+
+        $this->withServerVariables(['HTTPS' => 'on'])
+            ->getJson('/health/ready')
+            ->assertOk()
+            ->assertHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+
+        $this->withServerVariables(['HTTPS' => 'off'])
+            ->getJson('/health/ready')
+            ->assertOk()
+            ->assertHeaderMissing('Strict-Transport-Security');
+    }
+
     public function test_readiness_returns_degraded_without_exposing_database_exception_details(): void
     {
         DB::partialMock()->shouldReceive('connection')->once()->andThrow(new \RuntimeException('database credentials must stay private'));
