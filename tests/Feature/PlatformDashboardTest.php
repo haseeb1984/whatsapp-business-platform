@@ -51,16 +51,16 @@ class PlatformDashboardTest extends TestCase
         Tenant::query()->create(['name' => 'Salon North', 'slug' => 'salon-north', 'status' => 'active']);
         Tenant::query()->create(['name' => 'Clinic South', 'slug' => 'clinic-south', 'status' => 'suspended']);
 
-        $this->actingAs($admin)->get('/platform?q=Salon&status=active')
+        $this->actingAs($admin)->get('/platform?q=salon&status=active')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('filters.q', 'Salon')
+                ->where('filters.q', 'salon')
                 ->where('filters.status', 'active')
                 ->where('tenants.total', 1)
                 ->where('tenants.data.0.name', 'Salon North')
             );
 
-        $this->actingAs($admin)->get('/platform/tenants/export?q=Salon')
+        $this->actingAs($admin)->get('/platform/tenants/export?q=salon')
             ->assertOk()
             ->assertHeader('content-type', 'text/csv; charset=UTF-8')
             ->assertDownload();
