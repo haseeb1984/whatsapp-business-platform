@@ -22,6 +22,10 @@ class AppointmentCalendarOrchestrator
     {
         $existing = Appointment::query()->findOrFail($appointmentId);
         if ($existing->status === 'confirmed') {
+            if ($existing->calendar_sync_status !== 'synced') {
+                throw ValidationException::withMessages(['appointment' => 'This confirmed appointment has an unresolved calendar update. Reconciliation must finish before another calendar operation.']);
+            }
+
             return $existing;
         }
 
