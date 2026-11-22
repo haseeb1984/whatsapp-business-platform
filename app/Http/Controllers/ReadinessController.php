@@ -18,8 +18,15 @@ class ReadinessController extends Controller
             $databaseReady = false;
         }
 
-        $queueReady = config('queue.default') !== 'database'
-            || Schema::hasTable(config('queue.connections.database.table', 'jobs'));
+        $queueReady = false;
+        if ($databaseReady) {
+            try {
+                $queueReady = config('queue.default') !== 'database'
+                    || Schema::hasTable(config('queue.connections.database.table', 'jobs'));
+            } catch (Throwable) {
+                $queueReady = false;
+            }
+        }
 
         $ready = $databaseReady && $queueReady;
 
