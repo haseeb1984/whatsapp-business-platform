@@ -76,3 +76,4 @@ jobs:
           - This workflow is manually dispatched from main.
           - Changes are isolated to this branch and submitted as a reviewable PR; main is never modified directly.
           - Review the resolved versions and CI results before merging."
+          gh workflow run ci.yml --ref "$BRANCH_NAME"
