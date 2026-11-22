@@ -160,6 +160,54 @@ class AppointmentRescheduleServiceTest extends TestCase
         $this->assertDatabaseHas('appointment_reschedules', ['id' => $request->id, 'status' => 'synced']);
     }
 
+    public function test_reschedule_sync_job_cannot_process_another_tenants_request(): void
+    {
+        [$ownerTenant, $appointment] = $this->confirmedAppointment('reschedule-owner');
+        Queue::fake();
+
+        $firstCalendar = Mockery::mock(GoogleCalendarService::class);
+        $firstCalendar->shouldReceive('updateAppointmentEvent')
+            ->once()
+            ->andThrow(new RuntimeException('Google Calendar API request failed with HTTP 500.'));
+        $this->app->instance(GoogleCalendarService::class, $firstCalendar);
+
+        try {
+            TenantContext::runForTenant($ownerTenant->id, fn () => app(AppointmentRescheduleService::class)->reschedule(
+                $appointment->id,
+                CarbonImmutable::parse('2026-11-25 11:00:00', 'Asia/Karachi'),
+                'reschedule-owner-isolation-key',
+            ));
+        } catch (RuntimeException) {
+            // Keep the request in its durable unknown state for the isolation check.
+        }
+
+        $request = TenantContext::runForTenant($ownerTenant->id, fn () => \\App\\Models\\AppointmentReschedule::query()
+            ->where('idempotency_key', 'reschedule-owner-isolation-key')
+            ->firstOrFail());
+
+        $otherTenant = Tenant::query()->create([
+            'name' => 'Other Workspace',
+            'slug' => 'reschedule-other-tenant',
+            'timezone' => 'Asia/Karachi',
+        ]);
+
+        $calendar = Mockery::mock(GoogleCalendarService::class);
+        $calendar->shouldNotReceive('updateAppointmentEvent');
+        $this->app->instance(GoogleCalendarService::class, $calendar);
+
+        (new SyncAppointmentReschedule($otherTenant->id, $request->id))
+            ->handle(app(AppointmentRescheduleService::class));
+
+        $this->assertSame('unknown', $request->fresh()->status);
+        $this->assertDatabaseHas('appointments', [
+            'id' => $appointment->id,
+            'tenant_id' => $ownerTenant->id,
+            'status' => 'confirmed',
+            'calendar_sync_status' => 'unknown',
+        ]);
+        $this->assertNull(TenantContext::id());
+    }
+
     private function confirmedAppointment(string $slug): array
     {
         $tenant = Tenant::query()->create([
