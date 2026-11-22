@@ -154,13 +154,14 @@ class AppointmentController extends Controller
     public function reschedule(Request $request, string $appointmentId, AppointmentRescheduleService $reschedules): RedirectResponse
     {
         $validated = $request->validate([
-            'starts_at' => ['required', 'date_format:Y-m-d\\TH:i:sP'],
+            'starts_at' => ['required', 'date_format:Y-m-d\\TH:i'],
             'idempotency_key' => ['required', 'string', 'max:128'],
         ]);
 
-        $requestedStart = CarbonImmutable::createFromFormat('!Y-m-d\\TH:i:sP', $validated['starts_at'], 'UTC');
-        if (! $requestedStart || $requestedStart->format('Y-m-d\\TH:i:sP') !== $validated['starts_at']) {
-            throw ValidationException::withMessages(['starts_at' => 'Provide the selected slot as an ISO-8601 timestamp with an explicit UTC offset.']);
+        $timezone = app(TenantContext::class)->tenant()->timezone ?: 'UTC';
+        $requestedStart = CarbonImmutable::createFromFormat('!Y-m-d\\TH:i', $validated['starts_at'], $timezone);
+        if (! $requestedStart || $requestedStart->format('Y-m-d\\TH:i') !== $validated['starts_at']) {
+            throw ValidationException::withMessages(['starts_at' => 'Provide a valid date and time in the business timezone.']);
         }
 
         $appointment = $reschedules->reschedule($appointmentId, $requestedStart, $validated['idempotency_key']);
