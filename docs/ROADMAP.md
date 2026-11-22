@@ -149,13 +149,14 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Validate against a dedicated live Google test account and verify revocation/permission-loss behavior.
 
 
-**Status:** Tenant business dashboard and a read-only global platform operations console are implemented and CI-tested. Platform access is controlled by `PLATFORM_ADMIN_EMAILS`; only verified allowlisted accounts can view global tenant, integration and queue summaries. Usage analytics, audit history, exports, detailed integration health and tenant-management actions remain pending.
-
 ## Milestone 9 — Dashboards, usage and platform administration
 - [x] Tenant-scoped business dashboard with role-aware actions, integration health, operational metrics, recent conversations and upcoming appointments.
-- [ ] Platform admin tenant/integration/queue views.
+- [x] Read-only platform-admin tenant, integration and queue overview, restricted by a verified-email allowlist.
 - [ ] Usage metrics, audit log and integration health.
 - [ ] Search, filtering, pagination and export controls.
+
+**Status:** Tenant business dashboard and a read-only global platform operations console are implemented and CI-tested. Platform access is controlled by `PLATFORM_ADMIN_EMAILS`; only verified allowlisted accounts can view global tenant, integration and queue summaries. Usage analytics, audit history, exports, detailed integration health and tenant-management actions remain pending.
+
 
 ## Milestone 10 — Production hardening and deployment
 - [ ] Automated tests across critical workflows.
