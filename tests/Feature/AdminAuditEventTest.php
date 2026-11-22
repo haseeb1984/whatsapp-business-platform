@@ -33,7 +33,7 @@ class AdminAuditEventTest extends TestCase
         $this->assertSame($tenant->id, $event->tenant_id);
         $this->assertSame($user->id, $event->actor_user_id);
         $this->assertSame('PUT business/services/service-123', $event->event);
-        $this->assertSame('service-123', $event->subject_id);
+        $this->assertNull($event->subject_id);
         $this->assertSame(['method' => 'PUT', 'status_code' => 200], $event->metadata);
         $this->assertStringNotContainsString('must-not-be-recorded', json_encode($event->metadata));
     }
