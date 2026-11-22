@@ -44,29 +44,30 @@ class GoogleCalendarRescheduleApiTest extends TestCase
         [$tenant, $appointment] = $this->calendarAppointment();
         $newStart = CarbonImmutable::parse('2026-11-25 06:00:00 UTC');
         $newEnd = $newStart->addMinutes(30);
-        Http::fake([
-            'www.googleapis.com/calendar/v3/calendars/primary/events/google-event-reschedule' => Http::sequence()
-                ->push(['error' => ['message' => 'temporary upstream failure']], 500)
-                ->push([
-                    'id' => 'google-event-reschedule',
-                    'start' => ['dateTime' => $newStart->toIso8601String()],
-                    'end' => ['dateTime' => $newEnd->toIso8601String()],
-                    'extendedProperties' => ['private' => [
-                        'platformAppointmentId' => $appointment->id,
-                        'platformTenantId' => $appointment->tenant_id,
-                    ]],
-                ], 200),
-        ]);
+        $methods = [];
+        Http::fake(function ($request) use (&$methods, $appointment, $newStart, $newEnd) {
+            $method = strtoupper($request->method());
+            $methods[] = $method;
+            if ($method === 'PATCH') {
+                return Http::response(['error' => ['message' => 'temporary upstream failure']], 500);
+            }
+
+            return Http::response([
+                'id' => 'google-event-reschedule',
+                'start' => ['dateTime' => $newStart->toIso8601String()],
+                'end' => ['dateTime' => $newEnd->toIso8601String()],
+                'extendedProperties' => ['private' => [
+                    'platformAppointmentId' => $appointment->id,
+                    'platformTenantId' => $appointment->tenant_id,
+                ]],
+            ], 200);
+        });
 
         try {
             $eventId = TenantContext::runForTenant($tenant->id, fn () => app(GoogleCalendarService::class)
                 ->updateAppointmentEvent($appointment, $newStart, $newEnd));
         } catch (\RuntimeException $exception) {
-            $requests = Http::recorded();
-            $this->assertCount(2, $requests, 'The ambiguous update should perform one PATCH and one read-back GET.');
-            $this->assertSame('PATCH', $requests[0][0]->method());
-            $this->assertSame('GET', $requests[1][0]->method());
-            $this->assertSame('google-event-reschedule', $requests[1][1]->json('id'));
+            $this->assertSame(['PATCH', 'GET'], $methods, 'The ambiguous update should perform one PATCH and one read-back GET.');
             throw $exception;
         }
 
