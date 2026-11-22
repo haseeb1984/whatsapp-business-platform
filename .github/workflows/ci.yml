@@ -7,6 +7,20 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: whatsapp_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d whatsapp_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - name: Set up PHP
@@ -21,7 +35,17 @@ jobs:
         run: composer install --prefer-dist --no-interaction
       - name: Prepare environment
         run: cp .env.example .env && php artisan key:generate
-      - name: Run PHP tests
+      - name: Run PHP tests (SQLite)
+        run: php artisan test
+      - name: Run PHP tests (PostgreSQL 16)
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: whatsapp_test
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_SSLMODE: disable
         run: php artisan test
       - name: Set up Node
         uses: actions/setup-node@v4
