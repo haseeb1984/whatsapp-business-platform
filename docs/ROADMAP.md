@@ -20,7 +20,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Run migrations and the feature suite against a disposable PostgreSQL 16 CI database.
 - [x] Obtain a passing CI run for PHP tests and frontend production build.
 
-**Status:** Source scaffold committed; CI validates Composer, runs 166 feature tests (681 assertions) on SQLite and PostgreSQL 16, and builds the frontend. A separate connection/migration rehearsal against the actual Neon project remains pending.
+**Status:** Source scaffold committed; CI validates Composer, runs 168 feature tests (704 assertions) on SQLite and PostgreSQL 16, and builds the frontend. Additional cross-tenant relational-integrity tests are being validated in the current CI batch. A separate connection/migration rehearsal against the actual Neon project remains pending.
 
 ## Milestone 2 — Identity, tenancy, and authorization
 - [x] Implement email/password registration, login and logout with session regeneration/invalidation.
@@ -88,7 +88,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Durable encrypted webhook event persistence with SHA-256 idempotency key and duplicate suppression.
 - [x] Tenant routing through verified active phone_number_id; unknown/disabled connections are quarantined as unmatched.
 
-**Current checkpoint:** Template catalog retrieval (including cursor pagination), tenant-scoped persistence, manual sync action, settings UI, approved-template sending, parameter validation and out-of-window appointment-reminder integration are implemented. The reminder template is selected by `META_APPOINTMENT_REMINDER_TEMPLATE` and `META_APPOINTMENT_REMINDER_LANGUAGE`; it must contain exactly two sequential BODY variables. CI passed on commit `7e67b61` with 166 tests / 681 assertions on SQLite and PostgreSQL 16, clean Composer/npm production dependency audits, and the frontend production build.
+**Current checkpoint:** Template catalog retrieval (including cursor pagination), tenant-scoped persistence, manual sync action, settings UI, approved-template sending, parameter validation and out-of-window appointment-reminder integration are implemented. The reminder template is selected by `META_APPOINTMENT_REMINDER_TEMPLATE` and `META_APPOINTMENT_REMINDER_LANGUAGE`; it must contain exactly two sequential BODY variables. CI passed on commit `d2c3786` with 168 tests / 704 assertions on SQLite and PostgreSQL 16, clean Composer/npm production dependency audits, and the frontend production build.
 
 ## Milestone 5 — Conversations and human handover
 - [x] Customer/conversation/message persistence for inbound WhatsApp events with encrypted message content.
@@ -159,7 +159,7 @@ This roadmap distinguishes planned work from implemented work.
 
 
 ## Milestone 10 — Production hardening and deployment
-- [x] Automated tests across critical workflows (166 tests / 681 assertions on SQLite and PostgreSQL 16).
+- [x] Automated tests across critical workflows (168 tests / 704 assertions on SQLite and PostgreSQL 16; new relational-integrity tests pending CI).
 - [x] PostgreSQL 16 migration/test compatibility matrix in CI; live Neon connectivity and TLS validation remain pending.
 - [x] Automated PHP and frontend production dependency audits in GitHub Actions.
 - [x] Baseline browser security headers; HSTS only on secure production requests.
@@ -172,7 +172,7 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Backup/restore drill and rollback plan.
 - [ ] Meta production onboarding readiness review.
 
-**Status:** SQLite and PostgreSQL 16 suites both pass in CI (166 tests / 681 assertions per database on commit `7e67b61`; latest config/docs commits are pending CI). Composer/npm production audits report no advisories. Baseline browser security headers are active, and production session cookies default to Secure; deployed HTTPS/proxy/HSTS behavior still needs Hostinger verification. Baseline authorization, tenant isolation, token/payload encryption, webhook HMAC/size limits, admin audit logging and high-cost mutation throttles have been reviewed and tested. Penetration/abuse testing, live Neon TLS/credential validation, Hostinger deployment, queue/cron configuration, backups and rollback remain acceptance gates.
+**Status:** SQLite and PostgreSQL 16 suites both pass in CI (168 tests / 704 assertions per database on commit `d2c3786`; latest relational-integrity tests are pending CI). Composer/npm production audits report no advisories. Baseline browser security headers are active, and production session cookies default to Secure; deployed HTTPS/proxy/HSTS behavior still needs Hostinger verification. Baseline authorization, tenant isolation, token/payload encryption, webhook HMAC/size limits, admin audit logging and high-cost mutation throttles have been reviewed and tested. Penetration/abuse testing, live Neon TLS/credential validation, Hostinger deployment, queue/cron configuration, backups and rollback remain acceptance gates.
 
 ## Development rules
 
