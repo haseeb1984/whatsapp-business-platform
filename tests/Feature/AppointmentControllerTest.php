@@ -121,7 +121,7 @@ class AppointmentControllerTest extends TestCase
         $this->actingAs($user)->withSession(['current_tenant_id' => $tenantA->id]);
 
         $this->post('/business/appointments/'.$foreignAppointment->id.'/cancel-hold')->assertNotFound();
-        $this->put('/business/appointments/'.$foreignAppointment->id.'/reschedule', [
+        $this->post('/business/appointments/'.$foreignAppointment->id.'/reschedule', [
             'starts_at' => '2026-11-24T11:00',
             'idempotency_key' => 'cross-tenant-reschedule-attempt',
         ])->assertNotFound();
