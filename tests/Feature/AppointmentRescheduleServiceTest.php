@@ -181,7 +181,7 @@ class AppointmentRescheduleServiceTest extends TestCase
             // Keep the request in its durable unknown state for the isolation check.
         }
 
-        $request = TenantContext::runForTenant($ownerTenant->id, fn () => \\App\\Models\\AppointmentReschedule::query()
+        $request = TenantContext::runForTenant($ownerTenant->id, fn () => \App\Models\AppointmentReschedule::query()
             ->where('idempotency_key', 'reschedule-owner-isolation-key')
             ->firstOrFail());
 
