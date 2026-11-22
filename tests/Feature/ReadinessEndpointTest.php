@@ -38,6 +38,7 @@ class ReadinessEndpointTest extends TestCase
     public function test_hsts_is_only_sent_for_secure_production_requests(): void
     {
         config(['app.env' => 'production']);
+        app()->detectEnvironment(fn () => 'production');
         $middleware = new \App\Http\Middleware\SecurityHeaders();
 
         $secureRequest = \Mockery::mock(\Illuminate\Http\Request::class);
