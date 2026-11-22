@@ -116,17 +116,17 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::post('/conversations/{conversation}/take', [ConversationController::class, 'take'])->name('conversations.take');
         Route::post('/conversations/{conversation}/release', [ConversationController::class, 'release'])->name('conversations.release');
         Route::post('/conversations/{conversation}/handover', [ConversationController::class, 'requestHandover'])->name('conversations.handover');
-        Route::post('/conversations/{conversation}/reply', [ConversationController::class, 'reply'])->name('conversations.reply');
-        Route::post('/conversations/{conversation}/notes', [ConversationController::class, 'addNote'])->name('conversations.notes.store');
+        Route::post('/conversations/{conversation}/reply', [ConversationController::class, 'reply'])->middleware('throttle:60,1')->name('conversations.reply');
+        Route::post('/conversations/{conversation}/notes', [ConversationController::class, 'addNote'])->middleware('throttle:30,1')->name('conversations.notes.store');
         Route::get('/business/appointments', [AppointmentController::class, 'index'])->name('business.appointments.index');
         Route::get('/business/appointments/availability', [AppointmentController::class, 'availability'])->name('business.appointments.availability');
-        Route::post('/business/appointments/holds', [AppointmentController::class, 'createHold'])->name('business.appointments.holds.store');
-        Route::post('/business/appointments/{appointment}/cancel-hold', [AppointmentController::class, 'cancelHold'])->name('business.appointments.holds.cancel');
+        Route::post('/business/appointments/holds', [AppointmentController::class, 'createHold'])->middleware('throttle:30,1')->name('business.appointments.holds.store');
+        Route::post('/business/appointments/{appointment}/cancel-hold', [AppointmentController::class, 'cancelHold'])->middleware('throttle:30,1')->name('business.appointments.holds.cancel');
         Route::middleware('tenant.role:business_admin')->group(function (): void {
             Route::put('/business/appointments/policy', [BookingPolicyController::class, 'update'])->name('business.appointments.policy.update');
-            Route::post('/business/appointments/{appointment}/confirm-calendar', [AppointmentController::class, 'confirmCalendar'])->name('business.appointments.confirm-calendar');
+            Route::post('/business/appointments/{appointment}/confirm-calendar', [AppointmentController::class, 'confirmCalendar'])->middleware('throttle:10,1')->name('business.appointments.confirm-calendar');
             Route::post('/business/appointments/{appointment}/cancel', [AppointmentController::class, 'cancelConfirmed'])->name('business.appointments.cancel');
-            Route::post('/business/appointments/{appointment}/reschedule', [AppointmentController::class, 'reschedule'])->name('business.appointments.reschedule');
+            Route::post('/business/appointments/{appointment}/reschedule', [AppointmentController::class, 'reschedule'])->middleware('throttle:10,1')->name('business.appointments.reschedule');
             Route::get('/business/staff/{staff}/exceptions', [StaffAvailabilityExceptionController::class, 'index'])->name('business.staff.exceptions.index');
             Route::post('/business/staff/{staff}/exceptions', [StaffAvailabilityExceptionController::class, 'store'])->name('business.staff.exceptions.store');
             Route::put('/business/staff/{staff}/exceptions/{exception}', [StaffAvailabilityExceptionController::class, 'update'])->name('business.staff.exceptions.update');
