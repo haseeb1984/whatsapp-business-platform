@@ -44,21 +44,19 @@ class GoogleCalendarRescheduleApiTest extends TestCase
         [$tenant, $appointment] = $this->calendarAppointment();
         $newStart = CarbonImmutable::parse('2026-11-25 06:00:00 UTC');
         $newEnd = $newStart->addMinutes(30);
-        Http::fake(function ($request) use ($appointment, $newStart, $newEnd) {
-            if ($request->method() === 'PATCH') {
-                return Http::response(['error' => ['message' => 'temporary upstream failure']], 500);
-            }
-
-            return Http::response([
-                'id' => 'google-event-reschedule',
-                'start' => ['dateTime' => $newStart->toIso8601String()],
-                'end' => ['dateTime' => $newEnd->toIso8601String()],
-                'extendedProperties' => ['private' => [
-                    'platformAppointmentId' => $appointment->id,
-                    'platformTenantId' => $appointment->tenant_id,
-                ]],
-            ], 200);
-        });
+        Http::fake([
+            'www.googleapis.com/calendar/v3/calendars/primary/events/google-event-reschedule' => Http::sequence()
+                ->push(['error' => ['message' => 'temporary upstream failure']], 500)
+                ->push([
+                    'id' => 'google-event-reschedule',
+                    'start' => ['dateTime' => $newStart->toIso8601String()],
+                    'end' => ['dateTime' => $newEnd->toIso8601String()],
+                    'extendedProperties' => ['private' => [
+                        'platformAppointmentId' => $appointment->id,
+                        'platformTenantId' => $appointment->tenant_id,
+                    ]],
+                ], 200),
+        ]);
 
         $eventId = TenantContext::runForTenant($tenant->id, fn () => app(GoogleCalendarService::class)
             ->updateAppointmentEvent($appointment, $newStart, $newEnd));
