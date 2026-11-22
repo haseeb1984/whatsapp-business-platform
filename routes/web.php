@@ -120,6 +120,7 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
             Route::put('/business/appointments/policy', [BookingPolicyController::class, 'update'])->name('business.appointments.policy.update');
             Route::post('/business/appointments/{appointment}/confirm-calendar', [AppointmentController::class, 'confirmCalendar'])->name('business.appointments.confirm-calendar');
             Route::post('/business/appointments/{appointment}/cancel', [AppointmentController::class, 'cancelConfirmed'])->name('business.appointments.cancel');
+            Route::post('/business/appointments/{appointment}/reschedule', [AppointmentController::class, 'reschedule'])->name('business.appointments.reschedule');
             Route::get('/business/staff/{staff}/exceptions', [StaffAvailabilityExceptionController::class, 'index'])->name('business.staff.exceptions.index');
             Route::post('/business/staff/{staff}/exceptions', [StaffAvailabilityExceptionController::class, 'store'])->name('business.staff.exceptions.store');
             Route::put('/business/staff/{staff}/exceptions/{exception}', [StaffAvailabilityExceptionController::class, 'update'])->name('business.staff.exceptions.update');
