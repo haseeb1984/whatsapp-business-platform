@@ -159,6 +159,32 @@ class WhatsAppTemplateSyncTest extends TestCase
         Http::assertSent(fn ($request) => str_contains($request->url(), 'after=cursor-page-2'));
     }
 
+    public function test_template_sync_is_rate_limited_for_business_admins(): void
+    {
+        config(['services.meta.graph_api_version' => 'v24.0']);
+        Http::fake([
+            'https://graph.facebook.com/v24.0/987654321098765/message_templates*' => Http::response(['data' => []], 200),
+        ]);
+
+        [$user, $tenant] = $this->workspace('template-throttle@example.test');
+        $connection = TenantContext::runForTenant($tenant->id, fn () => WhatsAppConnection::query()->create([
+            'phone_number_id' => '123456789012349',
+            'waba_id' => '987654321098765',
+            'access_token' => 'long-lived-meta-access-token-for-tests',
+            'status' => 'active',
+            'verified_at' => now(),
+        ]));
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id]);
+
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $this->post('/business/whatsapp/'.$connection->id.'/templates/sync')->assertRedirect();
+        }
+
+        $this->post('/business/whatsapp/'.$connection->id.'/templates/sync')->assertTooManyRequests();
+        Http::assertSentCount(5);
+    }
+
     private function workspace(string $email): array
     {
         $user = User::query()->create([
