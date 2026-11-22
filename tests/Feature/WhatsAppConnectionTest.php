@@ -111,6 +111,30 @@ class WhatsAppConnectionTest extends TestCase
         $this->assertDatabaseCount('whatsapp_connections', 1);
     }
 
+    public function test_user_cannot_verify_another_tenants_whatsapp_connection(): void
+    {
+        Http::fake();
+
+        [$userA, $tenantA] = $this->workspace('wa-foreign-a@example.test');
+        [, $tenantB] = $this->workspace('wa-foreign-b@example.test');
+        $foreignConnection = TenantContext::runForTenant($tenantB->id, fn () => WhatsAppConnection::query()->create([
+            'phone_number_id' => '123450000000099',
+            'waba_id' => '987650000000099',
+            'access_token' => 'tenant-b-secret-access-token',
+            'status' => 'pending',
+        ]));
+
+        $this->actingAs($userA)->withSession(['current_tenant_id' => $tenantA->id]);
+        $this->post('/business/whatsapp/'.$foreignConnection->id.'/verify')->assertNotFound();
+
+        Http::assertNothingSent();
+        $this->assertDatabaseHas('whatsapp_connections', [
+            'id' => $foreignConnection->id,
+            'tenant_id' => $tenantB->id,
+            'status' => 'pending',
+        ]);
+    }
+
     public function test_staff_cannot_view_or_create_whatsapp_connections(): void
     {
         [$user, $tenant] = $this->workspace('wa-staff@example.test', 'staff');
