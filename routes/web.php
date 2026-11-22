@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BusinessProfileController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Platform\DashboardController as PlatformDashboardController;
 use App\Http\Controllers\BusinessHoursController;
 use App\Http\Controllers\BusinessHolidayController;
 use App\Http\Controllers\ServiceController;
@@ -64,6 +65,7 @@ Route::middleware('auth')->group(function (): void {
 
     Route::get('/workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
     Route::post('/workspaces/switch', [WorkspaceController::class, 'switch'])->middleware('throttle:20,1')->name('workspaces.switch');
+    Route::get('/platform', [PlatformDashboardController::class, 'index'])->middleware(['verified', 'platform.admin'])->name('platform.dashboard');
 });
 
 Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
