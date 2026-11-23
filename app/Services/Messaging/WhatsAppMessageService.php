@@ -223,8 +223,12 @@ class WhatsAppMessageService
                     return $existing;
                 }
 
+                // Keep lock ordering consistent with appointment lifecycle operations:
+                // appointment first, then reminder. This avoids lock-order inversion
+                // with cancellation/rescheduling transactions.
+                $reminderSnapshot = AppointmentReminder::query()->findOrFail($reminderId);
+                $appointment = Appointment::query()->lockForUpdate()->findOrFail($reminderSnapshot->appointment_id);
                 $reminder = AppointmentReminder::query()->lockForUpdate()->findOrFail($reminderId);
-                $appointment = Appointment::query()->lockForUpdate()->findOrFail($reminder->appointment_id);
                 if ($reminder->status !== 'processing' || $appointment->status !== 'confirmed'
                     || $appointment->customer_id !== $conversation->customer_id) {
                     throw ValidationException::withMessages(['reminder' => 'This appointment reminder is no longer eligible to send.']);
