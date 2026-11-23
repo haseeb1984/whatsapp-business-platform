@@ -148,7 +148,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] List writable calendars and configure tenant default plus per-staff calendar mappings.
 - [x] FreeBusy service and local availability integration; fail closed if requested calendars cannot be checked.
 - [x] Deterministic appointment event creation and event lookup after ambiguous create outcomes.
-- [x] Calendar event deletion; local cancellation is persisted only after deletion succeeds.
+- [x] Calendar event deletion; local cancellation is persisted only after deletion succeeds. Appointment deletion now first takes the appointment row lock and marks calendar synchronization pending before the external delete call, preventing a concurrent reschedule from updating the same event. A regression test verifies the reservation is active during the provider call.
 - [x] Keep slots reserved on rate limits or ambiguous create/delete outcomes.
 - [x] Event update/reschedule orchestration and tenant-scoped reconciliation worker for unknown outcomes; Google event updates are verified by read-back before local commit. A regression test now confirms replaying the same successfully synced reschedule idempotency key returns the existing appointment without issuing a second Google Calendar update. The transaction now rechecks the idempotency key under the tenant row lock, closing the concurrent first-request race before a duplicate reschedule row can be inserted.
 - [ ] Validate against a dedicated live Google test account and verify revocation/permission-loss behavior.
