@@ -222,3 +222,12 @@ This roadmap distinguishes planned work from implemented work.
 - CI and live Google OAuth validation remain outstanding; do not treat the new tests as passing until the workflow reports success.
 - Follow-up regression coverage also verifies that a new refresh token restores `connected`, the settings page receives `reauthorization_required`, and clearing a revoked connection removes encrypted credentials even when Google cannot confirm revocation.
 
+
+
+## Meta webhook worker-crash recovery (2026-11-23)
+
+- Added `webhooks:reconcile-stale-processing`, a bounded recovery command for tenant-owned Meta webhook events left in `processing` after a worker is terminated.
+- Only events belonging to active tenants and older than the ten-minute lease are reset to `pending`; the command locks and rechecks each row, updates its lease timestamp, and dispatches the existing idempotent processor after commit.
+- The command is scheduled every minute with overlap protection. A tenant option supports scoped operations.
+- Added regression tests for stale-vs-fresh selection, lease renewal/no duplicate requeue, and cross-tenant isolation; scheduler coverage now requires the command.
+- CI execution and real Meta webhook validation remain pending. This recovery does not change outbound delivery semantics: ambiguous provider sends remain `unknown` and are never automatically resent.
