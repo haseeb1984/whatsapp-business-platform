@@ -29,7 +29,7 @@ class ConversationHandoverTest extends TestCase
         ]);
 
         [$user, $tenant] = $this->workspace('handover-staff@example.test', 'staff');
-        $conversation = $this->conversation($tenant, 'WAITING_FOR_STAFF');
+        $conversation = $this->conversation($tenant, 'WAITING_FOR_STAFF', '123456789012345');
 
         $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id]);
 
@@ -169,11 +169,61 @@ class ConversationHandoverTest extends TestCase
         $this->post('/conversations/'.$conversation->id.'/close')->assertForbidden();
     }
 
-    private function conversation(Tenant $tenant, string $state): Conversation
+    public function test_inbox_index_lists_only_the_active_workspaces_conversations(): void
     {
-        return TenantContext::runForTenant($tenant->id, function () use ($state): Conversation {
+        [$user, $tenantA] = $this->workspace('handover-index-tenant-a@example.test', 'staff');
+        [, $tenantB] = $this->workspace('handover-index-tenant-b@example.test', 'business_admin');
+
+        $ownConversation = $this->conversation($tenantA, 'WAITING_FOR_STAFF');
+        $foreignConversation = $this->conversation($tenantB, 'WAITING_FOR_STAFF');
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenantA->id])
+            ->get('/conversations')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Business/Conversations/Index')
+                ->has('conversations', 1)
+                ->where('conversations.0.id', $ownConversation->id)
+                ->missing('conversations.1.id')
+            );
+
+        $this->assertNotSame($ownConversation->id, $foreignConversation->id);
+    }
+
+    public function test_conversation_detail_never_includes_another_tenants_messages_or_notes(): void
+    {
+        [$user, $tenantA] = $this->workspace('handover-detail-tenant-a@example.test', 'staff');
+        [$foreignUser, $tenantB] = $this->workspace('handover-detail-tenant-b@example.test', 'business_admin');
+        $conversation = $this->conversation($tenantA, 'WAITING_FOR_STAFF');
+        $foreignConversation = $this->conversation($tenantB, 'WAITING_FOR_STAFF');
+
+        TenantContext::runForTenant($tenantB->id, function () use ($foreignConversation, $foreignUser): void {
+            ConversationNote::query()->create([
+                'conversation_id' => $foreignConversation->id,
+                'created_by_user_id' => $foreignUser->id,
+                'body' => 'FOREIGN_PRIVATE_NOTE_SENTINEL',
+            ]);
+        });
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenantA->id])
+            ->get('/conversations/'.$conversation->id)
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Business/Conversations/Show')
+                ->has('messages', 1)
+                ->missing('messages.1')
+                ->has('notes', 0)
+                ->where('conversation.id', $conversation->id)
+            );
+
+        $this->get('/conversations/'.$foreignConversation->id)->assertNotFound();
+    }
+
+    private function conversation(Tenant $tenant, string $state, ?string $phoneNumberId = null): Conversation
+    {
+        return TenantContext::runForTenant($tenant->id, function () use ($state, $phoneNumberId): Conversation {
             WhatsAppConnection::query()->create([
-                'phone_number_id' => '123456789012345',
+                'phone_number_id' => $phoneNumberId ?? (string) random_int(100000000000000, 999999999999999),
                 'waba_id' => '987654321098765',
                 'access_token' => 'test-long-lived-access-token',
                 'status' => 'active',

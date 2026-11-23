@@ -477,6 +477,36 @@ class GoogleCalendarConnectionTest extends TestCase
         $this->assertNull($connection->refresh_token);
     }
 
+    public function test_oauth_callback_cannot_be_replayed_under_another_workspace_context(): void
+    {
+        [$user, $tenantA] = $this->workspace('google-oauth-tenant-a@example.test');
+        [, $tenantB] = $this->workspace('google-oauth-tenant-b@example.test');
+        $tenantB->users()->attach($user->id, ['role' => 'business_admin', 'status' => 'active']);
+
+        config([
+            'services.google.client_id' => 'client-id',
+            'services.google.client_secret' => 'client-secret',
+            'services.google.redirect_uri' => 'https://platform.example.test/business/calendar/callback',
+        ]);
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenantA->id]);
+        $start = $this->get('/business/calendar/connect')->assertRedirect();
+        $oauthState = $start->getSession()->get('google_calendar_oauth');
+        $this->assertIsArray($oauthState);
+        $this->assertSame($tenantA->id, $oauthState['tenant_id']);
+
+        Http::fake();
+
+        $this->withSession([
+            'current_tenant_id' => $tenantB->id,
+            'google_calendar_oauth' => $oauthState,
+        ])->get('/business/calendar/callback?state='.$oauthState['state'].'&code=authorization-code')
+            ->assertForbidden();
+
+        Http::assertNothingSent();
+        $this->assertDatabaseCount('google_calendar_connections', 0);
+    }
+
     private function workspace(string $email, string $role = 'business_admin'): array
     {
         $user = User::query()->create([
@@ -493,4 +523,44 @@ class GoogleCalendarConnectionTest extends TestCase
 
         return [$user, $tenant];
     }
+
+    public function test_default_calendar_update_cannot_modify_another_tenants_connection(): void
+    {
+        [$userA, $tenantA] = $this->workspace('google-default-isolation-a@example.test');
+        [, $tenantB] = $this->workspace('google-default-isolation-b@example.test');
+
+        TenantContext::runForTenant($tenantA->id, fn () => GoogleCalendarConnection::query()->create([
+            'access_token' => 'tenant-a-access',
+            'refresh_token' => 'tenant-a-refresh',
+            'token_expires_at' => now()->addHour(),
+            'status' => 'connected',
+            'default_calendar_id' => 'tenant-a-before@example.test',
+        ]));
+        TenantContext::runForTenant($tenantB->id, fn () => GoogleCalendarConnection::query()->create([
+            'access_token' => 'tenant-b-access',
+            'refresh_token' => 'tenant-b-refresh',
+            'token_expires_at' => now()->addHour(),
+            'status' => 'connected',
+            'default_calendar_id' => 'tenant-b-calendar@example.test',
+        ]));
+
+        Http::fake([
+            'www.googleapis.com/calendar/v3/users/me/calendarList*' => Http::response([
+                'items' => [
+                    ['id' => 'tenant-a-new@example.test', 'summary' => 'Tenant A Calendar', 'accessRole' => 'writer'],
+                ],
+            ]),
+        ]);
+
+        $this->actingAs($userA)->withSession(['current_tenant_id' => $tenantA->id])
+            ->put('/business/calendar/default', ['calendar_id' => 'tenant-a-new@example.test'])
+            ->assertRedirect();
+
+        $tenantAConnection = TenantContext::runForTenant($tenantA->id, fn () => GoogleCalendarConnection::query()->firstOrFail());
+        $tenantBConnection = TenantContext::runForTenant($tenantB->id, fn () => GoogleCalendarConnection::query()->firstOrFail());
+
+        $this->assertSame('tenant-a-new@example.test', $tenantAConnection->default_calendar_id);
+        $this->assertSame('tenant-b-calendar@example.test', $tenantBConnection->default_calendar_id);
+    }
+
 }

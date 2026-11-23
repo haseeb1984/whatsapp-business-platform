@@ -247,3 +247,142 @@ This roadmap distinguishes planned work from implemented work.
 - A follow-up code review found that `ProcessMetaWebhookEvent::handle()` currently writes `processing`, applies the inbound/status effects, and writes `processed` inside one database transaction. This preserves atomicity and idempotency, but means `processing` is not normally a durable intermediate state: a worker crash before commit rolls the transaction back to `pending`.
 - Consequently, `webhooks:reconcile-stale-processing` is defensive for rows left by older/manual flows, but does not by itself prove recovery of a worker crash in the current atomic handler. Do not describe it as a verified active crash-recovery path until the claim/lease is deliberately separated from the processing transaction and regression-tested for duplicate delivery, concurrent workers, and crash points.
 - No runtime behavior was changed in this review. The existing atomic transaction is retained rather than weakening webhook idempotency without a full recovery test matrix. Latest code CI remains unverified after the recent commits.
+
+
+## Meta webhook duplicate-worker regression coverage (2026-11-23)
+
+- Added a feature test that invokes the same inbound webhook job twice for one persisted provider event and verifies the event is processed once, the provider message ID creates one inbound message, and only one customer/conversation is created.
+- This specifically exercises the current atomic processing boundary: a second worker execution observes the committed `processed` state and exits without repeating side effects.
+- This is sequential duplicate-execution coverage, not a substitute for a real concurrent-worker/database-lock test. CI has not yet run for this branch; do not count the test as passing until the workflow completes.
+
+
+- Follow-up race-hardening: webhook job exception recovery and terminal `failed()` callbacks now lock the webhook-event row and recheck `processed` inside a transaction before writing. This prevents a stale callback from overwriting a concurrently committed successful result. A regression assertion invokes a late failure callback after processing and verifies the event remains processed. CI remains pending.
+
+
+## Outbound template timeout classification follow-up (2026-11-23)
+
+- Code review caught that free-form text sends classified HTTP 408 as ambiguous, but approved-template sends still treated it as a definite failure. Template sends now classify 408 as `unknown`, matching timeout semantics and the no-automatic-resend invariant.
+- Corrected the existing response-sequence fixture so the HTTP 408, 429, 503 and missing-provider-ID cases each receive their intended response.
+- Added a template-specific HTTP 408 regression test that invokes the delivery job twice and asserts one provider request and an `unknown` result.
+- These changes are in PR #2 and await CI; no provider-side exactly-once claim is made.
+
+
+- Added a second provider-level idempotency regression: two distinct persisted webhook deliveries carrying the same Meta provider message ID are processed independently, while producing one customer, one open conversation and one inbound message. This complements same-job replay coverage. CI is pending for the latest branch head.
+
+
+- CI attempt `45128253359` reached PHP test loading and stopped on an escaped `RuntimeException` syntax error in the new late-callback assertion; no feature tests ran in that attempt. The reference has been corrected on the branch. A fresh CI run `45128391052` is now in progress for the corrected head; results are not yet known.
+
+
+- CI run `45128423921` executed the SQLite suite: 218 tests passed (946 assertions), 4 failed. The failures exposed two test-only tenant-context omissions in the new webhook assertions, a globally unique Meta phone-number fixture reused across the new outbound multi-workspace loop, and the template send path still missing HTTP 408 classification. Corrected the scoped reads, isolated phone-number fixtures, and aligned both text/template 408 classification. A fresh CI run is required; PostgreSQL and production build stages have not yet been validated for this PR head.
+
+
+- Follow-up PostgreSQL CI on the corrected webhook fixtures reached 219 passing tests / 947 assertions, with three failures isolated to the Calendar recovery test helper seeding appointment status `held`, which violates the PostgreSQL check constraint (valid initial state is `pending_hold`). Updated the fixture to use `pending_hold`; a fresh full CI run is pending.
+
+
+## Webhook hardening CI verification (2026-11-23)
+
+- Full GitHub Actions run [45129187315](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45129187315) completed successfully for the webhook hardening code and PostgreSQL-valid Calendar recovery fixture.
+- Verified stages: PHP tests on SQLite, SQLite migration rollback/replay, PHP tests on PostgreSQL 16, PostgreSQL migration rollback/replay, Composer/npm production dependency audits, Vite production build, and lazy-loaded page-chunk manifest check.
+- This confirms the branch's sequential duplicate-worker/provider-message idempotency tests, late failure callback protection, HTTP 408 ambiguous handling for text and approved-template sends, and Calendar fixture compatibility pass in CI.
+- The run tested code commit `635d52f299fc2a1cf4d9f02d6567aa8b9822e46b`; the branch head also includes a subsequent documentation-only update. No real concurrent-worker/process-crash test, live Meta validation, Neon rehearsal, Hostinger validation, or deployment is implied by this CI result.
+- Business profile, weekly-hours, booking-policy and staff-exception controllers/tests were also reviewed. Their routes remain behind authenticated, verified tenant context and business-admin role checks; profile and weekly-hours tests verify tenant isolation, while booking-policy and staff-exception tests verify role and foreign-tenant behavior. Remaining cross-tenant route audit continues for any uncovered paths.
+
+
+## Business configuration tenant-isolation regression follow-up (2026-11-23)
+
+- Added explicit two-workspace route regressions proving a business-profile update cannot overwrite another tenant's profile, weekly-hours updates cannot overwrite another tenant's hours, and booking-policy updates remain scoped to the active tenant.
+- These complement the existing profile/hours isolation, staff-role, and staff-exception foreign-tenant tests. The new cases are committed on PR #2 and require a fresh CI run before being marked verified.
+
+
+## Appointment route isolation follow-up (2026-11-23)
+
+- Extended the cross-tenant appointment regression so a workspace cannot cancel a foreign temporary hold, reschedule a foreign appointment, confirm a foreign appointment through Google Calendar, or cancel a foreign confirmed appointment. Each route must return 404 and leave the foreign appointment unchanged.
+- This complements the existing foreign service availability validation and tenant-scoped customer/service/staff validation in hold creation. New assertions are pending CI.
+
+
+## Webhook crash-boundary clarification (2026-11-23)
+
+- Re-reviewed `ProcessMetaWebhookEvent::handle()`: the `processing` transition, tenant-scoped message/status mutation, and `processed` transition are inside one database transaction. A process crash before commit rolls the transaction back, so the current implementation should leave the event `pending`, not durably `processing`.
+- Updated the scheduled stale-`processing` recovery command's comments/purpose to describe it as legacy/orphaned-row cleanup only (for data left by earlier implementations or operational intervention), not as the normal recovery path for current worker crashes.
+- Sequential duplicate-worker tests remain useful for idempotency, but they do not simulate real simultaneous PostgreSQL workers or an OS/process crash. Those stronger tests remain an explicit validation gap.
+
+
+## PR #2 verification update (2026-11-23)
+
+- CI run [45154405291](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45154405291) passed with the appointment cross-tenant route assertions for hold cancellation, rescheduling, Calendar confirmation and confirmed cancellation.
+- CI run [45154516958](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45154516958) passed for the webhook crash-boundary clarification checkpoint.
+- The business profile, weekly-hours and booking-policy two-workspace regression additions are included in the PR validation history; do not overstate the separate documentation-only checkpoint as a fresh code-suite run.
+- PR #2 description now records both successful CI runs and explicitly retains real concurrent PostgreSQL worker/process-crash testing as an open gap.
+- No live Meta, Neon, Hostinger or deployment validation has been performed.
+
+
+## Google Calendar tenant-isolation follow-up (2026-11-23)
+
+- Added a two-workspace regression for the default Google Calendar mapping route. Tenant A updates its own writable calendar and the test asserts Tenant B's stored default calendar remains unchanged.
+- Existing coverage already verifies foreign staff-calendar mapping returns 404 without contacting Google.
+- The new default-calendar isolation test is committed on PR #2; CI verification is pending.
+
+
+## Inbox read-path tenant isolation (2026-11-23)
+
+- Added an inbox index regression proving the active workspace list excludes another workspace's conversation.
+- Added a conversation detail regression proving foreign conversation IDs return 404 and foreign private notes/messages do not enter the active workspace response.
+- Existing tenant-owned global scopes remain the primary enforcement; these tests pin the user-visible read boundary at the HTTP/Inertia layer.
+- CI verification is pending.
+
+
+- Test-fixture review confirmed conversation-note authors are required by the database schema. The foreign-note isolation regression now creates the note under Tenant B with Tenant B's real admin user, rather than a null author; the corrected test commit is awaiting CI.
+
+
+## Inbox tenant-fixture CI correction (2026-11-23)
+
+- The latest PR-head CI run [45162853608](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45162853608) exposed two failures in the newly added inbox index/detail isolation tests. Both came from the shared test helper inserting the same globally unique Meta `phone_number_id` for multiple workspace connections; 226 other SQLite tests passed (975 assertions) before the suite stopped.
+- Updated the helper to generate a distinct phone-number fixture by default, while keeping the known ID only in the existing outbound-reply test whose HTTP fake explicitly matches that endpoint.
+- The fixture-only correction is committed as `80a5ac51dd8bd9ba352b9592f249ffdcee5e0aa0`. A new full CI run is required; no pass is claimed until SQLite, PostgreSQL, migrations, dependency audits and frontend build all complete.
+
+
+## Booking resource tenant-isolation follow-up (2026-11-23)
+
+- Added an HTTP-level regression for appointment hold creation that independently substitutes a foreign workspace's customer ID, service ID and staff ID while keeping the other booking inputs local.
+- Each foreign resource must fail validation with 422, and no appointment may be created. This complements the existing cross-tenant availability-service check and cross-tenant appointment mutation checks.
+- Test is committed as `76c118ab0af77b260ecdb97b1345a8daa8296043`; fresh full CI is pending.
+
+
+## Booking resource isolation CI verification (2026-11-23)
+
+- Full CI run [45163875472](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45163875472) passed for code commit `76c118ab0af77b260ecdb97b1345a8daa8296043`.
+- The run completed SQLite feature tests, PostgreSQL 16 feature tests, SQLite and PostgreSQL migration rollback/replay, Composer and npm production dependency audits, Vite production build, and route-level lazy chunk verification.
+- The booking hold-creation regression independently rejects foreign customer, service and staff identifiers with 422 and confirms no appointment is created.
+- This is sequential route-validation evidence only; simultaneous PostgreSQL worker contention/process-crash behavior, live Meta/Google account checks, actual Neon rehearsal, Hostinger runtime validation, and deployment remain unverified.
+
+
+## Google OAuth workspace-binding regression (2026-11-23)
+
+- Added an HTTP-level test that starts Google OAuth under Workspace A, then attempts to complete the callback under Workspace B while the same authorized user belongs to both workspaces.
+- The callback must return 403 before exchanging the authorization code, send no request to Google, and create no connection. This directly exercises the stored tenant binding rather than relying only on an invalid/replayed state token.
+- The new regression is committed on PR #2; full CI verification is pending.
+
+
+## Google OAuth workspace-binding CI verification (2026-11-23)
+
+- Full CI run [45164285714](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45164285714) passed for the OAuth callback workspace-binding regression.
+- The test starts authorization under Workspace A, then attempts callback under Workspace B for a user belonging to both. It asserts 403, no outbound Google token-exchange request, and no Calendar connection created.
+- CI completed SQLite and PostgreSQL 16 feature suites, migration rollback/replay on both databases, Composer/npm production dependency audits, Vite build, and lazy route-chunk verification.
+- This does not substitute for a true simultaneous multi-worker lock/process-crash test or live Google/Meta, Neon, Hostinger and deployment validation.
+
+## Google Calendar disconnect tenant isolation (2026-11-23)
+
+- Added a two-workspace regression that disconnects Google Calendar while Workspace A is active and verifies only Workspace A's refresh/access credentials are revoked and cleared.
+- The test also asserts Workspace B remains connected with its original credentials and calendar mapping, and that only one provider revocation request is sent with Workspace A's refresh token.
+- The regression is committed on PR #2; full SQLite/PostgreSQL CI verification is pending.
+- This is application-level tenant isolation coverage; live Google revocation and production OAuth validation remain separate release gates.
+
+- **CI passed:** [run 45164881189](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45164881189) — two-workspace Google Calendar disconnect regression; SQLite and PostgreSQL 16 feature suites, migration rollback/replay, dependency audits and frontend build all passed.
+
+
+## Google Calendar credential-list isolation CI verification (2026-11-23)
+
+- Added a two-workspace HTTP regression for the Calendar list endpoint. With Workspace A active, it asserts only A's bearer token is sent to the Google Calendar list API while Workspace B's connection remains separate.
+- The initial run [45165189938](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45165189938) exposed a test-fixture assumption: the fake URL hard-coded Google's public API host while the application uses its configured API base URL. The assertion now matches the configured path and verifies the exact Authorization token.
+- Corrected full CI run [45165433038](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45165433038) passed.
+- This verifies tenant credential selection at the HTTP boundary; it does not establish live Google connectivity or production OAuth readiness.

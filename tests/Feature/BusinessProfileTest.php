@@ -72,6 +72,32 @@ class BusinessProfileTest extends TestCase
         $this->put('/business/profile', ['display_name' => 'Not allowed'])->assertForbidden();
     }
 
+    public function test_profile_update_cannot_read_or_overwrite_another_tenants_profile(): void
+    {
+        [$userA, $tenantA] = $this->workspace('profile-isolation-a@example.test');
+        [, $tenantB] = $this->workspace('profile-isolation-b@example.test');
+
+        \App\Support\Tenancy\TenantContext::runForTenant($tenantB->id, function (): void {
+            BusinessProfile::query()->create(['display_name' => 'Tenant B private profile']);
+        });
+
+        $this->actingAs($userA)->withSession(['current_tenant_id' => $tenantA->id]);
+        $this->put('/business/profile', [
+            'display_name' => 'Tenant A profile',
+            'timezone' => 'Asia/Karachi',
+            'locale' => 'en',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('business_profiles', [
+            'tenant_id' => $tenantB->id,
+            'display_name' => 'Tenant B private profile',
+        ]);
+        $this->assertDatabaseHas('business_profiles', [
+            'tenant_id' => $tenantA->id,
+            'display_name' => 'Tenant A profile',
+        ]);
+    }
+
     private function workspace(string $email, string $role = 'business_admin'): array
     {
         $user = User::query()->create([

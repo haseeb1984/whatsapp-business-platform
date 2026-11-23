@@ -72,14 +72,18 @@ class ProcessMetaWebhookEvent implements ShouldQueue
                 ])->save();
             });
         } catch (Throwable $exception) {
-            $event = WebhookEvent::query()->find($this->eventId);
-            if ($event && $event->status !== 'processed') {
+            DB::transaction(function (): void {
+                $event = WebhookEvent::query()->lockForUpdate()->find($this->eventId);
+                if (! $event || $event->status === 'processed') {
+                    return;
+                }
+
                 $event->forceFill([
                     'status' => 'pending',
                     'attempts' => $event->attempts + 1,
                     'error_summary' => 'Webhook event processing failed; the job will retry.',
                 ])->save();
-            }
+            });
 
             throw $exception;
         }
@@ -87,15 +91,17 @@ class ProcessMetaWebhookEvent implements ShouldQueue
 
     public function failed(?Throwable $exception): void
     {
-        $event = WebhookEvent::query()->find($this->eventId);
-        if (! $event || $event->status === 'processed') {
-            return;
-        }
+        DB::transaction(function (): void {
+            $event = WebhookEvent::query()->lockForUpdate()->find($this->eventId);
+            if (! $event || $event->status === 'processed') {
+                return;
+            }
 
-        $event->forceFill([
-            'status' => 'failed',
-            'error_summary' => 'Webhook event processing exhausted its retry attempts.',
-        ])->save();
+            $event->forceFill([
+                'status' => 'failed',
+                'error_summary' => 'Webhook event processing exhausted its retry attempts.',
+            ])->save();
+        });
     }
 
     private function processInboundMessage(array $payload, CarbonImmutable $receivedAt): ?array

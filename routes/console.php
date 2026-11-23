@@ -390,9 +390,10 @@ Artisan::command('webhooks:reconcile-stale-processing {--tenant=}', function ():
                 return false;
             }
 
-            // A crashed worker can leave an event permanently in processing.
-            // Reset only after the ten-minute lease expires; the job's row lock
-            // still prevents concurrent duplicate processing.
+            // Current webhook processing commits the processing and processed
+            // states in one database transaction, so a worker crash rolls both
+            // back. This lease is retained only to recover legacy/orphaned rows
+            // left by earlier versions or manual operational intervention.
             \Illuminate\Support\Facades\DB::table('webhook_events')
                 ->where('id', $eventId)
                 ->update([
