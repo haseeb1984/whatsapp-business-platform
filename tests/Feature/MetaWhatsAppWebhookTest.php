@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Tenant;
+use App\Models\Message;
 use App\Models\WebhookEvent;
 use App\Models\WhatsAppConnection;
 use App\Jobs\ProcessMetaWebhookEvent;
