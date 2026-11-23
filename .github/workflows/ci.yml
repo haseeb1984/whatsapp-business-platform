@@ -79,3 +79,15 @@ jobs:
         run: npm audit --omit=dev
       - name: Build frontend
         run: npm run build
+      - name: Verify route-level page chunks
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const manifest = JSON.parse(readFileSync('public/build/manifest.json', 'utf8'));
+          const entry = manifest['resources/js/app.tsx'];
+          const pageChunks = Object.keys(manifest).filter((key) => key.startsWith('resources/js/Pages/'));
+          if (!entry?.dynamicImports?.length || pageChunks.length === 0) {
+            throw new Error('Inertia pages are not being emitted as lazy-loaded route chunks.');
+          }
+          console.log(`Verified ${pageChunks.length} lazy-loaded Inertia page chunks.`);
+          NODE
