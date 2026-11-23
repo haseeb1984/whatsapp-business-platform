@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\MessageActor;
+use App\Jobs\DeliverWhatsAppMessage;
 use App\Models\Conversation;
 use App\Models\Customer;
 use App\Models\Message;
@@ -10,9 +11,11 @@ use App\Models\WhatsAppTemplate;
 use App\Models\Tenant;
 use App\Models\WhatsAppConnection;
 use App\Services\Messaging\WhatsAppMessageService;
+use App\Services\Meta\MetaWhatsAppGraphApi;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -69,6 +72,7 @@ class WhatsAppMessageServiceTest extends TestCase
     public function test_automation_cannot_send_after_human_handover_but_staff_can_reply(): void
     {
         config(['services.meta.graph_api_version' => 'v24.0']);
+        Queue::fake();
         Http::fake([
             'https://graph.facebook.com/v24.0/123456789012345/messages' => Http::response([
                 'messages' => [['id' => 'wamid.staff-reply-1']],
@@ -115,6 +119,7 @@ class WhatsAppMessageServiceTest extends TestCase
     public function test_approved_template_can_be_sent_with_exact_body_parameter_mapping(): void
     {
         config(['services.meta.graph_api_version' => 'v24.0']);
+        Queue::fake();
         Http::fake([
             'https://graph.facebook.com/v24.0/123456789012345/messages' => Http::response([
                 'messages' => [['id' => 'wamid.template-1']],
