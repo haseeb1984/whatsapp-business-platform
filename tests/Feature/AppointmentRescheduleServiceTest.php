@@ -6,6 +6,7 @@ use App\Jobs\SyncAppointmentReschedule;
 use App\Models\Appointment;
 use App\Models\AppointmentEvent;
 use App\Models\AppointmentReminder;
+use App\Models\AppointmentReschedule;
 use App\Models\BusinessHour;
 use App\Models\Customer;
 use App\Models\Service;
