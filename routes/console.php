@@ -287,8 +287,8 @@ Artisan::command('appointments:reconcile-calendar-pending {--tenant=}', function
     $dispatched = 0;
 
     $dispatchForTenant = function (string $id) use (&$dispatched): void {
-        \\App\\Support\\Tenancy\\TenantContext::runForTenant($id, function () use ($id, &$dispatched): void {
-            $candidates = \\App\\Models\\Appointment::query()
+        \App\Support\Tenancy\TenantContext::runForTenant($id, function () use ($id, &$dispatched): void {
+            $candidates = \App\Models\Appointment::query()
                 ->where('status', 'calendar_pending')
                 ->whereIn('calendar_sync_status', ['pending', 'unknown'])
                 ->where('updated_at', '<=', now()->subMinutes(10))
@@ -297,8 +297,8 @@ Artisan::command('appointments:reconcile-calendar-pending {--tenant=}', function
                 ->get(['id']);
 
             foreach ($candidates as $candidate) {
-                $shouldDispatch = \\Illuminate\\Support\\Facades\\DB::transaction(function () use ($candidate): bool {
-                    $appointment = \\App\\Models\\Appointment::query()->lockForUpdate()->find($candidate->id);
+                $shouldDispatch = \Illuminate\Support\Facades\DB::transaction(function () use ($candidate): bool {
+                    $appointment = \App\Models\Appointment::query()->lockForUpdate()->find($candidate->id);
                     if (! $appointment
                         || $appointment->status !== 'calendar_pending'
                         || ! in_array($appointment->calendar_sync_status, ['pending', 'unknown'], true)
@@ -314,7 +314,7 @@ Artisan::command('appointments:reconcile-calendar-pending {--tenant=}', function
                 });
 
                 if ($shouldDispatch) {
-                    \\App\\Jobs\\SyncAppointmentCalendarEvent::dispatch($id, $candidate->id)->afterCommit();
+                    \App\Jobs\SyncAppointmentCalendarEvent::dispatch($id, $candidate->id)->afterCommit();
                     $dispatched++;
                 }
             }
