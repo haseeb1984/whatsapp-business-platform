@@ -321,3 +321,11 @@ This roadmap distinguishes planned work from implemented work.
 - Added a two-workspace regression for the default Google Calendar mapping route. Tenant A updates its own writable calendar and the test asserts Tenant B's stored default calendar remains unchanged.
 - Existing coverage already verifies foreign staff-calendar mapping returns 404 without contacting Google.
 - The new default-calendar isolation test is committed on PR #2; CI verification is pending.
+
+
+## Inbox read-path tenant isolation (2026-11-23)
+
+- Added an inbox index regression proving the active workspace list excludes another workspace's conversation.
+- Added a conversation detail regression proving foreign conversation IDs return 404 and foreign private notes/messages do not enter the active workspace response.
+- Existing tenant-owned global scopes remain the primary enforcement; these tests pin the user-visible read boundary at the HTTP/Inertia layer.
+- CI verification is pending.
