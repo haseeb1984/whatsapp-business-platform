@@ -185,6 +185,34 @@ class AppointmentCalendarOrchestrationTest extends TestCase
         ]);
     }
 
+    public function test_definite_calendar_deletion_rejection_is_recorded_as_failed(): void
+    {
+        [$tenant, $appointment] = $this->booking('calendar-delete-rejected');
+        $calendar = new FakeAppointmentGoogleCalendarService();
+        $calendar->createdEventId = 'google-event-delete-rejected';
+        $calendar->deleteFailure = new RuntimeException('Google Calendar API request failed with HTTP 403.');
+        $this->app->instance(GoogleCalendarService::class, $calendar);
+
+        TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->confirm($appointment->id));
+
+        try {
+            TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->cancel($appointment->id));
+            $this->fail('A definite provider rejection must not be treated as an ambiguous outcome.');
+        } catch (RuntimeException $exception) {
+            $this->assertStringContainsString('HTTP 403', $exception->getMessage());
+        }
+
+        $this->assertDatabaseHas('appointments', [
+            'id' => $appointment->id,
+            'status' => 'confirmed',
+            'calendar_sync_status' => 'failed',
+        ]);
+        $this->assertDatabaseHas('appointment_events', [
+            'appointment_id' => $appointment->id,
+            'event_type' => 'calendar_deletion_failed',
+        ]);
+    }
+
     public function test_ambiguous_calendar_deletion_keeps_appointment_confirmed_and_reserved(): void
     {
         [$tenant, $appointment] = $this->booking('calendar-delete-unknown');
