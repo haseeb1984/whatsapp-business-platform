@@ -346,3 +346,11 @@ This roadmap distinguishes planned work from implemented work.
 - Added an HTTP-level regression for appointment hold creation that independently substitutes a foreign workspace's customer ID, service ID and staff ID while keeping the other booking inputs local.
 - Each foreign resource must fail validation with 422, and no appointment may be created. This complements the existing cross-tenant availability-service check and cross-tenant appointment mutation checks.
 - Test is committed as `76c118ab0af77b260ecdb97b1345a8daa8296043`; fresh full CI is pending.
+
+
+## Booking resource isolation CI verification (2026-11-23)
+
+- Full CI run [45163875472](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45163875472) passed for code commit `76c118ab0af77b260ecdb97b1345a8daa8296043`.
+- The run completed SQLite feature tests, PostgreSQL 16 feature tests, SQLite and PostgreSQL migration rollback/replay, Composer and npm production dependency audits, Vite production build, and route-level lazy chunk verification.
+- The booking hold-creation regression independently rejects foreign customer, service and staff identifiers with 422 and confirms no appointment is created.
+- This is sequential route-validation evidence only; simultaneous PostgreSQL worker contention/process-crash behavior, live Meta/Google account checks, actual Neon rehearsal, Hostinger runtime validation, and deployment remain unverified.
