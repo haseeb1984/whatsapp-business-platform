@@ -431,6 +431,52 @@ class GoogleCalendarConnectionTest extends TestCase
         $this->assertSame('fresh-refresh-token', $connection->refresh_token);
     }
 
+    public function test_calendar_settings_exposes_reauthorization_required_state_to_the_ui(): void
+    {
+        [$user, $tenant] = $this->workspace('google-reauthorization-ui@example.test');
+        TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->create([
+            'access_token' => 'expired-access',
+            'refresh_token' => 'revoked-refresh',
+            'token_expires_at' => now()->subMinute(),
+            'status' => 'reauthorization_required',
+            'default_calendar_id' => 'primary',
+        ]));
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id])
+            ->get('/business/calendar')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Business/Calendar/Index')
+                ->where('connection.connected', false)
+                ->where('connection.status', 'reauthorization_required'));
+    }
+
+    public function test_clear_saved_authorization_removes_revoked_google_credentials(): void
+    {
+        [$user, $tenant] = $this->workspace('google-clear-revoked@example.test');
+        TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->create([
+            'access_token' => 'expired-access',
+            'refresh_token' => 'revoked-refresh',
+            'token_expires_at' => now()->subMinute(),
+            'status' => 'reauthorization_required',
+            'default_calendar_id' => 'primary',
+        ]));
+
+        Http::fake([
+            'oauth2.googleapis.com/revoke' => Http::response(['error' => 'invalid_token'], 400),
+        ]);
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id])
+            ->delete('/business/calendar')
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $connection = TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->firstOrFail());
+        $this->assertSame('disconnected', $connection->status);
+        $this->assertNull($connection->access_token);
+        $this->assertNull($connection->refresh_token);
+    }
+
     private function workspace(string $email, string $role = 'business_admin'): array
     {
         $user = User::query()->create([
