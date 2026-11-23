@@ -29,7 +29,7 @@ class ConversationHandoverTest extends TestCase
         ]);
 
         [$user, $tenant] = $this->workspace('handover-staff@example.test', 'staff');
-        $conversation = $this->conversation($tenant, 'WAITING_FOR_STAFF');
+        $conversation = $this->conversation($tenant, 'WAITING_FOR_STAFF', '123456789012345');
 
         $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id]);
 
@@ -219,11 +219,11 @@ class ConversationHandoverTest extends TestCase
         $this->get('/conversations/'.$foreignConversation->id)->assertNotFound();
     }
 
-    private function conversation(Tenant $tenant, string $state): Conversation
+    private function conversation(Tenant $tenant, string $state, ?string $phoneNumberId = null): Conversation
     {
-        return TenantContext::runForTenant($tenant->id, function () use ($state): Conversation {
+        return TenantContext::runForTenant($tenant->id, function () use ($state, $phoneNumberId): Conversation {
             WhatsAppConnection::query()->create([
-                'phone_number_id' => '123456789012345',
+                'phone_number_id' => $phoneNumberId ?? (string) random_int(100000000000000, 999999999999999),
                 'waba_id' => '987654321098765',
                 'access_token' => 'test-long-lived-access-token',
                 'status' => 'active',
