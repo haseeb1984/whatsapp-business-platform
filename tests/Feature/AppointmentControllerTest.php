@@ -104,6 +104,33 @@ class AppointmentControllerTest extends TestCase
             ->assertUnprocessable();
     }
 
+    public function test_hold_creation_rejects_foreign_customer_service_and_staff_ids(): void
+    {
+        [$user, $tenantA, $serviceA, $staffA, $customerA] = $this->workspace('appointment-hold-owner-a@example.test', 'business_admin');
+        [, $tenantB, $serviceB, $staffB, $customerB] = $this->workspace('appointment-hold-owner-b@example.test', 'business_admin');
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenantA->id]);
+
+        $basePayload = [
+            'customer_id' => $customerA->id,
+            'service_id' => $serviceA->id,
+            'staff_id' => $staffA->id,
+            'starts_at' => '2026-11-24T04:00:00+00:00',
+            'source' => 'dashboard',
+        ];
+
+        foreach ([
+            ['customer_id' => $customerB->id, 'idempotency_key' => 'foreign-customer-hold'],
+            ['service_id' => $serviceB->id, 'idempotency_key' => 'foreign-service-hold'],
+            ['staff_id' => $staffB->id, 'idempotency_key' => 'foreign-staff-hold'],
+        ] as $foreignField) {
+            $this->postJson('/business/appointments/holds', array_merge($basePayload, $foreignField))
+                ->assertUnprocessable();
+        }
+
+        $this->assertDatabaseCount('appointments', 0);
+    }
+
     public function test_user_cannot_reschedule_or_cancel_another_tenants_appointment(): void
     {
         [$user, $tenantA] = $this->workspace('appointment-cross-tenant-a@example.test', 'business_admin');
