@@ -1,7 +1,7 @@
 <?php
 
-use App\\Jobs\\ProcessMetaWebhookEvent;
-use Illuminate\\Contracts\\Console\\Kernel;
+use App\Jobs\ProcessMetaWebhookEvent;
+use Illuminate\Contracts\Console\Kernel;
 
 [$script, $eventId, $readyPath, $startPath] = $argv + [null, null, null, null];
 
