@@ -39,8 +39,8 @@ class CalendarPendingRecoveryCommandTest extends TestCase
     {
         Queue::fake();
         [$tenant, $stale] = $this->appointment('calendar-recovery-stale');
-        [, $fresh] = $this->appointment('calendar-recovery-fresh');
-        [, $failed] = $this->appointment('calendar-recovery-failed');
+        [, $fresh] = $this->appointment('calendar-recovery-fresh', $tenant);
+        [, $failed] = $this->appointment('calendar-recovery-failed', $tenant);
 
         TenantContext::runForTenant($tenant->id, function () use ($stale, $fresh, $failed): void {
             $stale->forceFill([
@@ -121,21 +121,25 @@ class CalendarPendingRecoveryCommandTest extends TestCase
         Queue::assertNothingPushed();
     }
 
-    private function appointment(string $slug): array
+    private function appointment(string $slug, ?Tenant $existingTenant = null): array
     {
-        $user = User::query()->create([
-            'name' => 'Recovery Admin',
-            'email' => $slug.'@example.test',
-            'password' => 'StrongPassword123',
-        ]);
-        $user->forceFill(['email_verified_at' => now()])->save();
+        if ($existingTenant === null) {
+            $user = User::query()->create([
+                'name' => 'Recovery Admin',
+                'email' => $slug.'@example.test',
+                'password' => 'StrongPassword123',
+            ]);
+            $user->forceFill(['email_verified_at' => now()])->save();
 
-        $tenant = Tenant::query()->create([
-            'name' => 'Recovery Workspace',
-            'slug' => $slug,
-            'timezone' => 'Asia/Karachi',
-        ]);
-        $tenant->users()->attach($user->id, ['role' => 'business_admin', 'status' => 'active']);
+            $tenant = Tenant::query()->create([
+                'name' => 'Recovery Workspace',
+                'slug' => $slug,
+                'timezone' => 'Asia/Karachi',
+            ]);
+            $tenant->users()->attach($user->id, ['role' => 'business_admin', 'status' => 'active']);
+        } else {
+            $tenant = $existingTenant;
+        }
 
         [$service, $staff, $customer] = TenantContext::runForTenant($tenant->id, function (): array {
             $service = Service::query()->create([
