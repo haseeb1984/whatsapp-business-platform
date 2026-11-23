@@ -35,7 +35,8 @@ class OutboundMessageOutboxTest extends TestCase
             'id' => $message->id,
             'delivery_status' => 'pending',
         ]);
-        $this->assertTrue($message->fresh()->updated_at->greaterThan(now()->subMinute()));
+        $queuedAt = DB::table('messages')->where('id', $message->id)->value('updated_at');
+        $this->assertGreaterThan(now()->subMinute()->timestamp, strtotime((string) $queuedAt));
     }
 
     public function test_stale_sending_messages_become_unknown_and_are_never_resent(): void
@@ -86,7 +87,7 @@ class OutboundMessageOutboxTest extends TestCase
 
             DB::table('messages')->where('id', $message->id)->update(['updated_at' => $updatedAt]);
 
-            return $message->fresh();
+            return $message;
         });
     }
 }
