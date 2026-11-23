@@ -249,6 +249,46 @@ class WhatsAppMessageServiceTest extends TestCase
             && $request['template']['components'][0]['parameters'][1]['text'] === 'Consultation');
     }
 
+    public function test_approved_template_http_408_remains_unknown_without_resend(): void
+    {
+        config(['services.meta.graph_api_version' => 'v24.0']);
+        Queue::fake();
+        Http::fake([
+            'https://graph.facebook.com/v24.0/123456789012345/messages' => Http::response([
+                'error' => ['message' => 'Request timed out'],
+            ], 408),
+        ]);
+
+        $tenant = $this->workspace('template-timeout-408');
+        $conversation = $this->conversation($tenant->id, 'AUTO_ACTIVE', now()->subDays(3));
+        $template = TenantContext::runForTenant($tenant->id, function () {
+            $connection = WhatsAppConnection::query()->firstOrFail();
+
+            return WhatsAppTemplate::query()->create([
+                'whatsapp_connection_id' => $connection->id,
+                'provider_template_id' => 'meta-template-timeout',
+                'name' => 'appointment_reminder',
+                'language' => 'en_US',
+                'category' => 'UTILITY',
+                'status' => 'APPROVED',
+                'components' => [['type' => 'BODY', 'text' => 'Hello {{1}}']],
+                'synced_at' => now(),
+            ]);
+        });
+
+        $message = TenantContext::runForTenant($tenant->id, fn () => app(WhatsAppMessageService::class)
+            ->sendTemplate($conversation, $template, ['Amina']));
+
+        $job = new DeliverWhatsAppMessage($tenant->id, $message->id);
+        $job->handle(app(MetaWhatsAppGraphApi::class));
+        $job->handle(app(MetaWhatsAppGraphApi::class));
+
+        $message->refresh();
+        $this->assertSame('unknown', $message->delivery_status);
+        $this->assertNull($message->provider_message_id);
+        Http::assertSentCount(1);
+    }
+
     public function test_template_send_rejects_unapproved_templates_and_incorrect_parameter_count(): void
     {
         Http::fake();
