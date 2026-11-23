@@ -286,3 +286,9 @@ This roadmap distinguishes planned work from implemented work.
 - This confirms the branch's sequential duplicate-worker/provider-message idempotency tests, late failure callback protection, HTTP 408 ambiguous handling for text and approved-template sends, and Calendar fixture compatibility pass in CI.
 - The run tested code commit `635d52f299fc2a1cf4d9f02d6567aa8b9822e46b`; the branch head also includes a subsequent documentation-only update. No real concurrent-worker/process-crash test, live Meta validation, Neon rehearsal, Hostinger validation, or deployment is implied by this CI result.
 - Business profile, weekly-hours, booking-policy and staff-exception controllers/tests were also reviewed. Their routes remain behind authenticated, verified tenant context and business-admin role checks; profile and weekly-hours tests verify tenant isolation, while booking-policy and staff-exception tests verify role and foreign-tenant behavior. Remaining cross-tenant route audit continues for any uncovered paths.
+
+
+## Business configuration tenant-isolation regression follow-up (2026-11-23)
+
+- Added explicit two-workspace route regressions proving a business-profile update cannot overwrite another tenant's profile, weekly-hours updates cannot overwrite another tenant's hours, and booking-policy updates remain scoped to the active tenant.
+- These complement the existing profile/hours isolation, staff-role, and staff-exception foreign-tenant tests. The new cases are committed on PR #2 and require a fresh CI run before being marked verified.
