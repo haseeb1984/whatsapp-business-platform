@@ -210,7 +210,7 @@ class ConversationController extends Controller
 
         $messenger->sendText($conversation, $validated['body'], MessageActor::Staff, null, (int) $request->user()->id);
 
-        return back()->with('success', 'Staff reply submitted to WhatsApp.');
+        return back()->with('success', 'Staff reply queued for WhatsApp delivery.');
     }
 
     public function addNote(Request $request, string $conversationId): RedirectResponse
