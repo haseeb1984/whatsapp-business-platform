@@ -20,6 +20,15 @@ Artisan::command('platform:preflight {--strict}', function (): int {
         'Secure session cookies' => config('session.secure') === true,
         'Meta Graph API version configured' => is_string(config('services.meta.graph_api_version'))
             && preg_match('/^v\d+\.\d+$/', (string) config('services.meta.graph_api_version')) === 1,
+        'Meta app and webhook credentials configured' => collect([
+            config('services.meta.app_id'),
+            config('services.meta.app_secret'),
+            config('services.meta.webhook_verify_token'),
+        ])->every(fn ($value): bool => is_string($value) && trim($value) !== ''),
+        'SMTP mail transport configured' => config('mail.default') === 'smtp'
+            && is_string(config('mail.mailers.smtp.host'))
+            && trim((string) config('mail.mailers.smtp.host')) !== ''
+            && filter_var(config('mail.from.address'), FILTER_VALIDATE_EMAIL) !== false,
         'Groq API key configured' => is_string(config('services.groq.api_key')) && trim((string) config('services.groq.api_key')) !== '',
         'Google Calendar OAuth configured' => collect([
             config('services.google.client_id'),
