@@ -14,9 +14,9 @@ A reusable multi-tenant WhatsApp Business automation platform using the official
 
 **Google Calendar and dashboards:** OAuth with state/PKCE, encrypted token storage, refresh/revocation, writable calendar selection, per-staff mappings, FreeBusy and event reconciliation are implemented. Business and platform-admin dashboards, tenant usage summaries, audit history, tenant search and CSV export are implemented.
 
-**Production acceptance still pending:** Actual Neon connection/TLS and migration rehearsal, Hostinger plan/runtime and cron validation, live Meta and Google account validation, penetration/abuse and load testing, browser performance profiling, deployment rehearsal, backup/restore drill and Meta production onboarding. Committed dependency lockfiles are also still outstanding; dependency versions are currently resolved during CI runs.
+**Production acceptance still pending:** Actual Neon connection/TLS and migration rehearsal, Hostinger plan/runtime and cron validation, live Meta and Google account validation, penetration/abuse and load testing, browser performance profiling, deployment rehearsal, backup/restore drill and Meta production onboarding. Composer and npm lockfiles are committed, and CI uses reproducible locked installs; this does not replace live infrastructure validation.
 
-**Current CI:** The main CI workflow validates Composer, runs the SQLite and PostgreSQL 16 feature suites, verifies full migration rollback/replay on both databases, audits PHP and frontend production dependencies, builds the Vite frontend, and checks lazy-loaded Inertia page chunks. The latest documentation-branch CI run [45243869630](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45243869630) passed. A separate implementation PR adds a true two-process PostgreSQL webhook idempotency/concurrency test and passed its full CI run [45243247660](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45243247660); that implementation remains under review and is not yet part of main.
+**Current CI:** The main CI workflow validates Composer, runs the SQLite and PostgreSQL 16 feature suites (including the true two-process PostgreSQL webhook idempotency test), verifies full migration rollback/replay on both databases, audits PHP and frontend production dependencies, builds the Vite frontend, and checks lazy-loaded Inertia page chunks. The latest post-merge `main` run [45277647644](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45277647644) passed on commit `15db2f73c88e3f5bdf3e6fb024f8fab81bd74a78`. All PRs #1–#3 and #5–#11 are merged; there are no open pull requests.
 
 ## Approved stack
 
@@ -72,7 +72,7 @@ Prerequisites: PHP 8.3+, Composer, Node.js 22+, npm, and a PostgreSQL database. 
 4. Install and build frontend dependencies:
 
    ```bash
-   npm install
+   npm ci
    npm run build
    ```
 
@@ -101,7 +101,7 @@ GitHub Actions is the source of truth for the full verification pipeline:
 - Vite production build and lazy-loaded Inertia page-chunk manifest guard
 - Scheduler regression coverage for minute cadence and overlap protection
 
-The latest documentation-branch verification is [run 45243869630](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45243869630). The independent PostgreSQL multi-worker webhook concurrency test is implemented in [PR #5](https://github.com/haseeb1984/whatsapp-business-platform/pull/5) and passed [run 45243247660](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45243247660); it remains separate from main until that PR is reviewed and merged.
+The latest post-merge `main` verification is [run 45277647644](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45277647644), which passed after all feature PRs were merged. The PostgreSQL multi-worker webhook concurrency regression from [PR #5](https://github.com/haseeb1984/whatsapp-business-platform/pull/5) now runs in the main PostgreSQL 16 CI suite.
 
 Run the checks locally with `composer validate`, `php artisan test`, and `npm run build`. The CI PostgreSQL service is a compatibility gate; it does not replace a connection and migration rehearsal against the actual Neon project.
 
