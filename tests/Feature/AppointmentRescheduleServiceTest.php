@@ -191,6 +191,31 @@ class AppointmentRescheduleServiceTest extends TestCase
         $this->assertDatabaseHas('appointment_reschedules', ['id' => $request->id, 'status' => 'synced']);
     }
 
+    public function test_completed_reschedule_reconciliation_job_does_not_update_calendar_again(): void
+    {
+        [$tenant, $appointment] = $this->confirmedAppointment('reschedule-job-replay');
+        $calendar = Mockery::mock(GoogleCalendarService::class);
+        $calendar->shouldReceive('updateAppointmentEvent')->once()->andReturn('google-event-reschedule');
+        $this->app->instance(GoogleCalendarService::class, $calendar);
+
+        $requestedStart = CarbonImmutable::parse('2026-11-25 11:00:00', 'Asia/Karachi');
+        TenantContext::runForTenant($tenant->id, fn () => app(AppointmentRescheduleService::class)->reschedule(
+            $appointment->id,
+            $requestedStart,
+            'reschedule-job-replay-key',
+        ));
+
+        $request = TenantContext::runForTenant($tenant->id, fn () => \\App\\Models\\AppointmentReschedule::query()
+            ->where('idempotency_key', 'reschedule-job-replay-key')
+            ->firstOrFail());
+
+        (new SyncAppointmentReschedule($tenant->id, $request->id))
+            ->handle(app(AppointmentRescheduleService::class));
+
+        $this->assertSame('synced', $request->fresh()->status);
+        $this->assertDatabaseCount('appointment_events', 2);
+    }
+
     public function test_reschedule_sync_job_cannot_process_another_tenants_request(): void
     {
         [$ownerTenant, $appointment] = $this->confirmedAppointment('reschedule-owner');
