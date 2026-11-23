@@ -26,6 +26,7 @@ class WhatsAppMessageServiceTest extends TestCase
     public function test_automation_can_send_text_inside_the_customer_service_window(): void
     {
         config(['services.meta.graph_api_version' => 'v24.0']);
+        Queue::fake();
         Http::fake([
             'https://graph.facebook.com/v24.0/123456789012345/messages' => Http::response([
                 'messages' => [['id' => 'wamid.outbound-1']],
@@ -37,6 +38,9 @@ class WhatsAppMessageServiceTest extends TestCase
 
         $message = TenantContext::runForTenant($tenant->id, fn () => app(WhatsAppMessageService::class)->sendText($conversation, 'Thanks for contacting us.'));
 
+        $this->assertSame('pending', $message->delivery_status);
+        (new DeliverWhatsAppMessage($tenant->id, $message->id))->handle(app(MetaWhatsAppGraphApi::class));
+        $message->refresh();
         $this->assertSame('sent', $message->delivery_status);
         $this->assertSame('wamid.outbound-1', $message->provider_message_id);
         $this->assertSame('Thanks for contacting us.', $message->body);
@@ -95,6 +99,9 @@ class WhatsAppMessageServiceTest extends TestCase
             MessageActor::Staff,
         ));
 
+        $this->assertSame('pending', $message->delivery_status);
+        (new DeliverWhatsAppMessage($tenant->id, $message->id))->handle(app(MetaWhatsAppGraphApi::class));
+        $message->refresh();
         $this->assertSame('sent', $message->delivery_status);
         $this->assertSame('wamid.staff-reply-1', $message->provider_message_id);
         $this->assertDatabaseCount('messages', 2);
@@ -103,6 +110,7 @@ class WhatsAppMessageServiceTest extends TestCase
     public function test_ambiguous_meta_timeout_is_recorded_without_automatic_resend(): void
     {
         config(['services.meta.graph_api_version' => 'v24.0']);
+        Queue::fake();
         Http::fake(fn () => throw new \Illuminate\Http\Client\ConnectionException('timeout'));
 
         $tenant = $this->workspace('send-text-timeout');
@@ -110,6 +118,9 @@ class WhatsAppMessageServiceTest extends TestCase
 
         $message = TenantContext::runForTenant($tenant->id, fn () => app(WhatsAppMessageService::class)->sendText($conversation, 'May have been sent'));
 
+        $this->assertSame('pending', $message->delivery_status);
+        (new DeliverWhatsAppMessage($tenant->id, $message->id))->handle(app(MetaWhatsAppGraphApi::class));
+        $message->refresh();
         $this->assertSame('unknown', $message->delivery_status);
         $this->assertNull($message->provider_message_id);
         $this->assertDatabaseCount('messages', 2);
@@ -146,6 +157,9 @@ class WhatsAppMessageServiceTest extends TestCase
             ->sendTemplate($conversation, $template, ['Amina', 'Consultation']));
 
         $this->assertSame('template', $message->message_type);
+        $this->assertSame('pending', $message->delivery_status);
+        (new DeliverWhatsAppMessage($tenant->id, $message->id))->handle(app(MetaWhatsAppGraphApi::class));
+        $message->refresh();
         $this->assertSame('sent', $message->delivery_status);
         $this->assertSame('wamid.template-1', $message->provider_message_id);
         $this->assertSame('appointment_reminder', $message->metadata['template_name']);
