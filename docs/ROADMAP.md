@@ -74,6 +74,9 @@ This roadmap distinguishes planned work from implemented work.
 **Status:** Business profile, weekly hours, holiday/special-hours management, service/pricing CRUD, staff/service assignments, staff weekly availability/date exceptions, booking policies and FAQ management are committed with tenant isolation and role controls. Full business dashboards and remaining UX polish are in progress.
 
 ## Milestone 4 — WhatsApp Cloud API foundation
+- [x] Persist outbound text/template messages as a durable tenant-scoped outbox record before provider delivery; dispatch after transaction commit.
+- [x] Move Meta HTTP calls into a single-attempt queue worker; atomically claim `pending` messages as `sending` and persist `sent` / `failed` / `unknown` outcomes.
+- [x] Recover pending rows whose queue dispatch was interrupted and mark stale `sending` rows `unknown` without automatic resend.
 - [x] Automated webhook and connection tests for challenge verification, signatures, tenant mapping, encryption, duplicate delivery and Graph API verification (CI passing).
 - [x] Tenant admin connection setup with encrypted access-token storage; tokens are never sent to the browser.
 - [x] Meta Graph API verification of the configured phone number and its WABA membership before activation.
@@ -89,9 +92,10 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Durable encrypted webhook event persistence with SHA-256 idempotency key and duplicate suppression.
 - [x] Tenant routing through verified active phone_number_id; unknown/disabled connections are quarantined as unmatched.
 
-**Current checkpoint:** Template catalog retrieval (including cursor pagination), tenant-scoped persistence, manual sync action, settings UI, approved-template sending, parameter validation and out-of-window appointment-reminder integration are implemented. The reminder template is selected by `META_APPOINTMENT_REMINDER_TEMPLATE` and `META_APPOINTMENT_REMINDER_LANGUAGE`; it must contain exactly two sequential BODY variables. CI passed on commit `d2c3786` with 168 tests / 704 assertions on SQLite and PostgreSQL 16, clean Composer/npm production dependency audits, and the frontend production build.
+**Current checkpoint:** Template catalog retrieval (including cursor pagination), tenant-scoped persistence, manual sync action, settings UI, approved-template sending, parameter validation and out-of-window appointment-reminder integration are implemented. Outbound text/template messages now use a durable message-row outbox: database commit precedes Meta HTTP, queue delivery is single-attempt, and ambiguous results are recorded as `unknown` rather than resent. Scheduled recovery re-dispatches old pending rows and marks abandoned `sending` rows unknown. The reminder template is selected by `META_APPOINTMENT_REMINDER_TEMPLATE` and `META_APPOINTMENT_REMINDER_LANGUAGE`; it must contain exactly two sequential BODY variables. CI passed on commit `d2c3786` with 168 tests / 704 assertions on SQLite and PostgreSQL 16, clean Composer/npm production dependency audits, and the frontend production build.
 
 ## Milestone 5 — Conversations and human handover
+- [x] Manual staff replies are acknowledged as queued for delivery; provider completion is tracked asynchronously by the outbox worker.
 - [x] Customer/conversation/message persistence for inbound WhatsApp events with encrypted message content.
 - [x] Tenant-scoped inbox and conversation detail screens with state/search filters.
 - [x] Staff assignment to active users in the same tenant; only business admins can assign or close/reopen conversations.
@@ -135,7 +139,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Rescheduling and reminder schedule replacement; pending reminder records are cancelled and new reminders are keyed to the new appointment time.
 - [x] Retry-safe automated reconciliation for ambiguous Calendar updates; both old and requested slots remain reserved until the provider event is confirmed.
 
-**Status:** Booking, reminder scheduling, cancellation, rescheduling and ambiguous Calendar update recovery are implemented and CI-tested. Live Google account validation and PostgreSQL migration rehearsal remain acceptance gates.
+**Status:** Booking, reminder scheduling, cancellation, rescheduling and ambiguous Calendar update recovery are implemented and CI-tested. Reminder rows remain `processing` while the outbox delivery is pending and are finalized by the delivery worker after provider response. Live Google account validation and PostgreSQL migration rehearsal remain acceptance gates.
 
 ## Milestone 8 — Google Calendar integration
 - [x] Tenant-scoped OAuth with session state, PKCE, current-user/workspace binding and expiry checks.
@@ -173,7 +177,7 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Backup/restore drill and rollback plan.
 - [ ] Meta production onboarding readiness review.
 
-**Status:** Latest CI on commit `0587f2650ee8ff3ffdf307fc595fbf18ff2d04ee` passed 191 tests / 793 assertions per database on SQLite and PostgreSQL 16, including full migration rollback/replay. Composer/npm production audits report no advisories. Route-level lazy loading reduced the main JavaScript chunk to 445.87 kB (142.77 kB gzip); browser-level performance profiling remains pending. Baseline browser security headers are active, and production session cookies default to Secure; deployed HTTPS/proxy/HSTS behavior still needs Hostinger verification. Baseline authorization, tenant isolation, token/payload encryption, webhook HMAC/size limits, admin audit logging and high-cost mutation throttles have been reviewed and tested. Penetration/abuse testing, live Neon TLS/credential validation, Hostinger deployment, queue/cron configuration, backups and rollback remain acceptance gates.
+**Status:** Latest CI on commit `813129f0ba50dba29c9db9a2c1304df7361371fc` passed 194 tests / 811 assertions per database on SQLite and PostgreSQL 16, including full migration rollback/replay. Composer/npm production audits report no advisories. The suite now covers durable pending-outbox recovery, stale `sending` reconciliation, and appointment reminders finalized by the delivery worker. Route-level lazy loading keeps the main JavaScript chunk at 445.87 kB (142.77 kB gzip); browser-level performance profiling remains pending. Baseline browser security headers are active, and production session cookies default to Secure; deployed HTTPS/proxy/HSTS behavior still needs Hostinger verification. Baseline authorization, tenant isolation, token/payload encryption, webhook HMAC/size limits, admin audit logging and high-cost mutation throttles have been reviewed and tested. Penetration/abuse testing, live Neon TLS/credential validation, Hostinger deployment, queue/cron configuration, backups and rollback remain acceptance gates.
 
 ## Development rules
 
@@ -187,11 +191,13 @@ This roadmap distinguishes planned work from implemented work.
 
 ## Latest verified implementation checkpoint (2026-11-23)
 
-- Latest code commit: `2ac6a954710581290dc55a62739b51730663614c` — enables manual CI dispatch so the dependency-lockfile workflow can validate its generated branch.
-- Latest CI: [run 45091344560](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45091344560) passed after the manual-dispatch change.
-- Automated suite: 191 tests / 793 assertions on SQLite and PostgreSQL 16.
-- Full migration rollback/replay passed on both database engines.
-- Composer and npm production dependency audits passed; Vite production build passed.
-- The build manifest check confirms 21 lazy-loaded Inertia page chunks; main JavaScript bundle is 445.87 kB (142.77 kB gzip), down from approximately 538 kB.
-- GitHub Actions checkout/setup-node pins are upgraded to Node 24-compatible releases.
-- Remaining production gates: committed dependency lockfiles, actual Neon TLS/connectivity and migration rehearsal, Hostinger runtime/deployment rehearsal, live Meta/Google validation, load/abuse testing, outbound messaging transactional-outbox refactor, and backup/restore drill.
+- Verified code commit: \`813129f0ba50dba29c9db9a2c1304df7361371fc\`.
+- CI: [run 45092716606](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45092716606) passed.
+- Automated suite: 194 tests / 811 assertions on SQLite and PostgreSQL 16; full migration rollback/replay passed on both.
+- Composer/npm production dependency audits passed; Vite production build passed.
+- The build manifest check confirms 21 lazy-loaded Inertia page chunks; main JavaScript bundle is 445.87 kB (142.77 kB gzip).
+- Outbound text/template messages are persisted before network delivery; \`DeliverWhatsAppMessage\` performs the Meta request outside the creation transaction and claims each outbox row once.
+- Pending outbox records are re-dispatched after five minutes if a queue dispatch was lost; abandoned \`sending\` records are marked \`unknown\` after ten minutes and never automatically resent.
+- Appointment reminder status is finalized by the outbox worker; staff UI messaging now says replies are queued, not already delivered.
+- The exact transaction-boundary and duplicate-job tests are in a later CI run and must pass before this outbox batch is considered fully verified.
+- Remaining production gates: committed dependency lockfiles, actual Neon TLS/connectivity and migration rehearsal, Hostinger runtime/deployment rehearsal, live Meta/Google validation, load/abuse testing, browser performance profiling, and backup/restore drill.
