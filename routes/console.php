@@ -106,6 +106,61 @@ Artisan::command('appointments:dispatch-reminders {--tenant=}', function (): int
     return self::SUCCESS;
 })->purpose('Queue due appointment reminders in bounded tenant-scoped batches');
 
+
+Artisan::command('messages:dispatch-pending {--tenant=}', function (): int {
+    $tenantId = $this->option('tenant');
+    $dispatched = 0;
+
+    $dispatchForTenant = function (string $id) use (&$dispatched): void {
+        \App\Support\Tenancy\TenantContext::runForTenant($id, function () use ($id, &$dispatched): void {
+            $candidates = \App\Models\Message::query()
+                ->where('direction', 'outbound')
+                ->where('delivery_status', 'pending')
+                ->where('updated_at', '<=', now()->subMinutes(5))
+                ->orderBy('id')
+                ->limit(100)
+                ->get(['id']);
+
+            foreach ($candidates as $candidate) {
+                $shouldDispatch = \Illuminate\Support\Facades\DB::transaction(function () use ($candidate): bool {
+                    $message = \App\Models\Message::query()->lockForUpdate()->find($candidate->id);
+                    if (! $message || $message->direction !== 'outbound'
+                        || $message->delivery_status !== 'pending'
+                        || $message->updated_at?->greaterThan(now()->subMinutes(5))) {
+                        return false;
+                    }
+
+                    // Refresh updated_at as a bounded dispatch lease. Duplicate queue
+                    // deliveries remain safe because the worker atomically claims
+                    // pending -> sending before it contacts Meta.
+                    $message->touch();
+
+                    return true;
+                });
+
+                if ($shouldDispatch) {
+                    \App\Jobs\DeliverWhatsAppMessage::dispatch($id, $candidate->id)->afterCommit();
+                    $dispatched++;
+                }
+            }
+        });
+    };
+
+    if (is_string($tenantId) && $tenantId !== '') {
+        $dispatchForTenant($tenantId);
+    } else {
+        \App\Models\Tenant::query()->where('status', 'active')->orderBy('id')->chunkById(100, function ($tenants) use ($dispatchForTenant): void {
+            foreach ($tenants as $tenant) {
+                $dispatchForTenant($tenant->id);
+            }
+        });
+    }
+
+    $this->info("Dispatched {$dispatched} pending outbound message(s).");
+
+    return self::SUCCESS;
+})->purpose('Recover durable outbound messages whose queue dispatch may have been interrupted');
+
 Artisan::command('messages:reconcile-stale-outbound {--tenant=}', function (): int {
     $tenantId = $this->option('tenant');
     $reconciled = 0;
@@ -176,5 +231,9 @@ Schedule::command('appointments:dispatch-reminders')
     ->withoutOverlapping();
 
 Schedule::command('messages:reconcile-stale-outbound')
+    ->everyMinute()
+    ->withoutOverlapping();
+
+Schedule::command('messages:dispatch-pending')
     ->everyMinute()
     ->withoutOverlapping();
