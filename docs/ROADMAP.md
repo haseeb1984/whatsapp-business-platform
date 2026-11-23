@@ -369,3 +369,10 @@ This roadmap distinguishes planned work from implemented work.
 - The test starts authorization under Workspace A, then attempts callback under Workspace B for a user belonging to both. It asserts 403, no outbound Google token-exchange request, and no Calendar connection created.
 - CI completed SQLite and PostgreSQL 16 feature suites, migration rollback/replay on both databases, Composer/npm production dependency audits, Vite build, and lazy route-chunk verification.
 - This does not substitute for a true simultaneous multi-worker lock/process-crash test or live Google/Meta, Neon, Hostinger and deployment validation.
+
+## Google Calendar disconnect tenant isolation (2026-11-23)
+
+- Added a two-workspace regression that disconnects Google Calendar while Workspace A is active and verifies only Workspace A's refresh/access credentials are revoked and cleared.
+- The test also asserts Workspace B remains connected with its original credentials and calendar mapping, and that only one provider revocation request is sent with Workspace A's refresh token.
+- The regression is committed on PR #2; full SQLite/PostgreSQL CI verification is pending.
+- This is application-level tenant isolation coverage; live Google revocation and production OAuth validation remain separate release gates.
