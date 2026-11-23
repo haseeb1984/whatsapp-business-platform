@@ -79,6 +79,23 @@ class AppointmentRescheduleService
                 $newReservedEnd,
             ): AppointmentReschedule {
                 Tenant::query()->lockForUpdate()->findOrFail($tenantId);
+
+                // A concurrent request may have passed the optimistic lookup before
+                // another request committed the same idempotency key.
+                $concurrentRequest = AppointmentReschedule::query()
+                    ->where('idempotency_key', $idempotencyKey)
+                    ->first();
+                if ($concurrentRequest) {
+                    if ($concurrentRequest->appointment_id !== $appointmentId) {
+                        throw ValidationException::withMessages(['idempotency_key' => 'This idempotency key belongs to a different appointment.']);
+                    }
+                    if (! $concurrentRequest->new_starts_at->equalTo($newStart->utc())) {
+                        throw ValidationException::withMessages(['idempotency_key' => 'This idempotency key was already used for a different reschedule time.']);
+                    }
+
+                    return $concurrentRequest;
+                }
+
                 $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointmentId);
                 $this->assertReschedulable($appointment);
 
@@ -123,6 +140,10 @@ class AppointmentRescheduleService
 
                 return $request;
             });
+        }
+
+        if ($reschedule->status === 'synced') {
+            return Appointment::query()->findOrFail($appointmentId);
         }
 
         $appointment = Appointment::query()->findOrFail($appointmentId);
