@@ -41,6 +41,8 @@ It checks PHP 8.3+, PDO PostgreSQL/cURL/OpenSSL extensions, production/debug fla
 
 The public, rate-limited `GET /health/ready` endpoint checks database connectivity and (when using Laravel's database queue) the queue storage table. It does not prove that cron workers are running or that Meta/Google credentials are valid; those require separate operational checks.
 
+Failed Meta webhook events are retained with `status=failed` after their automatic retry budget is exhausted. After inspecting the event and correcting any underlying integration or data issue, an operator can replay one event with `php artisan webhooks:replay-failed <event-id>`. The command rejects non-failed events and events belonging to suspended or missing tenants; it never bulk-replays the dead-letter set. Monitor the platform console's failed queue count separately because webhook dead-letter rows and Laravel `failed_jobs` are distinct failure stores.
+
 
 In Hostinger hPanel, verify the exact plan variant and current limits:
 - PHP 8.3+ and required extensions (Ctype, cURL, DOM, Fileinfo, Filter, Hash, Mbstring, OpenSSL, PCRE, PDO, Session, Tokenizer, XML, and PDO PostgreSQL);
