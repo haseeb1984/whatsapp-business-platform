@@ -87,10 +87,13 @@ export default function PlatformDashboard() {
                     </header>
 
                     <section className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        {cards.map(([label, value]) => <div key={label} className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-                            <p className="text-sm text-slate-400">{label}</p>
-                            <p className="mt-2 text-3xl font-bold tabular-nums">{typeof value === 'number' ? value.toLocaleString() : value}</p>
-                        </div>)}
+                        {cards.map(([label, value]) => {
+                            const hasUnknownDeliveries = label === 'Outbound unknown' && typeof value === 'number' && value > 0;
+                            return <div key={label} className={hasUnknownDeliveries ? 'rounded-2xl border border-amber-700 bg-amber-950/40 p-5' : 'rounded-2xl border border-slate-800 bg-slate-900 p-5'}>
+                                <p className={hasUnknownDeliveries ? 'text-sm text-amber-300' : 'text-sm text-slate-400'}>{label}</p>
+                                <p className={hasUnknownDeliveries ? 'mt-2 text-3xl font-bold tabular-nums text-amber-200' : 'mt-2 text-3xl font-bold tabular-nums'}>{typeof value === 'number' ? value.toLocaleString() : value}</p>
+                            </div>;
+                        })}
                     </section>
 
                     <section className="mt-6 rounded-2xl border border-slate-800 bg-slate-900 p-5">
