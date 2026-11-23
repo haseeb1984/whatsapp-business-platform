@@ -282,6 +282,64 @@ Artisan::command('messages:reconcile-stale-outbound {--tenant=}', function (): i
     return self::SUCCESS;
 })->purpose('Reconcile crashed outbound delivery workers without risking duplicate WhatsApp sends');
 
+Artisan::command('appointments:reconcile-calendar-pending {--tenant=}', function (): int {
+    $tenantId = $this->option('tenant');
+    $dispatched = 0;
+
+    $dispatchForTenant = function (string $id) use (&$dispatched): void {
+        \\App\\Support\\Tenancy\\TenantContext::runForTenant($id, function () use ($id, &$dispatched): void {
+            $candidates = \\App\\Models\\Appointment::query()
+                ->where('status', 'calendar_pending')
+                ->whereIn('calendar_sync_status', ['pending', 'unknown'])
+                ->where('updated_at', '<=', now()->subMinutes(10))
+                ->orderBy('updated_at')
+                ->limit(100)
+                ->get(['id']);
+
+            foreach ($candidates as $candidate) {
+                $shouldDispatch = \\Illuminate\\Support\\Facades\\DB::transaction(function () use ($candidate): bool {
+                    $appointment = \\App\\Models\\Appointment::query()->lockForUpdate()->find($candidate->id);
+                    if (! $appointment
+                        || $appointment->status !== 'calendar_pending'
+                        || ! in_array($appointment->calendar_sync_status, ['pending', 'unknown'], true)
+                        || $appointment->updated_at?->greaterThan(now()->subMinutes(10))) {
+                        return false;
+                    }
+
+                    // A ten-minute lease prevents every scheduler tick from flooding
+                    // the queue. The worker reconciles by deterministic Google event ID.
+                    $appointment->touch();
+
+                    return true;
+                });
+
+                if ($shouldDispatch) {
+                    \\App\\Jobs\\SyncAppointmentCalendarEvent::dispatch($id, $candidate->id)->afterCommit();
+                    $dispatched++;
+                }
+            }
+        });
+    };
+
+    if (is_string($tenantId) && $tenantId !== '') {
+        $dispatchForTenant($tenantId);
+    } else {
+        Tenant::query()->where('status', 'active')->orderBy('id')->chunkById(100, function ($tenants) use ($dispatchForTenant): void {
+            foreach ($tenants as $tenant) {
+                $dispatchForTenant($tenant->id);
+            }
+        });
+    }
+
+    $this->info("Dispatched {$dispatched} stale Calendar synchronization job(s).");
+
+    return self::SUCCESS;
+})->purpose('Recover stale calendar-pending appointments through deterministic provider reconciliation');
+
+Schedule::command('appointments:reconcile-calendar-pending')
+    ->everyMinute()
+    ->withoutOverlapping();
+
 Schedule::command('appointments:expire-holds')
     ->everyMinute()
     ->withoutOverlapping();
