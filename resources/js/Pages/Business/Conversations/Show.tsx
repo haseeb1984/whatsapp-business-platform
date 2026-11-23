@@ -8,6 +8,17 @@ type Conversation = {
     id: string; customer_name: string | null; whatsapp_wa_id: string; status: string; automation_state: string;
     assigned_user_id: number | null; assigned_user_name: string | null; handover_requested_at: string | null; handover_reason: string | null;
 };
+const deliveryLabels: Record<string, string> = {
+    pending: 'Queued',
+    sending: 'Sending',
+    sent: 'Sent',
+    delivered: 'Delivered',
+    read: 'Read',
+    failed: 'Failed',
+    unknown: 'Delivery status unknown',
+    received: 'Received',
+};
+
 type Props = {
     conversation: Conversation; messages: Message[]; notes: Note[]; team_members: TeamMember[];
     current_user_id: number; current_user_role: string;
@@ -63,7 +74,7 @@ export default function ConversationShow() {
                     <h2 className="text-lg font-semibold text-slate-900">Message history</h2>
                     <div className="mt-4 space-y-3">
                         {messages.map(message => <div key={message.id} className={'max-w-3xl rounded-xl p-4 ' + (message.direction === 'outbound' ? 'ml-auto bg-blue-50' : 'bg-slate-100')}>
-                            <div className="flex items-center justify-between gap-3 text-xs text-slate-500"><span>{message.direction === 'outbound' ? 'Business' : 'Customer'} · {message.message_type}</span><span>{message.delivery_status}</span></div>
+                            <div className="flex items-center justify-between gap-3 text-xs text-slate-500"><span>{message.direction === 'outbound' ? 'Business' : 'Customer'} · {message.message_type}</span><span>{deliveryLabels[message.delivery_status] || message.delivery_status}</span></div>
                             <p className="mt-2 whitespace-pre-wrap text-sm text-slate-800">{message.body || '[' + message.message_type + ' message — content preview unavailable]'}</p>
                             {message.sent_at && <p className="mt-2 text-right text-xs text-slate-400">{new Date(message.sent_at).toLocaleString()}</p>}
                         </div>)}
