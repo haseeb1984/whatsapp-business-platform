@@ -91,10 +91,10 @@ class GoogleCalendarService
         try {
             $data = $this->validatedTokenResponse($response);
         } catch (RuntimeException $exception) {
-            // Google returns invalid_grant / invalid_client as a definitive 4xx.
-            // Preserve encrypted credentials for an explicit reconnect flow, but
-            // stop treating this connection as usable until OAuth succeeds again.
-            if (in_array($response->status(), [400, 401], true)) {
+            // Only invalid_grant proves that this account's refresh authorization
+            // is no longer usable. invalid_client / configuration errors must not
+            // incorrectly tell the customer to reconnect their Google account.
+            if ($response->status() === 400 && $response->json('error') === 'invalid_grant') {
                 $connection->forceFill(['status' => 'reauthorization_required'])->save();
             }
 
