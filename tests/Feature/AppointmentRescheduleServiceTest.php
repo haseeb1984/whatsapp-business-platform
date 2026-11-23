@@ -219,6 +219,34 @@ class AppointmentRescheduleServiceTest extends TestCase
         $this->assertSame($eventCountBeforeReplay, AppointmentEvent::query()->count());
     }
 
+    public function test_reschedule_is_rejected_while_calendar_deletion_has_reserved_the_appointment(): void
+    {
+        [$tenant, $appointment] = $this->confirmedAppointment('reschedule-after-delete-start');
+        $calendar = Mockery::mock(GoogleCalendarService::class);
+        $calendar->shouldNotReceive('updateAppointmentEvent');
+        $this->app->instance(GoogleCalendarService::class, $calendar);
+
+        TenantContext::runForTenant($tenant->id, function () use ($appointment): void {
+            app(AppointmentLifecycleService::class)->beginCalendarDeletion($appointment->id);
+
+            try {
+                app(AppointmentRescheduleService::class)->reschedule(
+                    $appointment->id,
+                    CarbonImmutable::parse('2026-11-25 11:00:00', 'Asia/Karachi'),
+                    'reschedule-after-delete-start-key',
+                );
+                $this->fail('A reschedule must not start while calendar deletion is in progress.');
+            } catch (\\Illuminate\\Validation\\ValidationException $exception) {
+                $this->assertArrayHasKey('appointment', $exception->errors());
+            }
+
+            $fresh = Appointment::query()->findOrFail($appointment->id);
+            $this->assertSame('confirmed', $fresh->status);
+            $this->assertSame('pending', $fresh->calendar_sync_status);
+            $this->assertSame(0, AppointmentReschedule::query()->where('appointment_id', $appointment->id)->count());
+        });
+    }
+
     public function test_reschedule_sync_job_cannot_process_another_tenants_request(): void
     {
         [$ownerTenant, $appointment] = $this->confirmedAppointment('reschedule-owner');
