@@ -332,3 +332,10 @@ This roadmap distinguishes planned work from implemented work.
 
 
 - Test-fixture review confirmed conversation-note authors are required by the database schema. The foreign-note isolation regression now creates the note under Tenant B with Tenant B's real admin user, rather than a null author; the corrected test commit is awaiting CI.
+
+
+## Inbox tenant-fixture CI correction (2026-11-23)
+
+- The latest PR-head CI run [45162853608](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45162853608) exposed two failures in the newly added inbox index/detail isolation tests. Both came from the shared test helper inserting the same globally unique Meta `phone_number_id` for multiple workspace connections; 226 other SQLite tests passed (975 assertions) before the suite stopped.
+- Updated the helper to generate a distinct phone-number fixture by default, while keeping the known ID only in the existing outbound-reply test whose HTTP fake explicitly matches that endpoint.
+- The fixture-only correction is committed as `80a5ac51dd8bd9ba352b9592f249ffdcee5e0aa0`. A new full CI run is required; no pass is claimed until SQLite, PostgreSQL, migrations, dependency audits and frontend build all complete.
