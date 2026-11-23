@@ -109,6 +109,12 @@ class WhatsAppMessageServiceTest extends TestCase
         ));
 
         $this->assertSame('pending', $message->delivery_status);
+        TenantContext::runForTenant($tenant->id, function () use ($conversation): void {
+            $conversation->forceFill([
+                'automation_state' => 'AUTO_ACTIVE',
+                'assigned_user_id' => null,
+            ])->save();
+        });
         (new DeliverWhatsAppMessage($tenant->id, $message->id))->handle(app(MetaWhatsAppGraphApi::class));
         $message->refresh();
         $this->assertSame('sent', $message->delivery_status);
