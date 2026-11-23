@@ -16,6 +16,7 @@ use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -42,25 +43,21 @@ class CalendarPendingRecoveryCommandTest extends TestCase
         [, $fresh] = $this->appointment('calendar-recovery-fresh', $tenant);
         [, $failed] = $this->appointment('calendar-recovery-failed', $tenant);
 
-        TenantContext::runForTenant($tenant->id, function () use ($stale, $fresh, $failed): void {
-            $stale->forceFill([
-                'status' => 'calendar_pending',
-                'calendar_sync_status' => 'unknown',
-                'updated_at' => now()->subMinutes(11),
-            ])->save();
-
-            $fresh->forceFill([
-                'status' => 'calendar_pending',
-                'calendar_sync_status' => 'pending',
-                'updated_at' => now()->subMinutes(4),
-            ])->save();
-
-            $failed->forceFill([
-                'status' => 'failed',
-                'calendar_sync_status' => 'failed',
-                'updated_at' => now()->subMinutes(30),
-            ])->save();
-        });
+        DB::table('appointments')->where('id', $stale->id)->update([
+            'status' => 'calendar_pending',
+            'calendar_sync_status' => 'unknown',
+            'updated_at' => now()->subMinutes(11),
+        ]);
+        DB::table('appointments')->where('id', $fresh->id)->update([
+            'status' => 'calendar_pending',
+            'calendar_sync_status' => 'pending',
+            'updated_at' => now()->subMinutes(4),
+        ]);
+        DB::table('appointments')->where('id', $failed->id)->update([
+            'status' => 'failed',
+            'calendar_sync_status' => 'failed',
+            'updated_at' => now()->subMinutes(30),
+        ]);
 
         $this->artisan('appointments:reconcile-calendar-pending --tenant='.$tenant->id)
             ->expectsOutput('Dispatched 1 stale Calendar synchronization job(s).')
