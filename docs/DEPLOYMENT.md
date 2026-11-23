@@ -28,6 +28,15 @@ Cron-driven processing can introduce noticeable message response latency. It mus
 
 ## 4. Verify before deployment
 
+Run the non-destructive runtime configuration preflight after setting the production environment variables:
+
+```bash
+php artisan platform:preflight --strict
+```
+
+It checks the PHP/runtime and required configuration without printing secret values. It does not connect to Meta or Google and does not prove that the configured Neon credentials work. Verify the database separately through the readiness endpoint and a controlled Neon migration rehearsal; run the preflight again after `config:cache` so the checks reflect the cached production configuration.
+
+
 **Dependency reproducibility gate:** the repository currently has no committed `composer.lock` or `package-lock.json`. CI currently resolves dependency versions at run time, so a passing audit/build does not guarantee the exact same dependency graph on a later run. Before production, generate and review both lockfiles, commit them, and change CI/deployment to `composer install` using the committed lockfile and `npm ci`.
 
 The public, rate-limited `GET /health/ready` endpoint checks database connectivity and (when using Laravel's database queue) the queue storage table. It does not prove that cron workers are running or that Meta/Google credentials are valid; those require separate operational checks.
