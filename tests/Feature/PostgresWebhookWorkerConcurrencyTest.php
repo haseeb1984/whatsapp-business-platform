@@ -6,7 +6,6 @@ use App\\Models\\Tenant;
 use App\\Models\\WebhookEvent;
 use Illuminate\\Foundation\\Testing\\DatabaseMigrations;
 use Illuminate\\Support\\Facades\\DB;
-use Symfony\\Component\\Process\\Process;
 use Tests\\TestCase;
 
 class PostgresWebhookWorkerConcurrencyTest extends TestCase
@@ -71,15 +70,22 @@ class PostgresWebhookWorkerConcurrencyTest extends TestCase
 
         try {
             foreach ($readyPaths as $readyPath) {
-                $process = new Process([
+                $pipes = [];
+                $process = proc_open([
                     PHP_BINARY,
                     base_path('tests/Support/run-webhook-worker.php'),
                     $event->id,
                     $readyPath,
                     $startPath,
-                ], base_path(), null, null, 15);
-                $process->start();
-                $processes[] = $process;
+                ], [
+                    0 => ['pipe', 'r'],
+                    1 => ['pipe', 'w'],
+                    2 => ['pipe', 'w'],
+                ], $pipes, base_path());
+
+                $this->assertIsResource($process, 'Unable to start an independent webhook worker.');
+                fclose($pipes[0]);
+                $processes[] = ['process' => $process, 'pipes' => $pipes];
             }
 
             $readyDeadline = microtime(true) + 10;
@@ -91,12 +97,31 @@ class PostgresWebhookWorkerConcurrencyTest extends TestCase
             $this->assertFileExists($readyPaths[1], 'Second worker did not become ready.');
             file_put_contents($startPath, 'go');
 
-            foreach ($processes as $process) {
-                $process->wait();
-                $this->assertTrue(
-                    $process->isSuccessful(),
-                    'Webhook worker failed: '.$process->getErrorOutput().' '.$process->getOutput(),
-                );
+            foreach ($processes as $worker) {
+                $process = $worker['process'];
+                $pipes = $worker['pipes'];
+                $deadline = microtime(true) + 15;
+                do {
+                    $status = proc_get_status($process);
+                    if (! $status['running']) {
+                        break;
+                    }
+                    usleep(10_000);
+                } while (microtime(true) < $deadline);
+
+                if ($status['running']) {
+                    proc_terminate($process, 9);
+                    $this->fail('Webhook worker exceeded the 15-second execution timeout.');
+                }
+
+                $stdout = stream_get_contents($pipes[1]);
+                $stderr = stream_get_contents($pipes[2]);
+                fclose($pipes[1]);
+                fclose($pipes[2]);
+                $exitCode = $status['exitcode'];
+                proc_close($process);
+
+                $this->assertSame(0, $exitCode, 'Webhook worker failed: '.$stderr.' '.$stdout);
             }
 
             $this->assertDatabaseHas('webhook_events', [
@@ -108,9 +133,19 @@ class PostgresWebhookWorkerConcurrencyTest extends TestCase
             $this->assertSame(1, DB::table('conversations')->where('tenant_id', $tenant->id)->count());
             $this->assertSame(1, DB::table('messages')->where('tenant_id', $tenant->id)->count());
         } finally {
-            foreach ($processes as $process) {
-                if ($process->isRunning()) {
-                    $process->stop(1);
+            foreach ($processes as $worker) {
+                $process = $worker['process'];
+                $status = proc_get_status($process);
+                if ($status['running']) {
+                    proc_terminate($process, 9);
+                }
+                foreach ([1, 2] as $index) {
+                    if (isset($worker['pipes'][$index]) && is_resource($worker['pipes'][$index])) {
+                        fclose($worker['pipes'][$index]);
+                    }
+                }
+                if (is_resource($process)) {
+                    proc_close($process);
                 }
             }
 
