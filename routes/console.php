@@ -418,7 +418,7 @@ Artisan::command('webhooks:reconcile-stale-processing {--tenant=}', function ():
 
 
 Artisan::command('webhooks:replay-failed {event}', function (string $event): int {
-    $replayable = DB::transaction(function () use ($event): bool {
+    $replayable = \\Illuminate\\Support\\Facades\\DB::transaction(function () use ($event): bool {
         $webhook = \\App\\Models\\WebhookEvent::query()
             ->whereKey($event)
             ->where('status', 'failed')
