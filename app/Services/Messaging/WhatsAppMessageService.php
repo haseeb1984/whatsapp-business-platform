@@ -112,7 +112,6 @@ class WhatsAppMessageService
                 ]);
             }
 
-            $customer = $lockedConversation->customer()->firstOrFail();
             $message = Message::query()->create([
                 'conversation_id' => $lockedConversation->id,
                 'reply_to_message_id' => $replyToMessageId,
@@ -179,14 +178,6 @@ class WhatsAppMessageService
             }
             $normalizedParameters[] = trim((string) $parameter);
         }
-
-        $components = $normalizedParameters === [] ? [] : [[
-            'type' => 'body',
-            'parameters' => array_map(
-                fn (string $value): array => ['type' => 'text', 'text' => $value],
-                $normalizedParameters,
-            ),
-        ]];
 
         return DB::transaction(function () use ($conversation, $template, $components, $normalizedParameters, $reminderId): Message {
             if ($reminderId !== null) {
