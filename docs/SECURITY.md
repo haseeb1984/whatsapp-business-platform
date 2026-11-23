@@ -76,3 +76,9 @@
 - Dependency and application security checks completed.
 - Commit Composer and npm lockfiles and verify CI/deployment use locked dependency installation; current repository has no committed `composer.lock` or `package-lock.json`.
 - Incident and credential-rotation procedures documented.
+
+## Latest verified regression checkpoint (2026-11-23)
+
+Commit `0abf5ce3610f0dd9e315fdf065ec03887bfc6877` standardizes lock acquisition in the reminder template send path: read the reminder's appointment reference, lock the appointment row, then lock the reminder row. This aligns the sender with appointment lifecycle transactions and reduces lock-order inversion risk. It does not provide exactly-once delivery across an external Meta API call and a database failure; ambiguous provider outcomes must continue to be reconciled rather than blindly resent.
+
+[CI run 45090484856](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45090484856) passed 191 tests / 793 assertions on SQLite and PostgreSQL 16, full migration rollback/replay on both, Composer/npm production dependency audits, and the Vite production build. This is automated PostgreSQL 16 coverage, not a live Neon endpoint test.
