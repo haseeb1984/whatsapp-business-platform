@@ -23,6 +23,7 @@ class SchedulerConfigurationTest extends TestCase
 
             $this->assertNotNull($event, "Expected {$command} to be registered with Laravel Scheduler.");
             $this->assertSame('* * * * *', $event->expression, "{$command} must run every minute.");
+            $this->assertTrue($event->withoutOverlapping, "{$command} must prevent overlapping scheduler invocations.");
         }
     }
 }
