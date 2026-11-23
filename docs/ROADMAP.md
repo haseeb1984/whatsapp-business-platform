@@ -193,8 +193,8 @@ This roadmap distinguishes planned work from implemented work.
 ## Latest verified implementation checkpoint (2026-11-23)
 
 - Verified code commit: \`813129f0ba50dba29c9db9a2c1304df7361371fc\`.
-- CI: [run 45093938046](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45093938046) passed.
-- Automated suite: 195 tests / 823 assertions on SQLite and PostgreSQL 16; full migration rollback/replay passed on both.
+- CI: [run 45094188260](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45094188260) passed.
+- Automated suite: 196 tests / 826 assertions on SQLite and PostgreSQL 16; full migration rollback/replay passed on both.
 - Composer/npm production dependency audits passed; Vite production build passed.
 - The build manifest check confirms 21 lazy-loaded Inertia page chunks; main JavaScript bundle is 445.87 kB (142.76 kB gzip).
 - Outbound text/template messages are persisted before network delivery; \`DeliverWhatsAppMessage\` performs the Meta request outside the creation transaction and claims each outbox row once.
