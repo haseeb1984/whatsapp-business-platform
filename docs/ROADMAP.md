@@ -386,3 +386,22 @@ This roadmap distinguishes planned work from implemented work.
 - The initial run [45165189938](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45165189938) exposed a test-fixture assumption: the fake URL hard-coded Google's public API host while the application uses its configured API base URL. The assertion now matches the configured path and verifies the exact Authorization token.
 - Corrected full CI run [45165433038](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45165433038) passed.
 - This verifies tenant credential selection at the HTTP boundary; it does not establish live Google connectivity or production OAuth readiness.
+
+
+## Post-merge checkpoint (2026-11-23)
+
+- PR #2 was squash-merged into `main` after its latest full CI run [45240511706](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45240511706) passed.
+- Merge commit: `8206662e825e7097d135235b2745892f59dd0405`.
+- Included regression coverage for duplicate webhook processing, late failure callbacks, duplicate provider message IDs, ambiguous Meta template-send outcomes, tenant-scoped inbox/booking/Calendar operations, same-user multi-workspace Google credential isolation, and spreadsheet-formula-safe tenant CSV export.
+- The CSV export regression specifically verifies formula-leading tenant fields are neutralized before they reach a spreadsheet consumer.
+- **Implemented in PR #5; PostgreSQL 16 CI passed:** a dedicated test launches two independent PHP worker processes against the same committed webhook event, uses a test-only trigger to force row-lock contention, and asserts exactly one customer, conversation and inbound message with the event ending in `processed`. [CI run 45243247660](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45243247660) passed. Keep this acceptance gate open until PR #5 is reviewed and merged.
+- **Still open:** generate and review `composer.lock` and `package-lock.json` using the manual dependency-lockfile workflow; switch CI to deterministic locked installs only after the generated lockfiles are reviewed and committed.
+- Production acceptance gates remain unchanged: actual Neon connection/migration rehearsal, live Meta webhook/send validation, live Google OAuth/Calendar validation, Hostinger runtime/resource checks, backup/restore rehearsal, and deployment rehearsal. No production deployment has been performed.
+
+
+## Dependency lockfile generation checkpoint (2026-11-23)
+
+- Manual workflow run [45244631505](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45244631505) generated `composer.lock` and `package-lock.json` successfully, and passed Composer validation/audit, npm production audit, clean Composer/npm installs, and the Vite production build.
+- The workflow's final `gh pr create` command was blocked by the repository Actions setting that prevents `GITHUB_TOKEN` from creating pull requests. The lockfile commit was nevertheless pushed successfully as `719fa191143e3a01d328815fa5e79429d08e2458` on `chore/dependency-lockfiles-45244631505`.
+- Opened reviewable [PR #6](https://github.com/haseeb1984/whatsapp-business-platform/pull/6) separately. Its regular CI run [45245038911](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45245038911) passed.
+- Lockfiles are generated and CI-verified on PR #6, but are not yet merged into `main`; do not mark deterministic locked installs as active on main until review and merge.

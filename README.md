@@ -14,9 +14,9 @@ A reusable multi-tenant WhatsApp Business automation platform using the official
 
 **Google Calendar and dashboards:** OAuth with state/PKCE, encrypted token storage, refresh/revocation, writable calendar selection, per-staff mappings, FreeBusy and event reconciliation are implemented. Business and platform-admin dashboards, tenant usage summaries, audit history, tenant search and CSV export are implemented.
 
-**Production acceptance still pending:** Actual Neon connection/TLS and migration rehearsal, Hostinger plan/runtime and cron validation, live Meta and Google account validation, penetration/abuse and load testing, browser performance profiling, deployment rehearsal, backup/restore drill and Meta production onboarding. Composer/npm production dependency audits currently pass in CI.
+**Production acceptance still pending:** Actual Neon connection/TLS and migration rehearsal, Hostinger plan/runtime and cron validation, live Meta and Google account validation, penetration/abuse and load testing, browser performance profiling, deployment rehearsal, backup/restore drill and Meta production onboarding. Committed dependency lockfiles are also still outstanding; dependency versions are currently resolved during CI runs.
 
-**Current CI:** GitHub Actions validates Composer, runs 199 tests / 840 assertions on SQLite and PostgreSQL 16, verifies full migration rollback/replay on both databases, audits PHP and frontend production dependencies, builds the Vite frontend, and checks that 21 Inertia page chunks are lazy-loaded. Latest code verification: [45105750596](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45105750596). Subsequent documentation commits also passed CI: [45095273378](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45095273378).
+**Current CI:** The main CI workflow validates Composer, runs the SQLite and PostgreSQL 16 feature suites, verifies full migration rollback/replay on both databases, audits PHP and frontend production dependencies, builds the Vite frontend, and checks lazy-loaded Inertia page chunks. The latest documentation-branch CI run [45243869630](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45243869630) passed. A separate implementation PR adds a true two-process PostgreSQL webhook idempotency/concurrency test and passed its full CI run [45243247660](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45243247660); that implementation remains under review and is not yet part of main.
 
 ## Approved stack
 
@@ -95,13 +95,13 @@ Open `http://127.0.0.1:8000`. New users can register an account and create an in
 GitHub Actions is the source of truth for the full verification pipeline:
 
 - Composer manifest validation and dependency installation
-- PHP feature suite on SQLite and PostgreSQL 16 (199 tests / 840 assertions on each)
+- PHP feature suites on SQLite and PostgreSQL 16
 - Full migration rollback and replay on both database engines
 - Composer and frontend production dependency audits
-- Vite production build and lazy-loaded Inertia page-chunk manifest guard (21 page chunks)
+- Vite production build and lazy-loaded Inertia page-chunk manifest guard
 - Scheduler regression coverage for minute cadence and overlap protection
 
-The latest code verification is [run 45105750596](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45105750596); subsequent documentation-only runs also passed.
+The latest documentation-branch verification is [run 45243869630](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45243869630). The independent PostgreSQL multi-worker webhook concurrency test is implemented in [PR #5](https://github.com/haseeb1984/whatsapp-business-platform/pull/5) and passed [run 45243247660](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45243247660); it remains separate from main until that PR is reviewed and merged.
 
 Run the checks locally with `composer validate`, `php artisan test`, and `npm run build`. The CI PostgreSQL service is a compatibility gate; it does not replace a connection and migration rehearsal against the actual Neon project.
 
