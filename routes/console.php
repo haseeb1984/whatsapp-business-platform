@@ -1,5 +1,8 @@
 <?php
 
+use App\Jobs\ProcessMetaWebhookEvent;
+use App\Models\WebhookEvent;
+use Illuminate\Support\Facades\DB;
 use App\Models\Tenant;
 use App\Services\Booking\AppointmentLifecycleService;
 use Illuminate\Support\Facades\Artisan;
@@ -415,6 +418,42 @@ Artisan::command('webhooks:reconcile-stale-processing {--tenant=}', function ():
 
     return self::SUCCESS;
 })->purpose('Recover Meta webhook events stranded by terminated workers without duplicating active processing');
+
+
+Artisan::command('webhooks:replay-failed {event}', function (string $event): int {
+    $replayable = DB::transaction(function () use ($event): bool {
+        $webhook = WebhookEvent::query()
+            ->whereKey($event)
+            ->where('status', 'failed')
+            ->whereNotNull('tenant_id')
+            ->lockForUpdate()
+            ->first();
+
+        if (! $webhook || ! Tenant::query()->whereKey($webhook->tenant_id)->where('status', 'active')->exists()) {
+            return false;
+        }
+
+        $webhook->forceFill([
+            'status' => 'pending',
+            'attempts' => 0,
+            'processed_at' => null,
+            'error_summary' => 'Manually replayed by an operator; queued for processing.',
+        ])->save();
+
+        return true;
+    });
+
+    if (! $replayable) {
+        $this->error('No failed webhook event with an active tenant was found; no replay was queued.');
+
+        return self::FAILURE;
+    }
+
+    ProcessMetaWebhookEvent::dispatch($event)->afterCommit();
+    $this->info('Failed webhook event queued for replay.');
+
+    return self::SUCCESS;
+})->purpose('Manually replay one failed Meta webhook event by ID after operator review');
 
 Schedule::command('webhooks:reconcile-stale-processing')
     ->everyMinute()
