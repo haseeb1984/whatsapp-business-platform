@@ -167,6 +167,37 @@ class AppointmentControllerTest extends TestCase
         ]);
     }
 
+    public function test_appointment_index_exposes_only_the_active_tenants_appointments_and_customers(): void
+    {
+        [$userA, $tenantA] = $this->workspace('appointment-index-owner-a@example.test', 'business_admin');
+        [, $tenantB, $serviceB, $staffB, $customerB] = $this->workspace('appointment-index-owner-b@example.test', 'business_admin');
+
+        $foreignAppointment = TenantContext::runForTenant($tenantB->id, fn () => app(\\App\\Services\\Booking\\AppointmentBookingService::class)->createHold(
+            $customerB->id,
+            $serviceB->id,
+            $staffB->id,
+            CarbonImmutable::parse('2026-11-23 10:00:00', 'Asia/Karachi'),
+            'foreign-appointment-index-hold',
+            'dashboard',
+        ));
+
+        $this->actingAs($userA)->withSession(['current_tenant_id' => $tenantA->id])
+            ->get('/business/appointments')
+            ->assertOk()
+            ->assertInertia(fn (\\Inertia\\Testing\\AssertableInertia $page) => $page
+                ->component('Business/Appointments/Index')
+                ->has('appointments', 0)
+                ->has('customers', 0)
+                ->where('services', [])
+                ->where('staff', [])
+            );
+
+        $this->assertDatabaseHas('appointments', [
+            'id' => $foreignAppointment->id,
+            'tenant_id' => $tenantB->id,
+        ]);
+    }
+
     public function test_staff_can_cancel_only_temporary_pending_holds(): void
     {
         [$user, $tenant, $service, $staff, $customer] = $this->workspace('appointment-api-cancel@example.test', 'staff');
