@@ -268,3 +268,6 @@ This roadmap distinguishes planned work from implemented work.
 
 
 - Added a second provider-level idempotency regression: two distinct persisted webhook deliveries carrying the same Meta provider message ID are processed independently, while producing one customer, one open conversation and one inbound message. This complements same-job replay coverage. CI is pending for the latest branch head.
+
+
+- CI attempt `45128253359` reached PHP test loading and stopped on an escaped `RuntimeException` syntax error in the new late-callback assertion; no feature tests ran in that attempt. The reference has been corrected on the branch. A fresh CI run `45128391052` is now in progress for the corrected head; results are not yet known.
