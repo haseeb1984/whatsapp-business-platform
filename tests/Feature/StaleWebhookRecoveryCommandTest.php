@@ -106,7 +106,7 @@ class StaleWebhookRecoveryCommandTest extends TestCase
         ]);
 
         DB::table('webhook_events')->where('id', $event->id)->update([
-            'updated_at' => $updatedAt->toDateTimeString(),
+            'updated_at' => $updatedAt->format('Y-m-d H:i:s'),
         ]);
 
         return $event->fresh();
