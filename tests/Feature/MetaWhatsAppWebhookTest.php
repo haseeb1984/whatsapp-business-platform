@@ -131,6 +131,50 @@ class MetaWhatsAppWebhookTest extends TestCase
         $this->assertDatabaseCount('webhook_events', 0);
     }
 
+    public function test_events_for_suspended_tenants_are_quarantined_as_unmatched(): void
+    {
+        config(['services.meta.app_secret' => 'test-meta-app-secret']);
+        $tenant = Tenant::query()->create([
+            'name' => 'Suspended Webhook Workspace',
+            'slug' => 'suspended-webhook-workspace',
+        ]);
+        TenantContext::runForTenant($tenant->id, function (): void {
+            WhatsAppConnection::query()->create([
+                'phone_number_id' => '123456789012346',
+                'waba_id' => '987654321098766',
+                'access_token' => 'long-lived-access-token',
+                'status' => 'active',
+            ]);
+        });
+        $tenant->forceFill(['status' => 'suspended'])->save();
+
+        $raw = json_encode([
+            'object' => 'whatsapp_business_account',
+            'entry' => [[
+                'changes' => [[
+                    'field' => 'messages',
+                    'value' => [
+                        'metadata' => ['phone_number_id' => '123456789012346'],
+                        'messages' => [['id' => 'wamid.suspended-tenant', 'type' => 'text']],
+                    ],
+                ]],
+            ]],
+        ], JSON_THROW_ON_ERROR);
+        $signature = 'sha256='.hash_hmac('sha256', $raw, 'test-meta-app-secret');
+
+        $this->call('POST', '/api/webhooks/meta/whatsapp', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_HUB_SIGNATURE_256' => $signature,
+        ], $raw)->assertOk();
+
+        $this->assertDatabaseHas('webhook_events', [
+            'tenant_id' => null,
+            'phone_number_id' => '123456789012346',
+            'status' => 'unmatched',
+        ]);
+        Queue::assertNothingPushed();
+    }
+
     public function test_events_from_unknown_phone_numbers_are_quarantined_as_unmatched(): void
     {
         config(['services.meta.app_secret' => 'test-meta-app-secret']);
