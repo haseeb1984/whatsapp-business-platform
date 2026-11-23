@@ -166,7 +166,7 @@ This roadmap distinguishes planned work from implemented work.
 
 ## Milestone 10 — Production hardening and deployment
 - [x] Add a strict production preflight command for PHP version/extensions, environment/debug flags, APP_KEY, HTTPS URL, PostgreSQL TLS, database queue/after-commit/retry window/failed-job storage, persistent session/cache, secure cookies, Meta/SMTP/Groq/Google configuration and writable runtime directories.
-- [x] Automated tests across critical workflows (191 tests / 793 assertions on SQLite and PostgreSQL 16).
+- [x] Automated tests across critical workflows (199 tests / 836 assertions on SQLite and PostgreSQL 16).
 - [x] PostgreSQL 16 migration/test compatibility matrix in CI; live Neon connectivity and TLS validation remain pending.
 - [x] Automated PHP and frontend production dependency audits in GitHub Actions.
 - [x] Baseline browser security headers; HSTS only on secure production requests.
@@ -179,7 +179,7 @@ This roadmap distinguishes planned work from implemented work.
 - [ ] Backup/restore drill and rollback plan.
 - [ ] Meta production onboarding readiness review.
 
-**Status:** Latest verified code CI on commit `608ce382c79805f2068f4f52eed695ecf68b3c58` passed 198 tests / 828 assertions per database on SQLite and PostgreSQL 16, including full migration rollback/replay. Composer/npm production audits report no advisories. Durable outbound Meta delivery uses a transactional outbox, after-commit dispatch, duplicate-job claiming, pending recovery, stale `sending` reconciliation and explicit `unknown` handling; delivery status is finalized from worker/webhook evidence, without claiming provider-side exactly-once delivery. Route-level lazy loading keeps the main JavaScript chunk at 445.87 kB (142.76 kB gzip); browser-level performance profiling remains pending. Baseline browser security headers, Secure production session cookies, tenant isolation, token/payload encryption, webhook HMAC/size limits, admin audit logging, high-cost mutation throttles and strict runtime preflight are implemented and CI-tested. Penetration/abuse testing, live Neon TLS/credential validation, Hostinger deployment, queue/cron configuration, backups and rollback remain acceptance gates.
+**Status:** Latest verified code CI on commit `fd1a9863e037d2a3e00159c17cfedacda129b039` passed 199 tests / 836 assertions per database on SQLite and PostgreSQL 16, including full migration rollback/replay. Composer/npm production audits report no advisories. Durable outbound Meta delivery uses a transactional outbox, after-commit dispatch, duplicate-job claiming, pending recovery, stale `sending` reconciliation and explicit `unknown` handling; delivery status is finalized from worker/webhook evidence, without claiming provider-side exactly-once delivery. Route-level lazy loading keeps the main JavaScript chunk at 445.87 kB (142.76 kB gzip); browser-level performance profiling remains pending. Baseline browser security headers, Secure production session cookies, tenant isolation, token/payload encryption, webhook HMAC/size limits, admin audit logging, high-cost mutation throttles and strict runtime preflight are implemented and CI-tested. Penetration/abuse testing, live Neon TLS/credential validation, Hostinger deployment, queue/cron configuration, backups and rollback remain acceptance gates.
 
 ## Development rules
 
@@ -193,15 +193,15 @@ This roadmap distinguishes planned work from implemented work.
 
 ## Latest verified implementation checkpoint (2026-11-23)
 
-- Verified code commit: `608ce382c79805f2068f4f52eed695ecf68b3c58`.
-- CI: [run 45095090822](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45095090822) passed.
-- Automated suite: 198 tests / 828 assertions on SQLite and PostgreSQL 16; full migration rollback/replay passed on both.
+- Verified code commit: `fd1a9863e037d2a3e00159c17cfedacda129b039`.
+- CI: [run 45103674394](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45103674394) passed.
+- Automated suite: 199 tests / 836 assertions on SQLite and PostgreSQL 16; full migration rollback/replay passed on both.
 - Composer/npm production dependency audits passed; Vite production build passed.
 - The build manifest check confirms 21 lazy-loaded Inertia page chunks; main JavaScript bundle is 445.87 kB (142.76 kB gzip).
 - Outbound text/template messages are persisted before network delivery; `DeliverWhatsAppMessage` performs the Meta request outside the creation transaction and claims each outbox row once.
 - Pending outbox records are re-dispatched after five minutes if a queue dispatch was lost; abandoned `sending` records are marked `unknown` after ten minutes and never automatically resent.
 - Appointment reminder status is finalized by the outbox worker; staff UI messaging says replies are queued, and conversation history renders queued/sending/sent/delivered/read/failed/unknown states with clear labels. An already-authorized staff reply remains deliverable if automation is released before the worker runs; a queued automation reply is cancelled if a human takes over first.
 - Platform operations now reports outbound pending/sending/unknown/failed counts without exposing message content or customer data.
-- The transaction-boundary test confirms Meta HTTP executes after the message-creation transaction commits; duplicate queue-job tests confirm only one provider request is made.
+- The transaction-boundary test confirms Meta HTTP executes after the message-creation transaction commits; duplicate queue-job tests confirm only one provider request is made. Scheduler regression tests verify all four housekeeping commands are registered every minute.
 - `platform:preflight --strict` checks PHP 8.3+, production/debug flags, APP_KEY, HTTPS URL, PostgreSQL TLS, database queue after-commit, secure session cookies, Meta app/webhook credentials, SMTP, Groq, Google OAuth and writable runtime directories without printing secret values.
 - Remaining production gates: committed dependency lockfiles, actual Neon TLS/connectivity and migration rehearsal, Hostinger runtime/deployment rehearsal, live Meta/Google validation, load/abuse testing, browser performance profiling, and backup/restore drill.
