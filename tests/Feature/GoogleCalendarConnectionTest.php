@@ -278,7 +278,7 @@ class GoogleCalendarConnectionTest extends TestCase
                 '2026-12-02T00:00:00Z',
             ));
             $this->fail('An invalid OAuth client must fail the provider operation.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertStringContainsString('HTTP 401', $exception->getMessage());
         }
 
