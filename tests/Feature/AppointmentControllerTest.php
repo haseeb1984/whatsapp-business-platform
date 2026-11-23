@@ -172,7 +172,7 @@ class AppointmentControllerTest extends TestCase
         [$userA, $tenantA] = $this->workspace('appointment-index-owner-a@example.test', 'business_admin');
         [, $tenantB, $serviceB, $staffB, $customerB] = $this->workspace('appointment-index-owner-b@example.test', 'business_admin');
 
-        $foreignAppointment = TenantContext::runForTenant($tenantB->id, fn () => app(\\App\\Services\\Booking\\AppointmentBookingService::class)->createHold(
+        $foreignAppointment = TenantContext::runForTenant($tenantB->id, fn () => app(\App\Services\Booking\AppointmentBookingService::class)->createHold(
             $customerB->id,
             $serviceB->id,
             $staffB->id,
@@ -184,7 +184,7 @@ class AppointmentControllerTest extends TestCase
         $this->actingAs($userA)->withSession(['current_tenant_id' => $tenantA->id])
             ->get('/business/appointments')
             ->assertOk()
-            ->assertInertia(fn (\\Inertia\\Testing\\AssertableInertia $page) => $page
+            ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
                 ->component('Business/Appointments/Index')
                 ->has('appointments', 0)
                 ->has('customers', 0)
