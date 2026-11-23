@@ -103,7 +103,7 @@ class AppointmentReminderJobTest extends TestCase
                 $reminder->id,
             ));
             $this->fail('A reminder must never be attached to a different customer conversation.');
-        } catch (\\Illuminate\\Validation\\ValidationException $exception) {
+        } catch (\Illuminate\Validation\ValidationException $exception) {
             $this->assertArrayHasKey('reminder', $exception->errors());
         }
 
