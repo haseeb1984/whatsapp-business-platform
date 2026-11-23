@@ -292,3 +292,9 @@ This roadmap distinguishes planned work from implemented work.
 
 - Added explicit two-workspace route regressions proving a business-profile update cannot overwrite another tenant's profile, weekly-hours updates cannot overwrite another tenant's hours, and booking-policy updates remain scoped to the active tenant.
 - These complement the existing profile/hours isolation, staff-role, and staff-exception foreign-tenant tests. The new cases are committed on PR #2 and require a fresh CI run before being marked verified.
+
+
+## Appointment route isolation follow-up (2026-11-23)
+
+- Extended the cross-tenant appointment regression so a workspace cannot cancel a foreign temporary hold, reschedule a foreign appointment, confirm a foreign appointment through Google Calendar, or cancel a foreign confirmed appointment. Each route must return 404 and leave the foreign appointment unchanged.
+- This complements the existing foreign service availability validation and tenant-scoped customer/service/staff validation in hold creation. New assertions are pending CI.
