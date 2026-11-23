@@ -1,13 +1,13 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Jobs\\ProcessMetaWebhookEvent;
-use App\\Models\\Tenant;
-use App\\Models\\WebhookEvent;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Support\\Facades\\Queue;
-use Tests\\TestCase;
+use App\Jobs\ProcessMetaWebhookEvent;
+use App\Models\Tenant;
+use App\Models\WebhookEvent;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
+use Tests\TestCase;
 
 class FailedWebhookReplayCommandTest extends TestCase
 {
