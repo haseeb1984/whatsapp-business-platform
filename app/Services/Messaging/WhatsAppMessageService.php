@@ -179,7 +179,7 @@ class WhatsAppMessageService
             $normalizedParameters[] = trim((string) $parameter);
         }
 
-        return DB::transaction(function () use ($conversation, $template, $components, $normalizedParameters, $reminderId): Message {
+        return DB::transaction(function () use ($conversation, $template, $normalizedParameters, $reminderId): Message {
             if ($reminderId !== null) {
                 $existing = Message::query()->where('reminder_id', $reminderId)->first();
                 if ($existing) {
