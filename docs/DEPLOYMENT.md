@@ -93,7 +93,7 @@ Never commit real values. Keep `.env` outside the public web root and ensure the
 The initial shared-hosting strategy is a database queue, not a persistent daemon. After queue jobs are introduced and the worker command has been tested, configure a Hostinger cron job to run a bounded worker invocation at the supported cadence. Laravel's scheduler expires temporary appointment holds and dispatches due appointment reminders once per minute. Proposed command:
 
 ```bash
-cd /home/ACCOUNT/domains/DOMAIN/public_html/APP_ROOT && php artisan queue:work database --stop-when-empty --max-time=20 --tries=3 --sleep=1
+cd /home/ACCOUNT/domains/DOMAIN/public_html/APP_ROOT && php artisan queue:work database --stop-when-empty --max-time=20 --tries=3 --sleep=1 --timeout=45
 ```
 
 Replace the path with the real application path. The command must run outside the public directory. Confirm PHP CLI path, cron cadence, process limits, and logs in hPanel. Do not configure this cron until the application is deployed and queue migrations have succeeded.
@@ -104,7 +104,15 @@ Configure Laravel's scheduler with a separate cron entry (after confirming the r
 * * * * * cd /home/ACCOUNT/domains/DOMAIN/public_html/APP_ROOT && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-This runs the scheduled `appointments:expire-holds` and `appointments:dispatch-reminders` tasks. The queue worker and scheduler are separate concerns; both need monitoring and bounded execution. Reminder jobs use free-form text only for other in-window workflows; appointment reminders use the configured approved Meta template even outside the 24-hour customer-service window. Set `META_APPOINTMENT_REMINDER_TEMPLATE` and `META_APPOINTMENT_REMINDER_LANGUAGE` to the exact synced approved template. The current reminder mapper expects exactly two sequential BODY variables: `{{1}}` = service name and `{{2}}` = appointment date/time in the business timezone. If the approved template is unavailable or does not match, the reminder is safely held rather than sending an unapproved/free-form message. The 20-second limit is a starting value to validate, not a guaranteed Hostinger allowance.
+This runs the scheduled `appointments:expire-holds`, `appointments:dispatch-reminders`, `messages:dispatch-pending`, and `messages:reconcile-stale-outbound` tasks. The queue worker and scheduler are separate concerns; both need monitoring and bounded execution. Reminder jobs use free-form text only for other in-window workflows; appointment reminders use the configured approved Meta template even outside the 24-hour customer-service window. Set `META_APPOINTMENT_REMINDER_TEMPLATE` and `META_APPOINTMENT_REMINDER_LANGUAGE` to the exact synced approved template. The current reminder mapper expects exactly two sequential BODY variables: `{{1}}` = service name and `{{2}}` = appointment date/time in the business timezone. If the approved template is unavailable or does not match, the reminder is safely held rather than sending an unapproved/free-form message. The 20-second limit is a starting value to validate, not a guaranteed Hostinger allowance.
+
+### Outbound WhatsApp delivery outbox
+
+Outbound text and approved-template messages are persisted in the tenant-scoped `messages` table with `delivery_status=pending` inside the application transaction. The transaction commits before `DeliverWhatsAppMessage` contacts Meta. The delivery job claims the row atomically as `sending`, runs once (`$tries=1`, job timeout 30 seconds), and records `sent`, `failed`, or `unknown`. A known provider rejection is failed; a connection/ambiguous provider outcome is unknown. Unknown messages are deliberately not resent automatically because Meta may already have accepted them.
+
+The minute scheduler also recovers pending outbox rows older than five minutes if queue dispatch was interrupted, and changes `sending` rows older than ten minutes to `unknown` after a worker crash. Duplicate queue jobs are safe: only a row still in `pending` can be claimed for a provider request. Reminder delivery status is finalized by the same worker. This reduces transaction lock duration and protects against duplicate sends, but it does not provide provider-side exactly-once guarantees; unknown outcomes still require webhook evidence or operator reconciliation.
+
+For the database queue, keep `retry_after` at 90 seconds and worker `--timeout` below that (45 seconds here); the WhatsApp delivery job itself has a 30-second timeout and one attempt. Verify Hostinger CLI/cron process limits before using these values in production.
 
 ## 9. Rollback and recovery
 
