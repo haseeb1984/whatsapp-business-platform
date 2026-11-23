@@ -219,4 +219,6 @@ This roadmap distinguishes planned work from implemented work.
 
 - The Calendar settings UI now provides a deliberate **Clear saved authorization** action when Google returns `invalid_grant`. This makes the documented recovery path actionable if Google does not return a new offline refresh token on reconnect.
 - Added a success-path regression test proving a fresh Google refresh token replaces the revoked credential and restores connection status to `connected`.
-- CI and live Google OAuth validation remain outstanding; do not treat the new test as passing until the workflow reports success.
+- CI and live Google OAuth validation remain outstanding; do not treat the new tests as passing until the workflow reports success.
+- Follow-up regression coverage also verifies that a new refresh token restores `connected`, the settings page receives `reauthorization_required`, and clearing a revoked connection removes encrypted credentials even when Google cannot confirm revocation.
+
