@@ -211,7 +211,6 @@ class WhatsAppMessageService
                 throw ValidationException::withMessages(['connection' => 'The template is not attached to a verified active WhatsApp connection.']);
             }
 
-            $customer = $lockedConversation->customer()->firstOrFail();
             $message = Message::query()->create([
                 'conversation_id' => $lockedConversation->id,
                 'reminder_id' => $reminderId,
