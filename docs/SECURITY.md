@@ -74,7 +74,7 @@
 - No secrets or sensitive payloads in logs or Git history.
 - Backups and restore drill completed.
 - Dependency and application security checks completed.
-- Commit Composer and npm lockfiles and verify CI/deployment use locked dependency installation; current repository has no committed `composer.lock` or `package-lock.json`.
+- Review and merge the generated Composer and npm lockfiles in [PR #6](https://github.com/haseeb1984/whatsapp-business-platform/pull/6), then verify CI/deployment consistently use `composer install` and `npm ci`. Both lockfiles are generated and the lockfile branch's full CI passed ([run 45245038911](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45245038911)); they are not yet present on `main`.
 - Incident and credential-rotation procedures documented.
 
 ## Latest verified regression checkpoint (2026-11-23)
@@ -92,3 +92,8 @@ Commit `0587f2650ee8ff3ffdf307fc595fbf18ff2d04ee` introduces route-level lazy lo
 ## Post-PR2 concurrency regression verification (2026-11-23)
 
 The PostgreSQL 16 CI run [45243247660](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45243247660) passed with a dedicated multi-process webhook idempotency test. It starts two independent PHP workers against the same committed event, forces PostgreSQL row-lock contention using a test-only trigger, and verifies exactly one customer, conversation and inbound message plus a `processed` event state. This is automated CI evidence, not proof of live Neon configuration. PR #5 remains open and unmerged pending review.
+
+
+## Dependency lockfile security checkpoint (2026-11-23)
+
+The manual lockfile workflow [45244631505](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45244631505) passed Composer validation/audit, npm production audit, clean installs and the Vite build. The workflow could not create the PR because the repository does not allow `GITHUB_TOKEN` to create pull requests; the lockfile branch push succeeded and [PR #6](https://github.com/haseeb1984/whatsapp-business-platform/pull/6) was opened separately. Its regular CI passed in [run 45245038911](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45245038911). Keep the production reproducibility gate open until PR #6 is merged and locked installs are enabled.
