@@ -125,9 +125,9 @@ For the database queue, keep `retry_after` at 90 seconds and worker `--timeout` 
 
 ## Latest pre-deployment verification (2026-11-23)
 
-- Verified commit: `7156f9fb865c0181162c833ba9b8b8ae5c81a0a4`.
-- [CI run 45093067384](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45093067384) passed 194 tests / 813 assertions on SQLite and PostgreSQL 16, full migration rollback/replay on both, Composer/npm production dependency audits, and the Vite production build.
-- CI also verifies the route manifest contains 21 lazy-loaded Inertia page chunks, the message outbox dispatch/recovery flows, provider calls outside the message-creation transaction, duplicate-job protection, appointment reminder completion after delivery, and explicit inbox labels for queued/sending/unknown delivery states.
+- Verified commit: `7db43b26199050816d88d3b9a5818b9ce30343ce`.
+- [CI run 45093351011](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45093351011) passed 195 tests / 815 assertions on SQLite and PostgreSQL 16, full migration rollback/replay on both, Composer/npm production dependency audits, and the Vite production build.
+- CI also verifies the route manifest contains 21 lazy-loaded Inertia page chunks, the message outbox dispatch/recovery flows, provider calls outside the message-creation transaction, duplicate-job protection, appointment reminder completion after delivery, and explicit inbox labels for queued/sending/unknown delivery states, and handover-race tests (queued staff replies survive release; queued automation replies are cancelled when staff takes over).
 - This does not replace a live Neon connection/TLS/migration rehearsal or a Hostinger runtime/deployment rehearsal.
 - Route-level lazy loading is implemented; the latest Vite build emits a 445.87 kB minified main JavaScript chunk (142.77 kB gzip), below the 500 kB advisory threshold. Browser-level performance profiling remains pending.
 - The repository still needs committed `composer.lock` and `package-lock.json` plus locked install commands before reproducible deployment can be considered complete. CI action pins have been upgraded to Node 24-compatible releases.
