@@ -232,3 +232,9 @@ This roadmap distinguishes planned work from implemented work.
 - Added regression tests for stale-vs-fresh selection, lease renewal/no duplicate requeue, and cross-tenant isolation; scheduler coverage now requires the command.
 - Added a guard and regression test so a late queue failure callback cannot overwrite an event that already committed as `processed`.
 - CI execution and real Meta webhook validation remain pending. This recovery does not change outbound delivery semantics: ambiguous provider sends remain `unknown` and are never automatically resent.
+
+## Delivery and recovery test follow-up (2026-11-23)
+
+- Fixed the Calendar pending-recovery test fixture to reuse the tenant's unique Consultation service, business-hours row and WhatsApp customer rather than inserting duplicate unique records for each appointment.
+- Expanded outbound delivery regression coverage for Meta HTTP 400 (definitive failure), HTTP 429/503 (conservative ambiguous outcome), and HTTP 200 without a provider message ID (ambiguous outcome). The implementation continues to avoid automatic resend when acceptance cannot be established.
+- Changes are committed on main; CI has not yet reported a result for the latest commits. Do not count these added tests as passing until the full SQLite/PostgreSQL/build workflow completes.
