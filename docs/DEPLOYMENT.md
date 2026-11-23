@@ -134,9 +134,9 @@ For the database queue, keep `retry_after` at 90 seconds and worker `--timeout` 
 
 ## Latest pre-deployment verification (2026-11-23)
 
-- Verified commit: `173393627629ae397fc6fb0a16e9363643b13b30`.
-- [CI run 45093614481](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45093614481) passed 195 tests / 815 assertions on SQLite and PostgreSQL 16, full migration rollback/replay on both, Composer/npm production dependency audits, and the Vite production build.
-- CI also verifies the route manifest contains 21 lazy-loaded Inertia page chunks, the message outbox dispatch/recovery flows, provider calls outside the message-creation transaction, duplicate-job protection, appointment reminder completion after delivery, and explicit inbox labels for queued/sending/unknown delivery states, and handover-race tests (queued staff replies survive release; queued automation replies are cancelled when staff takes over), global outbox health counts, and cross-tenant isolation for outbound delivery jobs.
+- Verified commit: `4dbdea1709f1967d9c7cb6c112ec6e1004e7e5d9`.
+- [CI run 45094615942](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45094615942) passed 198 tests / 828 assertions on SQLite and PostgreSQL 16, full migration rollback/replay on both, Composer/npm production dependency audits, and the Vite production build.
+- CI also verifies the route manifest contains 21 lazy-loaded Inertia page chunks, the message outbox dispatch/recovery flows, provider calls outside the message-creation transaction, duplicate-job protection, appointment reminder completion after delivery, and explicit inbox labels for queued/sending/unknown delivery states, and handover-race tests (queued staff replies survive release; queued automation replies are cancelled when staff takes over), global outbox health counts, cross-tenant isolation for outbound delivery jobs, and strict production runtime preflight checks.
 - This does not replace a live Neon connection/TLS/migration rehearsal or a Hostinger runtime/deployment rehearsal.
-- Route-level lazy loading is implemented; the latest Vite build emits a 445.87 kB minified main JavaScript chunk (142.77 kB gzip), below the 500 kB advisory threshold. Browser-level performance profiling remains pending.
+- Route-level lazy loading is implemented; the latest Vite build emits a 445.87 kB minified main JavaScript chunk (142.76 kB gzip), below the 500 kB advisory threshold. Browser-level performance profiling remains pending.
 - The repository still needs committed `composer.lock` and `package-lock.json` plus locked install commands before reproducible deployment can be considered complete. CI action pins have been upgraded to Node 24-compatible releases.
