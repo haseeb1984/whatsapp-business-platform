@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Schedule;
 Artisan::command('platform:preflight {--strict}', function (): int {
     $checks = [
         'PHP 8.3 or newer' => PHP_VERSION_ID >= 80300,
+        'PDO PostgreSQL extension loaded' => extension_loaded('pdo_pgsql'),
+        'cURL extension loaded' => extension_loaded('curl'),
+        'OpenSSL extension loaded' => extension_loaded('openssl'),
         'Production environment selected' => config('app.env') === 'production',
         'APP_DEBUG disabled' => config('app.debug') === false,
         'APP_KEY configured' => is_string(config('app.key')) && trim((string) config('app.key')) !== '',
@@ -17,6 +20,10 @@ Artisan::command('platform:preflight {--strict}', function (): int {
         'PostgreSQL TLS required' => in_array(config('database.connections.pgsql.sslmode'), ['require', 'verify-ca', 'verify-full'], true),
         'Database queue selected' => config('queue.default') === 'database',
         'Queue dispatch after commit' => config('queue.connections.database.after_commit') === true,
+        'Queue retry window exceeds delivery job timeout' => (int) config('queue.connections.database.retry_after', 0) > 30,
+        'Failed-job storage configured' => config('queue.failed.driver') === 'database-uuids',
+        'Session driver is persistent' => config('session.driver') !== 'array',
+        'Cache driver supports scheduler locks' => config('cache.default') !== 'array',
         'Secure session cookies' => config('session.secure') === true,
         'Meta Graph API version configured' => is_string(config('services.meta.graph_api_version'))
             && preg_match('/^v\d+\.\d+$/', (string) config('services.meta.graph_api_version')) === 1,
