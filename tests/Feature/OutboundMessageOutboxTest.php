@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Jobs\DeliverWhatsAppMessage;
+use App\Models\Tenant;
+use App\Services\Meta\MetaWhatsAppGraphApi;
 use App\Models\Conversation;
 use App\Models\Customer;
 use App\Models\Message;
@@ -11,6 +13,7 @@ use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class OutboundMessageOutboxTest extends TestCase
@@ -37,6 +40,25 @@ class OutboundMessageOutboxTest extends TestCase
         ]);
         $queuedAt = DB::table('messages')->where('id', $message->id)->value('updated_at');
         $this->assertGreaterThan(now()->subMinute()->timestamp, strtotime((string) $queuedAt));
+    }
+
+    public function test_delivery_worker_cannot_process_another_tenants_outbox_message(): void
+    {
+        $owner = Tenant::query()->create(['name' => 'Outbox Owner', 'slug' => 'outbox-owner']);
+        $other = Tenant::query()->create(['name' => 'Outbox Other', 'slug' => 'outbox-other']);
+        $message = $this->outboundMessage($owner, 'pending', now());
+
+        Http::fake();
+
+        (new DeliverWhatsAppMessage($other->id, $message->id))->handle(app(MetaWhatsAppGraphApi::class));
+
+        $this->assertDatabaseHas('messages', [
+            'id' => $message->id,
+            'tenant_id' => $owner->id,
+            'delivery_status' => 'pending',
+        ]);
+        Http::assertNothingSent();
+        $this->assertFalse(app()->bound(TenantContext::class), 'An outbox job must not leak tenant context.');
     }
 
     public function test_stale_sending_messages_become_unknown_and_are_never_resent(): void
