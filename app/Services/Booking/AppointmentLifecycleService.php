@@ -141,16 +141,17 @@ class AppointmentLifecycleService
             $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointmentId);
             if ($appointment->status !== 'confirmed'
                 || ! $appointment->external_event_id
-                || $appointment->calendar_sync_status !== 'synced') {
-                throw ValidationException::withMessages(['appointment' => 'Only a fully synchronized confirmed appointment can begin calendar deletion.']);
+                || ! in_array($appointment->calendar_sync_status, ['synced', 'pending', 'unknown'], true)) {
+                throw ValidationException::withMessages(['appointment' => 'Only a confirmed appointment without a failed Calendar operation can begin calendar deletion.']);
             }
 
             if ($appointment->reschedules()->whereIn('status', ['pending', 'unknown'])->exists()) {
                 throw ValidationException::withMessages(['appointment' => 'This appointment has a reschedule awaiting calendar confirmation. Resolve it before cancellation.']);
             }
 
+            $wasInFlight = in_array($appointment->calendar_sync_status, ['pending', 'unknown'], true);
             $appointment->forceFill(['calendar_sync_status' => 'pending'])->save();
-            $this->event($appointment, 'calendar_deletion_started');
+            $this->event($appointment, $wasInFlight ? 'calendar_deletion_retried' : 'calendar_deletion_started');
 
             return $appointment->refresh();
         });
