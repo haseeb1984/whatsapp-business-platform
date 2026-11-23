@@ -176,10 +176,14 @@ class CalendarPendingRecoveryCommandTest extends TestCase
             'status' => 'held',
             'calendar_sync_status' => 'pending',
             'idempotency_key' => 'calendar-recovery-'.$slug,
-            'service_name_snapshot' => 'Consultation',
-            'price_amount_snapshot' => '100.00',
-            'currency_snapshot' => 'PKR',
-            'duration_minutes_snapshot' => 30,
+            'service_name' => 'Consultation',
+            'price_amount' => '100.00',
+            'currency' => 'PKR',
+            'duration_minutes' => 30,
+            'reserved_starts_at' => CarbonImmutable::parse('2026-11-24 10:00:00', 'Asia/Karachi')->utc(),
+            'reserved_ends_at' => CarbonImmutable::parse('2026-11-24 10:30:00', 'Asia/Karachi')->utc(),
+            'source' => 'dashboard',
+            'hold_expires_at' => now()->addMinutes(10),
         ]));
 
         return [$tenant, $appointment];
