@@ -386,3 +386,14 @@ This roadmap distinguishes planned work from implemented work.
 - The initial run [45165189938](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45165189938) exposed a test-fixture assumption: the fake URL hard-coded Google's public API host while the application uses its configured API base URL. The assertion now matches the configured path and verifies the exact Authorization token.
 - Corrected full CI run [45165433038](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45165433038) passed.
 - This verifies tenant credential selection at the HTTP boundary; it does not establish live Google connectivity or production OAuth readiness.
+
+
+## Post-merge checkpoint (2026-11-23)
+
+- PR #2 was squash-merged into `main` after its latest full CI run [45240511706](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45240511706) passed.
+- Merge commit: `8206662e825e7097d135235b2745892f59dd0405`.
+- Included regression coverage for duplicate webhook processing, late failure callbacks, duplicate provider message IDs, ambiguous Meta template-send outcomes, tenant-scoped inbox/booking/Calendar operations, same-user multi-workspace Google credential isolation, and spreadsheet-formula-safe tenant CSV export.
+- The CSV export regression specifically verifies formula-leading tenant fields are neutralized before they reach a spreadsheet consumer.
+- **Still open:** no test yet launches two independent PostgreSQL worker processes/connections against the same committed webhook event and proves only one processing transaction performs the side effects. Existing duplicate-job tests are sequential and must not be represented as concurrency proof. The next webhook acceptance test must use independent DB connections/processes, synchronize worker start, and assert one customer/conversation/message plus a single processed event after both workers finish.
+- **Still open:** generate and review `composer.lock` and `package-lock.json` using the manual dependency-lockfile workflow; switch CI to deterministic locked installs only after the generated lockfiles are reviewed and committed.
+- Production acceptance gates remain unchanged: actual Neon connection/migration rehearsal, live Meta webhook/send validation, live Google OAuth/Calendar validation, Hostinger runtime/resource checks, backup/restore rehearsal, and deployment rehearsal. No production deployment has been performed.
