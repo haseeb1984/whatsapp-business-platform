@@ -10,8 +10,13 @@ if (! is_string($eventId) || ! is_string($readyPath) || ! is_string($startPath))
     exit(2);
 }
 
-$app = require dirname(__DIR__, 2).'/bootstrap/app.php';
-$app->make(Kernel::class)->bootstrap();
+try {
+    $app = require dirname(__DIR__, 2).'/bootstrap/app.php';
+    $app->make(Kernel::class)->bootstrap();
+} catch (Throwable $exception) {
+    file_put_contents($readyPath.'.error', $exception::class.': '.$exception->getMessage());
+    exit(10);
+}
 
 file_put_contents($readyPath, (string) getmypid());
 
