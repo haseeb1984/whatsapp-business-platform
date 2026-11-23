@@ -119,9 +119,14 @@ class GoogleCalendarConnectionController extends Controller
         }
 
         $connection = GoogleCalendarConnection::query()->first();
-        $sameAccountRefreshToken = $connection && $connection->google_account_email === $userInfo->json('email')
-            ? $connection->refresh_token
-            : null;
+        // A revoked refresh token must never be silently reused during reauthorization.
+        // Google may omit refresh_token when consent is not newly granted; in that case
+        // keep the connection in reauthorization_required instead of reactivating it.
+        $sameAccountRefreshToken = $connection
+            && $connection->status !== 'reauthorization_required'
+            && $connection->google_account_email === $userInfo->json('email')
+                ? $connection->refresh_token
+                : null;
         $refreshToken = $tokens['refresh_token'] ?? $sameAccountRefreshToken;
         if (! is_string($refreshToken) || $refreshToken === '') {
             return redirect()->route('business.calendar.index')->withErrors([
