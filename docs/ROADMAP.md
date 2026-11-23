@@ -397,3 +397,11 @@ This roadmap distinguishes planned work from implemented work.
 - **Implemented in PR #5; PostgreSQL 16 CI passed:** a dedicated test launches two independent PHP worker processes against the same committed webhook event, uses a test-only trigger to force row-lock contention, and asserts exactly one customer, conversation and inbound message with the event ending in `processed`. [CI run 45243247660](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45243247660) passed. Keep this acceptance gate open until PR #5 is reviewed and merged.
 - **Still open:** generate and review `composer.lock` and `package-lock.json` using the manual dependency-lockfile workflow; switch CI to deterministic locked installs only after the generated lockfiles are reviewed and committed.
 - Production acceptance gates remain unchanged: actual Neon connection/migration rehearsal, live Meta webhook/send validation, live Google OAuth/Calendar validation, Hostinger runtime/resource checks, backup/restore rehearsal, and deployment rehearsal. No production deployment has been performed.
+
+
+## Dependency lockfile generation checkpoint (2026-11-23)
+
+- Manual workflow run [45244631505](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45244631505) generated `composer.lock` and `package-lock.json` successfully, and passed Composer validation/audit, npm production audit, clean Composer/npm installs, and the Vite production build.
+- The workflow's final `gh pr create` command was blocked by the repository Actions setting that prevents `GITHUB_TOKEN` from creating pull requests. The lockfile commit was nevertheless pushed successfully as `719fa191143e3a01d328815fa5e79429d08e2458` on `chore/dependency-lockfiles-45244631505`.
+- Opened reviewable [PR #6](https://github.com/haseeb1984/whatsapp-business-platform/pull/6) separately. Its regular CI run [45245038911](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45245038911) passed.
+- Lockfiles are generated and CI-verified on PR #6, but are not yet merged into `main`; do not mark deterministic locked installs as active on main until review and merge.
