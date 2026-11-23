@@ -278,7 +278,7 @@ class GoogleCalendarConnectionTest extends TestCase
                 '2026-12-02T00:00:00Z',
             ));
             $this->fail('A revoked refresh token must not produce a successful Calendar response.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertStringContainsString('HTTP 400', $exception->getMessage());
         }
 
@@ -293,7 +293,7 @@ class GoogleCalendarConnectionTest extends TestCase
                 '2026-12-02T00:00:00Z',
             ));
             $this->fail('A connection requiring reauthorization must be rejected before another provider request.');
-        } catch (\\Illuminate\\Validation\\ValidationException) {
+        } catch (\Illuminate\Validation\ValidationException) {
             // Expected: the connection is no longer considered active.
         }
 
