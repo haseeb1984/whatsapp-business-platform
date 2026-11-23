@@ -355,3 +355,66 @@ Schedule::command('messages:reconcile-stale-outbound')
 Schedule::command('messages:dispatch-pending')
     ->everyMinute()
     ->withoutOverlapping();
+
+Artisan::command('webhooks:reconcile-stale-processing {--tenant=}', function (): int {
+    $tenantId = $this->option('tenant');
+    $dispatched = 0;
+
+    $query = \Illuminate\Support\Facades\DB::table('webhook_events')
+        ->join('tenants', 'tenants.id', '=', 'webhook_events.tenant_id')
+        ->where('tenants.status', 'active')
+        ->where('webhook_events.status', 'processing')
+        ->where('webhook_events.updated_at', '<=', now()->subMinutes(10))
+        ->orderBy('webhook_events.updated_at')
+        ->limit(100);
+
+    if (is_string($tenantId) && $tenantId !== '') {
+        $query->where('webhook_events.tenant_id', $tenantId);
+    }
+
+    $candidates = $query->get(['webhook_events.id']);
+
+    foreach ($candidates as $candidate) {
+        $eventId = (string) $candidate->id;
+        $shouldDispatch = \Illuminate\Support\Facades\DB::transaction(function () use ($eventId): bool {
+            $event = \Illuminate\Support\Facades\DB::table('webhook_events')
+                ->where('id', $eventId)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $event
+                || $event->status !== 'processing'
+                || $event->updated_at > now()->subMinutes(10)->toDateTimeString()
+                || ! $event->tenant_id
+                || ! Tenant::query()->whereKey($event->tenant_id)->where('status', 'active')->exists()) {
+                return false;
+            }
+
+            // A crashed worker can leave an event permanently in processing.
+            // Reset only after the ten-minute lease expires; the job's row lock
+            // still prevents concurrent duplicate processing.
+            \Illuminate\Support\Facades\DB::table('webhook_events')
+                ->where('id', $eventId)
+                ->update([
+                    'status' => 'pending',
+                    'error_summary' => 'Recovered after a stale processing lease; queued for retry.',
+                    'updated_at' => now(),
+                ]);
+
+            return true;
+        });
+
+        if ($shouldDispatch) {
+            \App\Jobs\ProcessMetaWebhookEvent::dispatch($eventId)->afterCommit();
+            $dispatched++;
+        }
+    }
+
+    $this->info("Requeued {$dispatched} stale webhook event(s).");
+
+    return self::SUCCESS;
+})->purpose('Recover Meta webhook events stranded by terminated workers without duplicating active processing');
+
+Schedule::command('webhooks:reconcile-stale-processing')
+    ->everyMinute()
+    ->withoutOverlapping();
