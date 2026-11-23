@@ -125,6 +125,8 @@ class AppointmentControllerTest extends TestCase
             'starts_at' => '2026-11-24T11:00',
             'idempotency_key' => 'cross-tenant-reschedule-attempt',
         ])->assertNotFound();
+        $this->post('/business/appointments/'.$foreignAppointment->id.'/confirm-calendar')->assertNotFound();
+        $this->post('/business/appointments/'.$foreignAppointment->id.'/cancel')->assertNotFound();
 
         $this->assertDatabaseHas('appointments', [
             'id' => $foreignAppointment->id,
