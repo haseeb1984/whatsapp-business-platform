@@ -277,3 +277,12 @@ This roadmap distinguishes planned work from implemented work.
 
 
 - Follow-up PostgreSQL CI on the corrected webhook fixtures reached 219 passing tests / 947 assertions, with three failures isolated to the Calendar recovery test helper seeding appointment status `held`, which violates the PostgreSQL check constraint (valid initial state is `pending_hold`). Updated the fixture to use `pending_hold`; a fresh full CI run is pending.
+
+
+## Webhook hardening CI verification (2026-11-23)
+
+- Full GitHub Actions run [45129187315](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45129187315) completed successfully for the webhook hardening code and PostgreSQL-valid Calendar recovery fixture.
+- Verified stages: PHP tests on SQLite, SQLite migration rollback/replay, PHP tests on PostgreSQL 16, PostgreSQL migration rollback/replay, Composer/npm production dependency audits, Vite production build, and lazy-loaded page-chunk manifest check.
+- This confirms the branch's sequential duplicate-worker/provider-message idempotency tests, late failure callback protection, HTTP 408 ambiguous handling for text and approved-template sends, and Calendar fixture compatibility pass in CI.
+- The run tested code commit `635d52f299fc2a1cf4d9f02d6567aa8b9822e46b`; the branch head also includes a subsequent documentation-only update. No real concurrent-worker/process-crash test, live Meta validation, Neon rehearsal, Hostinger validation, or deployment is implied by this CI result.
+- Business profile, weekly-hours, booking-policy and staff-exception controllers/tests were also reviewed. Their routes remain behind authenticated, verified tenant context and business-admin role checks; profile and weekly-hours tests verify tenant isolation, while booking-policy and staff-exception tests verify role and foreign-tenant behavior. Remaining cross-tenant route audit continues for any uncovered paths.
