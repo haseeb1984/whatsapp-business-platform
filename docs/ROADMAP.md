@@ -193,10 +193,10 @@ This roadmap distinguishes planned work from implemented work.
 ## Latest verified implementation checkpoint (2026-11-23)
 
 - Verified code commit: \`813129f0ba50dba29c9db9a2c1304df7361371fc\`.
-- CI: [run 45093614481](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45093614481) passed.
-- Automated suite: 195 tests / 815 assertions on SQLite and PostgreSQL 16; full migration rollback/replay passed on both.
+- CI: [run 45093938046](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45093938046) passed.
+- Automated suite: 195 tests / 823 assertions on SQLite and PostgreSQL 16; full migration rollback/replay passed on both.
 - Composer/npm production dependency audits passed; Vite production build passed.
-- The build manifest check confirms 21 lazy-loaded Inertia page chunks; main JavaScript bundle is 445.87 kB (142.77 kB gzip).
+- The build manifest check confirms 21 lazy-loaded Inertia page chunks; main JavaScript bundle is 445.87 kB (142.76 kB gzip).
 - Outbound text/template messages are persisted before network delivery; \`DeliverWhatsAppMessage\` performs the Meta request outside the creation transaction and claims each outbox row once.
 - Pending outbox records are re-dispatched after five minutes if a queue dispatch was lost; abandoned \`sending\` records are marked \`unknown\` after ten minutes and never automatically resent.
 - Appointment reminder status is finalized by the outbox worker; staff UI messaging says replies are queued, and conversation history renders queued/sending/sent/delivered/read/failed/unknown states with clear labels. An already-authorized staff reply remains deliverable if automation is released before the worker runs; a queued automation reply is cancelled if a human takes over first.
