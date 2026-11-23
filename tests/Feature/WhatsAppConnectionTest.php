@@ -124,7 +124,7 @@ class WhatsAppConnectionTest extends TestCase
             'status' => 'pending',
         ]));
 
-        TenantContext::runForTenant($tenantB->id, fn () => \\App\\Models\\WhatsAppTemplate::query()->create([
+        TenantContext::runForTenant($tenantB->id, fn () => \App\Models\WhatsAppTemplate::query()->create([
             'whatsapp_connection_id' => $foreignConnection->id,
             'provider_template_id' => 'foreign-provider-template-987',
             'name' => 'tenant_b_private_template',
