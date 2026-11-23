@@ -3,23 +3,19 @@
 namespace App\Services\Messaging;
 
 use App\Enums\MessageActor;
-use App\Exceptions\MetaWhatsAppApiException;
+use App\Jobs\DeliverWhatsAppMessage;
 use App\Models\Appointment;
 use App\Models\AppointmentReminder;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\WhatsAppTemplate;
 use App\Models\WhatsAppConnection;
-use App\Services\Meta\MetaWhatsAppGraphApi;
-use Illuminate\Http\Client\ConnectionException;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class WhatsAppMessageService
 {
-    public function __construct(private readonly MetaWhatsAppGraphApi $graphApi)
-    {
-    }
 
     public function sendText(Conversation $conversation, string $body, MessageActor $actor = MessageActor::Automation, ?string $replyToMessageId = null, ?int $staffUserId = null, ?string $reminderId = null): Message
     {
@@ -132,7 +128,7 @@ class WhatsAppMessageService
                 ],
             ]);
 
-            DeliverWhatsAppMessage::dispatch(app(\\App\\Support\\Tenancy\\TenantContext::class)->id(), $message->id)
+            DeliverWhatsAppMessage::dispatch(app(TenantContext::class)->id(), $message->id)
                 ->afterCommit();
 
             return $message;
@@ -241,7 +237,7 @@ class WhatsAppMessageService
                 ],
             ]);
 
-            DeliverWhatsAppMessage::dispatch(app(\\App\\Support\\Tenancy\\TenantContext::class)->id(), $message->id)
+            DeliverWhatsAppMessage::dispatch(app(TenantContext::class)->id(), $message->id)
                 ->afterCommit();
 
             return $message;
