@@ -92,6 +92,28 @@ class PlatformDashboardTest extends TestCase
             ->assertDownload();
     }
 
+    public function test_tenant_csv_export_neutralizes_spreadsheet_formula_cells(): void
+    {
+        config(['platform.admin_emails' => ['platform-admin@example.test']]);
+        $admin = $this->user('platform-admin@example.test');
+
+        Tenant::query()->create([
+            'name' => '=1+1',
+            'slug' => '@SUM(1,1)',
+            'status' => 'active',
+            'timezone' => '+cmd|/C calc',
+        ]);
+
+        $response = $this->actingAs($admin)->get('/platform/tenants/export');
+
+        $response->assertOk();
+        $csv = $response->streamedContent();
+
+        $this->assertStringContainsString("'=1+1", $csv);
+        $this->assertStringContainsString("'@SUM(1,1)", $csv);
+        $this->assertStringContainsString("'+cmd|/C calc", $csv);
+    }
+
     private function user(string $email): User
     {
         $user = User::query()->create([
