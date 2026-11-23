@@ -137,11 +137,11 @@ class MetaWhatsAppWebhookTest extends TestCase
         ]);
         $this->assertDatabaseCount('customers', 1);
         $this->assertDatabaseCount('conversations', 1);
-        $this->assertDatabaseHas('messages', [
-            'provider_message_id' => 'wamid.duplicate-worker-message',
-            'direction' => 'inbound',
-            'body' => 'Please help',
-        ]);
+        $message = Message::query()
+            ->where('provider_message_id', 'wamid.duplicate-worker-message')
+            ->firstOrFail();
+        $this->assertSame('inbound', $message->direction);
+        $this->assertSame('Please help', $message->body);
         $this->assertDatabaseCount('messages', 1);
     }
 
