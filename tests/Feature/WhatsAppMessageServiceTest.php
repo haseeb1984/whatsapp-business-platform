@@ -87,7 +87,7 @@ class WhatsAppMessageServiceTest extends TestCase
         config(['services.meta.graph_api_version' => 'v24.0']);
         Queue::fake();
         Http::fake([
-            'https://graph.facebook.com/v24.0/123456789012345/messages' => Http::response([
+            'https://graph.facebook.com/v24.0/*/messages' => Http::response([
                 'messages' => [['id' => 'wamid.staff-reply-1']],
             ], 200),
         ]);
@@ -188,9 +188,10 @@ class WhatsAppMessageServiceTest extends TestCase
             ['provider-missing-id', 'unknown'],
         ];
 
-        foreach ($cases as [$slug, $expectedStatus]) {
+        foreach ($cases as $index => [$slug, $expectedStatus]) {
             $tenant = $this->workspace($slug);
-            $conversation = $this->conversation($tenant->id, 'AUTO_ACTIVE', now()->subMinutes(5));
+            $phoneNumberId = '123456789012'.str_pad((string) ($index + 346), 3, '0', STR_PAD_LEFT);
+            $conversation = $this->conversation($tenant->id, 'AUTO_ACTIVE', now()->subMinutes(5), $phoneNumberId);
             $message = TenantContext::runForTenant($tenant->id, fn () => app(WhatsAppMessageService::class)
                 ->sendText($conversation, 'Delivery classification check'));
 
@@ -328,11 +329,11 @@ class WhatsAppMessageServiceTest extends TestCase
         Http::assertNothingSent();
     }
 
-    private function conversation(string $tenantId, string $automationState, $inboundAt): Conversation
+    private function conversation(string $tenantId, string $automationState, $inboundAt, string $phoneNumberId = '123456789012345'): Conversation
     {
-        return TenantContext::runForTenant($tenantId, function () use ($automationState, $inboundAt): Conversation {
+        return TenantContext::runForTenant($tenantId, function () use ($automationState, $inboundAt, $phoneNumberId): Conversation {
             WhatsAppConnection::query()->create([
-                'phone_number_id' => '123456789012345',
+                'phone_number_id' => $phoneNumberId,
                 'waba_id' => '987654321098765',
                 'access_token' => 'outbound-long-lived-access-token',
                 'status' => 'active',
