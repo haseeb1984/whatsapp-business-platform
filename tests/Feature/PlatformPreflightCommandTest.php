@@ -32,7 +32,8 @@ class PlatformPreflightCommandTest extends TestCase
             'services.google.redirect_uri' => 'https://platform.example.test/google/callback',
         ]);
 
-        $exitCode = Artisan::call('platform:preflight', ['--strict' => true]);\n        $this->assertSame(0, $exitCode, Artisan::output());
+        $exitCode = Artisan::call('platform:preflight', ['--strict' => true]);
+        $this->assertSame(0, $exitCode, Artisan::output());
     }
 
     public function test_strict_preflight_fails_when_production_integrations_are_missing(): void
