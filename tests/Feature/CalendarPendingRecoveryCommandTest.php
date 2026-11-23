@@ -174,7 +174,7 @@ class CalendarPendingRecoveryCommandTest extends TestCase
             'staff_id' => $staff->id,
             'starts_at' => CarbonImmutable::parse('2026-11-24 10:00:00', 'Asia/Karachi')->utc(),
             'ends_at' => CarbonImmutable::parse('2026-11-24 10:30:00', 'Asia/Karachi')->utc(),
-            'status' => 'held',
+            'status' => 'pending_hold',
             'calendar_sync_status' => 'pending',
             'idempotency_key' => 'calendar-recovery-'.$slug,
             'service_name' => 'Consultation',
