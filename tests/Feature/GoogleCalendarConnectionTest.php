@@ -477,6 +477,36 @@ class GoogleCalendarConnectionTest extends TestCase
         $this->assertNull($connection->refresh_token);
     }
 
+    public function test_oauth_callback_cannot_be_replayed_under_another_workspace_context(): void
+    {
+        [$user, $tenantA] = $this->workspace('google-oauth-tenant-a@example.test');
+        [, $tenantB] = $this->workspace('google-oauth-tenant-b@example.test');
+        $tenantB->users()->attach($user->id, ['role' => 'business_admin', 'status' => 'active']);
+
+        config([
+            'services.google.client_id' => 'client-id',
+            'services.google.client_secret' => 'client-secret',
+            'services.google.redirect_uri' => 'https://platform.example.test/business/calendar/callback',
+        ]);
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenantA->id]);
+        $start = $this->get('/business/calendar/connect')->assertRedirect();
+        $oauthState = $start->getSession()->get('google_calendar_oauth');
+        $this->assertIsArray($oauthState);
+        $this->assertSame($tenantA->id, $oauthState['tenant_id']);
+
+        Http::fake();
+
+        $this->withSession([
+            'current_tenant_id' => $tenantB->id,
+            'google_calendar_oauth' => $oauthState,
+        ])->get('/business/calendar/callback?state='.$oauthState['state'].'&code=authorization-code')
+            ->assertForbidden();
+
+        Http::assertNothingSent();
+        $this->assertDatabaseCount('google_calendar_connections', 0);
+    }
+
     private function workspace(string $email, string $role = 'business_admin'): array
     {
         $user = User::query()->create([
