@@ -86,9 +86,11 @@ class MetaWhatsAppWebhookController extends Controller
 
                     $tenantId = $phoneNumberId
                         ? DB::table('whatsapp_connections')
-                            ->where('phone_number_id', $phoneNumberId)
-                            ->where('status', 'active')
-                            ->value('tenant_id')
+                            ->join('tenants', 'tenants.id', '=', 'whatsapp_connections.tenant_id')
+                            ->where('whatsapp_connections.phone_number_id', $phoneNumberId)
+                            ->where('whatsapp_connections.status', 'active')
+                            ->where('tenants.status', 'active')
+                            ->value('whatsapp_connections.tenant_id')
                         : null;
 
                     $field = is_string($change['field'] ?? null) ? $change['field'] : 'unknown';
