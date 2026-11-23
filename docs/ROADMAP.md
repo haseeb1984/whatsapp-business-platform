@@ -247,3 +247,10 @@ This roadmap distinguishes planned work from implemented work.
 - A follow-up code review found that `ProcessMetaWebhookEvent::handle()` currently writes `processing`, applies the inbound/status effects, and writes `processed` inside one database transaction. This preserves atomicity and idempotency, but means `processing` is not normally a durable intermediate state: a worker crash before commit rolls the transaction back to `pending`.
 - Consequently, `webhooks:reconcile-stale-processing` is defensive for rows left by older/manual flows, but does not by itself prove recovery of a worker crash in the current atomic handler. Do not describe it as a verified active crash-recovery path until the claim/lease is deliberately separated from the processing transaction and regression-tested for duplicate delivery, concurrent workers, and crash points.
 - No runtime behavior was changed in this review. The existing atomic transaction is retained rather than weakening webhook idempotency without a full recovery test matrix. Latest code CI remains unverified after the recent commits.
+
+
+## Meta webhook duplicate-worker regression coverage (2026-11-23)
+
+- Added a feature test that invokes the same inbound webhook job twice for one persisted provider event and verifies the event is processed once, the provider message ID creates one inbound message, and only one customer/conversation is created.
+- This specifically exercises the current atomic processing boundary: a second worker execution observes the committed `processed` state and exits without repeating side effects.
+- This is sequential duplicate-execution coverage, not a substitute for a real concurrent-worker/database-lock test. CI has not yet run for this branch; do not count the test as passing until the workflow completes.
