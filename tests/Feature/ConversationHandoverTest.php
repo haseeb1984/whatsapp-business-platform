@@ -114,8 +114,11 @@ class ConversationHandoverTest extends TestCase
         $this->post('/conversations/'.$conversation->id.'/notes', ['body' => 'Unauthorized note'])->assertNotFound();
         $this->post('/conversations/'.$conversation->id.'/reply', ['body' => 'Unauthorized reply'])->assertNotFound();
         $this->post('/conversations/'.$conversation->id.'/release')->assertNotFound();
+        $this->post('/conversations/'.$conversation->id.'/handover', ['reason' => 'Unauthorized handover'])->assertNotFound();
         $this->put('/conversations/'.$conversation->id.'/assign', ['assigned_user_id' => $user->id])->assertNotFound();
         $this->post('/conversations/'.$conversation->id.'/close')->assertNotFound();
+        $this->post('/conversations/'.$conversation->id.'/reopen')->assertNotFound();
+        $this->get('/conversations')->assertOk()->assertDontSee($conversation->id);
 
         Http::assertNothingSent();
         $this->assertDatabaseHas('conversations', [
