@@ -34,7 +34,7 @@ Run the non-destructive runtime configuration preflight after setting the produc
 php artisan platform:preflight --strict
 ```
 
-It checks the PHP/runtime and required configuration without printing secret values. It does not connect to Meta or Google and does not prove that the configured Neon credentials work. Verify the database separately through the readiness endpoint and a controlled Neon migration rehearsal; run the preflight again after `config:cache` so the checks reflect the cached production configuration.
+It checks the PHP/runtime and required configuration including Meta app/webhook credentials and SMTP configuration, without printing secret values. It does not connect to Meta or Google and does not prove that the configured Neon credentials work. Verify the database separately through the readiness endpoint and a controlled Neon migration rehearsal; run the preflight again after `config:cache` so the checks reflect the cached production configuration.
 
 
 **Dependency reproducibility gate:** the repository currently has no committed `composer.lock` or `package-lock.json`. CI currently resolves dependency versions at run time, so a passing audit/build does not guarantee the exact same dependency graph on a later run. Before production, generate and review both lockfiles, commit them, and change CI/deployment to `composer install` using the committed lockfile and `npm ci`.
@@ -134,8 +134,8 @@ For the database queue, keep `retry_after` at 90 seconds and worker `--timeout` 
 
 ## Latest pre-deployment verification (2026-11-23)
 
-- Verified commit: `4dbdea1709f1967d9c7cb6c112ec6e1004e7e5d9`.
-- [CI run 45094615942](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45094615942) passed 198 tests / 828 assertions on SQLite and PostgreSQL 16, full migration rollback/replay on both, Composer/npm production dependency audits, and the Vite production build.
+- Verified commit: `608ce382c79805f2068f4f52eed695ecf68b3c58`.
+- [CI run 45095090822](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45095090822) passed 198 tests / 828 assertions on SQLite and PostgreSQL 16, full migration rollback/replay on both, Composer/npm production dependency audits, and the Vite production build.
 - CI also verifies the route manifest contains 21 lazy-loaded Inertia page chunks, the message outbox dispatch/recovery flows, provider calls outside the message-creation transaction, duplicate-job protection, appointment reminder completion after delivery, and explicit inbox labels for queued/sending/unknown delivery states, and handover-race tests (queued staff replies survive release; queued automation replies are cancelled when staff takes over), global outbox health counts, cross-tenant isolation for outbound delivery jobs, and strict production runtime preflight checks.
 - This does not replace a live Neon connection/TLS/migration rehearsal or a Hostinger runtime/deployment rehearsal.
 - Route-level lazy loading is implemented; the latest Vite build emits a 445.87 kB minified main JavaScript chunk (142.76 kB gzip), below the 500 kB advisory threshold. Browser-level performance profiling remains pending.
