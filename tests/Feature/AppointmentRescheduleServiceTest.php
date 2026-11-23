@@ -210,11 +210,13 @@ class AppointmentRescheduleServiceTest extends TestCase
             ->where('idempotency_key', 'reschedule-job-replay-key')
             ->firstOrFail());
 
+        $eventCountBeforeReplay = AppointmentEvent::query()->count();
+
         (new SyncAppointmentReschedule($tenant->id, $request->id))
             ->handle(app(AppointmentRescheduleService::class));
 
         $this->assertSame('synced', $request->fresh()->status);
-        $this->assertDatabaseCount('appointment_events', 2);
+        $this->assertSame($eventCountBeforeReplay, AppointmentEvent::query()->count());
     }
 
     public function test_reschedule_sync_job_cannot_process_another_tenants_request(): void
