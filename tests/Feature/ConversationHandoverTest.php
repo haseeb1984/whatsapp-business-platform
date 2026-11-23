@@ -193,14 +193,14 @@ class ConversationHandoverTest extends TestCase
     public function test_conversation_detail_never_includes_another_tenants_messages_or_notes(): void
     {
         [$user, $tenantA] = $this->workspace('handover-detail-tenant-a@example.test', 'staff');
-        [, $tenantB] = $this->workspace('handover-detail-tenant-b@example.test', 'business_admin');
+        [$foreignUser, $tenantB] = $this->workspace('handover-detail-tenant-b@example.test', 'business_admin');
         $conversation = $this->conversation($tenantA, 'WAITING_FOR_STAFF');
         $foreignConversation = $this->conversation($tenantB, 'WAITING_FOR_STAFF');
 
-        TenantContext::runForTenant($tenantB->id, function () use ($foreignConversation): void {
+        TenantContext::runForTenant($tenantB->id, function () use ($foreignConversation, $foreignUser): void {
             ConversationNote::query()->create([
                 'conversation_id' => $foreignConversation->id,
-                'created_by_user_id' => null,
+                'created_by_user_id' => $foreignUser->id,
                 'body' => 'FOREIGN_PRIVATE_NOTE_SENTINEL',
             ]);
         });
