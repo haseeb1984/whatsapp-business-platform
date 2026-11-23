@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 type CalendarOption = { id: string; summary: string; primary: boolean; access_role: string };
 type StaffOption = { id: string; name: string; google_calendar_id: string | null };
 type Props = {
-    connection: null | { connected: boolean; account_email: string | null; default_calendar_id: string; connected_at: string | null };
+    connection: null | { connected: boolean; status: string; account_email: string | null; default_calendar_id: string; connected_at: string | null };
     oauth_configured: boolean;
     staff: StaffOption[];
 };
@@ -58,7 +58,7 @@ export default function GoogleCalendarSettings() {
                         <p className="mt-1 text-xs text-slate-500">Connected {connection.connected_at ? new Date(connection.connected_at).toLocaleString() : ''}</p>
                         <button onClick={() => router.delete('/business/calendar')} className="mt-4 rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700">Disconnect Google Calendar</button>
                     </> : <>
-                        <p className="mt-3 text-sm text-slate-600">No Google Calendar account is connected.</p>
+                        {connection?.status === 'reauthorization_required' ? <p className="mt-3 text-sm text-amber-700">Google authorization has expired or been revoked. Reconnect the Google account to resume Calendar synchronization.</p> : <p className="mt-3 text-sm text-slate-600">No Google Calendar account is connected.</p>}
                         <button disabled={!oauth_configured} onClick={() => window.location.assign('/business/calendar/connect')} className="mt-4 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Connect Google Calendar</button>
                         {!oauth_configured && <p className="mt-2 text-sm text-amber-700">Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and GOOGLE_REDIRECT_URI in the server environment first.</p>}
                     </>}
