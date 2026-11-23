@@ -1,0 +1,79 @@
+name: Generate dependency lockfiles
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  lockfiles:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, pdo_pgsql, bcmath, curl, xml
+          coverage: none
+
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22
+
+      - name: Resolve Composer dependencies and create lockfile
+        run: composer update --no-install --prefer-dist --no-interaction --no-progress
+
+      - name: Resolve npm dependencies and create lockfile
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Validate and audit resolved dependencies
+        run: |
+          composer validate --no-check-publish
+          composer audit --locked
+          npm audit --omit=dev
+
+      - name: Verify clean lockfile installs and production build
+        run: |
+          composer install --prefer-dist --no-interaction --no-progress
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: Open reviewable pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH_NAME: chore/dependency-lockfiles-${{ github.run_id }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH_NAME"
+          git add composer.lock package-lock.json
+          if git diff --cached --quiet; then
+            echo "No lockfile changes were generated."
+            exit 0
+          fi
+          git commit -m "build: add reproducible dependency lockfiles"
+          git push --set-upstream origin "$BRANCH_NAME"
+          gh pr create \
+            --base main \
+            --head "$BRANCH_NAME" \
+            --title "build: add reproducible dependency lockfiles" \
+            --body "## Summary
+          - Generate and commit Composer and npm lockfiles from the current manifests.
+          - Validate and audit the resolved dependency graph.
+          - Verify Composer lockfile installation, npm clean install, and the production Vite build.
+
+          ## Safety
+          - This workflow is manually dispatched from main.
+          - Changes are isolated to this branch and submitted as a reviewable PR; main is never modified directly.
+          - Review the resolved versions and CI results before merging."
+          gh workflow run ci.yml --ref "$BRANCH_NAME"
