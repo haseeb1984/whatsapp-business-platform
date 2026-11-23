@@ -205,7 +205,7 @@ class AppointmentRescheduleServiceTest extends TestCase
             'reschedule-job-replay-key',
         ));
 
-        $request = TenantContext::runForTenant($tenant->id, fn () => \\App\\Models\\AppointmentReschedule::query()
+        $request = TenantContext::runForTenant($tenant->id, fn () => AppointmentReschedule::query()
             ->where('idempotency_key', 'reschedule-job-replay-key')
             ->firstOrFail());
 
