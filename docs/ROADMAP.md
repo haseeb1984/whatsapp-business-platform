@@ -329,3 +329,6 @@ This roadmap distinguishes planned work from implemented work.
 - Added a conversation detail regression proving foreign conversation IDs return 404 and foreign private notes/messages do not enter the active workspace response.
 - Existing tenant-owned global scopes remain the primary enforcement; these tests pin the user-visible read boundary at the HTTP/Inertia layer.
 - CI verification is pending.
+
+
+- Test-fixture review confirmed conversation-note authors are required by the database schema. The foreign-note isolation regression now creates the note under Tenant B with Tenant B's real admin user, rather than a null author; the corrected test commit is awaiting CI.
