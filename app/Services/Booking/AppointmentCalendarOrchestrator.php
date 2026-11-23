@@ -89,7 +89,12 @@ class AppointmentCalendarOrchestrator
         try {
             $this->calendar->deleteAppointmentEvent($appointment);
         } catch (Throwable $exception) {
-            $this->lifecycle->markCalendarDeletionUnknown($appointment->id, 'calendar_delete_ambiguous');
+            if ($this->isDefiniteFailure($exception)) {
+                $this->lifecycle->markCalendarDeletionFailed($appointment->id, 'calendar_delete_rejected');
+            } else {
+                $this->lifecycle->markCalendarDeletionUnknown($appointment->id, 'calendar_delete_ambiguous');
+            }
+
             throw $exception;
         }
 
