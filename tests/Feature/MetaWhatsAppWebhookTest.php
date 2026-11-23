@@ -133,6 +133,7 @@ class MetaWhatsAppWebhookTest extends TestCase
 
     public function test_events_for_suspended_tenants_are_quarantined_as_unmatched(): void
     {
+        Queue::fake();
         config(['services.meta.app_secret' => 'test-meta-app-secret']);
         $tenant = Tenant::query()->create([
             'name' => 'Suspended Webhook Workspace',
