@@ -192,12 +192,12 @@ This roadmap distinguishes planned work from implemented work.
 ## Latest verified implementation checkpoint (2026-11-23)
 
 - Verified code commit: \`813129f0ba50dba29c9db9a2c1304df7361371fc\`.
-- CI: [run 45093067384](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45093067384) passed.
-- Automated suite: 194 tests / 813 assertions on SQLite and PostgreSQL 16; full migration rollback/replay passed on both.
+- CI: [run 45093351011](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45093351011) passed.
+- Automated suite: 195 tests / 815 assertions on SQLite and PostgreSQL 16; full migration rollback/replay passed on both.
 - Composer/npm production dependency audits passed; Vite production build passed.
 - The build manifest check confirms 21 lazy-loaded Inertia page chunks; main JavaScript bundle is 445.87 kB (142.77 kB gzip).
 - Outbound text/template messages are persisted before network delivery; \`DeliverWhatsAppMessage\` performs the Meta request outside the creation transaction and claims each outbox row once.
 - Pending outbox records are re-dispatched after five minutes if a queue dispatch was lost; abandoned \`sending\` records are marked \`unknown\` after ten minutes and never automatically resent.
-- Appointment reminder status is finalized by the outbox worker; staff UI messaging says replies are queued, and conversation history renders queued/sending/sent/delivered/read/failed/unknown states with clear labels.
+- Appointment reminder status is finalized by the outbox worker; staff UI messaging says replies are queued, and conversation history renders queued/sending/sent/delivered/read/failed/unknown states with clear labels. An already-authorized staff reply remains deliverable if automation is released before the worker runs; a queued automation reply is cancelled if a human takes over first.
 - The transaction-boundary test confirms Meta HTTP executes after the message-creation transaction commits; duplicate queue-job tests confirm only one provider request is made.
 - Remaining production gates: committed dependency lockfiles, actual Neon TLS/connectivity and migration rehearsal, Hostinger runtime/deployment rehearsal, live Meta/Google validation, load/abuse testing, browser performance profiling, and backup/restore drill.
