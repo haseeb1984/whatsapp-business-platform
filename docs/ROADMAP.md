@@ -230,4 +230,5 @@ This roadmap distinguishes planned work from implemented work.
 - Only events belonging to active tenants and older than the ten-minute lease are reset to `pending`; the command locks and rechecks each row, updates its lease timestamp, and dispatches the existing idempotent processor after commit.
 - The command is scheduled every minute with overlap protection. A tenant option supports scoped operations.
 - Added regression tests for stale-vs-fresh selection, lease renewal/no duplicate requeue, and cross-tenant isolation; scheduler coverage now requires the command.
+- Added a guard and regression test so a late queue failure callback cannot overwrite an event that already committed as `processed`.
 - CI execution and real Meta webhook validation remain pending. This recovery does not change outbound delivery semantics: ambiguous provider sends remain `unknown` and are never automatically resent.
