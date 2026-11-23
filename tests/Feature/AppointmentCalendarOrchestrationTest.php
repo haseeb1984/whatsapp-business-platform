@@ -30,7 +30,7 @@ class FakeAppointmentGoogleCalendarService extends GoogleCalendarService
     public ?Throwable $availabilityFailure = null;
     public ?Throwable $createFailure = null;
     public ?Throwable $deleteFailure = null;
-    public ?\\Closure $deleteCallback = null;
+    public ?\Closure $deleteCallback = null;
 
     public function findAppointmentEvent(Appointment $appointment): ?string
     {
