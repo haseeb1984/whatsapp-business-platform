@@ -247,6 +247,46 @@ class GoogleCalendarConnectionTest extends TestCase
         $this->assertSame('primary', $connection->default_calendar_id);
     }
 
+    public function test_google_oauth_client_error_does_not_mark_customer_connection_for_reauthorization(): void
+    {
+        [, $tenant] = $this->workspace('google-client-error@example.test');
+        config([
+            'services.google.client_id' => 'misconfigured-client',
+            'services.google.client_secret' => 'client-secret',
+            'services.google.redirect_uri' => 'https://platform.example.test/business/calendar/callback',
+        ]);
+
+        TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->create([
+            'access_token' => 'expired-access',
+            'refresh_token' => 'valid-customer-refresh',
+            'token_expires_at' => now()->subMinute(),
+            'status' => 'connected',
+            'default_calendar_id' => 'primary',
+        ]));
+
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response([
+                'error' => 'invalid_client',
+                'error_description' => 'OAuth client configuration is invalid.',
+            ], 401),
+        ]);
+
+        try {
+            TenantContext::runForTenant($tenant->id, fn () => app(GoogleCalendarService::class)->freeBusy(
+                ['primary'],
+                '2026-12-01T00:00:00Z',
+                '2026-12-02T00:00:00Z',
+            ));
+            $this->fail('An invalid OAuth client must fail the provider operation.');
+        } catch (\\RuntimeException $exception) {
+            $this->assertStringContainsString('HTTP 401', $exception->getMessage());
+        }
+
+        $connection = TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->firstOrFail());
+        $this->assertSame('connected', $connection->status);
+        $this->assertSame('valid-customer-refresh', $connection->refresh_token);
+    }
+
     public function test_revoked_refresh_token_marks_connection_as_reauthorization_required(): void
     {
         [, $tenant] = $this->workspace('google-revoked-refresh@example.test');
