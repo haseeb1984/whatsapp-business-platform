@@ -39,10 +39,13 @@ class WhatsAppMessageServiceTest extends TestCase
         $message = TenantContext::runForTenant($tenant->id, fn () => app(WhatsAppMessageService::class)->sendText($conversation, 'Thanks for contacting us.'));
 
         $this->assertSame('pending', $message->delivery_status);
-        (new DeliverWhatsAppMessage($tenant->id, $message->id))->handle(app(MetaWhatsAppGraphApi::class));
+        $deliveryJob = new DeliverWhatsAppMessage($tenant->id, $message->id);
+        $deliveryJob->handle(app(MetaWhatsAppGraphApi::class));
+        $deliveryJob->handle(app(MetaWhatsAppGraphApi::class));
         $message->refresh();
         $this->assertSame('sent', $message->delivery_status);
         $this->assertSame('wamid.outbound-1', $message->provider_message_id);
+        Http::assertSentCount(1);
         $this->assertSame('Thanks for contacting us.', $message->body);
         $this->assertSame('outbound', $message->direction);
         $this->assertStringNotContainsString('Thanks for contacting us.', (string) $message->getRawOriginal('body'));
