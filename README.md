@@ -16,7 +16,7 @@ A reusable multi-tenant WhatsApp Business automation platform using the official
 
 **Production acceptance still pending:** Actual Neon connection/TLS and migration rehearsal, Hostinger plan/runtime and cron validation, live Meta and Google account validation, penetration/abuse and load testing, browser performance profiling, deployment rehearsal, backup/restore drill and Meta production onboarding. Composer/npm production dependency audits currently pass in CI.
 
-**Current CI:** GitHub Actions validates Composer, runs 199 tests / 836 assertions on SQLite and PostgreSQL 16, verifies full migration rollback/replay on both databases, audits PHP and frontend production dependencies, builds the Vite frontend, and checks that 21 Inertia page chunks are lazy-loaded. Latest code verification: [45103674394](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45103674394). Subsequent documentation commits also passed CI: [45095273378](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45095273378).
+**Current CI:** GitHub Actions validates Composer, runs 199 tests / 840 assertions on SQLite and PostgreSQL 16, verifies full migration rollback/replay on both databases, audits PHP and frontend production dependencies, builds the Vite frontend, and checks that 21 Inertia page chunks are lazy-loaded. Latest code verification: [45104012689](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45103674394). Subsequent documentation commits also passed CI: [45095273378](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45095273378).
 
 ## Approved stack
 
