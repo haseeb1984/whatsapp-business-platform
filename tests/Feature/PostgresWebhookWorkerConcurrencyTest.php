@@ -102,7 +102,7 @@ class PostgresWebhookWorkerConcurrencyTest extends TestCase
             }
             file_put_contents($startPath, 'go');
 
-            foreach ($processes as $worker) {
+            foreach ($processes as $index => $worker) {
                 $process = $worker['process'];
                 $pipes = $worker['pipes'];
                 $deadline = microtime(true) + 15;
@@ -125,6 +125,7 @@ class PostgresWebhookWorkerConcurrencyTest extends TestCase
                 fclose($pipes[2]);
                 $exitCode = $status['exitcode'];
                 proc_close($process);
+                $processes[$index]['process'] = null;
 
                 $this->assertSame(0, $exitCode, 'Webhook worker failed: '.$stderr.' '.$stdout);
             }
@@ -140,9 +141,11 @@ class PostgresWebhookWorkerConcurrencyTest extends TestCase
         } finally {
             foreach ($processes as $worker) {
                 $process = $worker['process'];
-                $status = proc_get_status($process);
-                if ($status['running']) {
-                    proc_terminate($process, 9);
+                if (is_resource($process)) {
+                    $status = proc_get_status($process);
+                    if ($status['running']) {
+                        proc_terminate($process, 9);
+                    }
                 }
                 foreach ([1, 2] as $index) {
                     if (isset($worker['pipes'][$index]) && is_resource($worker['pipes'][$index])) {
