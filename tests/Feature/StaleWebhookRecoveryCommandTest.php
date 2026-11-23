@@ -91,7 +91,7 @@ class StaleWebhookRecoveryCommandTest extends TestCase
         ]);
     }
 
-    private function event(Tenant $tenant, string $key, string $status, CarbonImmutable $updatedAt): WebhookEvent
+    private function event(Tenant $tenant, string $key, string $status, DateTimeInterface $updatedAt): WebhookEvent
     {
         $event = WebhookEvent::query()->create([
             'tenant_id' => $tenant->id,
