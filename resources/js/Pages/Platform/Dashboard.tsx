@@ -9,6 +9,10 @@ type PageProps = {
         whatsapp_connections: number;
         calendar_connections: number;
         messages_total: number;
+        outbound_pending: number;
+        outbound_sending: number;
+        outbound_unknown: number;
+        outbound_failed: number;
         conversations_total: number;
         appointments_total: number;
         audit_events_total: number | null;
@@ -54,6 +58,10 @@ export default function PlatformDashboard() {
         ['Active WhatsApp connections', metrics.whatsapp_connections],
         ['Connected calendars', metrics.calendar_connections],
         ['Messages processed', metrics.messages_total],
+        ['Outbound queued', metrics.outbound_pending],
+        ['Outbound sending', metrics.outbound_sending],
+        ['Outbound unknown', metrics.outbound_unknown],
+        ['Outbound failed', metrics.outbound_failed],
         ['Conversations', metrics.conversations_total],
         ['Appointments', metrics.appointments_total],
         ['Audit events', metrics.audit_events_total ?? 'Not available'],
