@@ -60,6 +60,43 @@ class GoogleCalendarTenantIsolationTest extends TestCase
             && $request['token'] === 'tenant-a-refresh-token');
     }
 
+
+    public function test_calendar_list_uses_only_the_active_tenants_google_credentials(): void
+    {
+        [$userA, $tenantA] = $this->workspace('calendar-list-a@example.test');
+        [, $tenantB] = $this->workspace('calendar-list-b@example.test');
+
+        TenantContext::runForTenant($tenantA->id, fn () => GoogleCalendarConnection::query()->create([
+            'access_token' => 'tenant-a-calendar-access',
+            'refresh_token' => 'tenant-a-calendar-refresh',
+            'token_expires_at' => now()->addHour(),
+            'status' => 'connected',
+            'default_calendar_id' => 'primary',
+        ]));
+        TenantContext::runForTenant($tenantB->id, fn () => GoogleCalendarConnection::query()->create([
+            'access_token' => 'tenant-b-calendar-access',
+            'refresh_token' => 'tenant-b-calendar-refresh',
+            'token_expires_at' => now()->addHour(),
+            'status' => 'connected',
+            'default_calendar_id' => 'tenant-b-primary',
+        ]));
+
+        Http::fake([
+            'www.googleapis.com/calendar/v3/users/me/calendarList*' => Http::response([
+                'items' => [['id' => 'primary', 'summary' => 'Workspace A', 'accessRole' => 'owner']],
+            ]),
+        ]);
+
+        $this->actingAs($userA)->withSession(['current_tenant_id' => $tenantA->id])
+            ->getJson('/business/calendar/calendars')
+            ->assertOk()
+            ->assertJsonPath('calendars.0.id', 'primary');
+
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($request) => $request->url() === 'https://www.googleapis.com/calendar/v3/users/me/calendarList'
+            && $request->hasHeader('Authorization', 'Bearer tenant-a-calendar-access'));
+    }
+
     private function workspace(string $email): array
     {
         $user = User::query()->create([
