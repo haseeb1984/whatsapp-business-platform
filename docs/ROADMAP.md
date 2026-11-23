@@ -271,3 +271,6 @@ This roadmap distinguishes planned work from implemented work.
 
 
 - CI attempt `45128253359` reached PHP test loading and stopped on an escaped `RuntimeException` syntax error in the new late-callback assertion; no feature tests ran in that attempt. The reference has been corrected on the branch. A fresh CI run `45128391052` is now in progress for the corrected head; results are not yet known.
+
+
+- CI run `45128423921` executed the SQLite suite: 218 tests passed (946 assertions), 4 failed. The failures exposed two test-only tenant-context omissions in the new webhook assertions, a globally unique Meta phone-number fixture reused across the new outbound multi-workspace loop, and the template send path still missing HTTP 408 classification. Corrected the scoped reads, isolated phone-number fixtures, and aligned both text/template 408 classification. A fresh CI run is required; PostgreSQL and production build stages have not yet been validated for this PR head.
