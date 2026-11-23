@@ -169,7 +169,7 @@ class AppointmentControllerTest extends TestCase
 
     public function test_appointment_index_exposes_only_the_active_tenants_appointments_and_customers(): void
     {
-        [$userA, $tenantA] = $this->workspace('appointment-index-owner-a@example.test', 'business_admin');
+        [$userA, $tenantA, $serviceA, $staffA, $customerA] = $this->workspace('appointment-index-owner-a@example.test', 'business_admin');
         [, $tenantB, $serviceB, $staffB, $customerB] = $this->workspace('appointment-index-owner-b@example.test', 'business_admin');
 
         $foreignAppointment = TenantContext::runForTenant($tenantB->id, fn () => app(\App\Services\Booking\AppointmentBookingService::class)->createHold(
@@ -187,9 +187,12 @@ class AppointmentControllerTest extends TestCase
             ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
                 ->component('Business/Appointments/Index')
                 ->has('appointments', 0)
-                ->has('customers', 0)
-                ->where('services', [])
-                ->where('staff', [])
+                ->has('customers', 1)
+                ->where('customers.0.id', $customerA->id)
+                ->has('services', 1)
+                ->where('services.0.id', $serviceA->id)
+                ->has('staff', 1)
+                ->where('staff.0.id', $staffA->id)
             );
 
         $this->assertDatabaseHas('appointments', [
