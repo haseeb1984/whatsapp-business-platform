@@ -79,6 +79,37 @@ class AppointmentRescheduleServiceTest extends TestCase
         });
     }
 
+    public function test_synced_reschedule_idempotency_replay_does_not_update_calendar_twice(): void
+    {
+        [$tenant, $appointment] = $this->confirmedAppointment('reschedule-idempotent-replay');
+        $calendar = Mockery::mock(GoogleCalendarService::class);
+        $calendar->shouldReceive('updateAppointmentEvent')->once()->andReturn('google-event-reschedule');
+        $this->app->instance(GoogleCalendarService::class, $calendar);
+
+        $requestedStart = CarbonImmutable::parse('2026-11-25 11:00:00', 'Asia/Karachi');
+        $service = app(AppointmentRescheduleService::class);
+
+        $first = TenantContext::runForTenant($tenant->id, fn () => $service->reschedule(
+            $appointment->id,
+            $requestedStart,
+            'reschedule-idempotent-replay-key',
+        ));
+        $replay = TenantContext::runForTenant($tenant->id, fn () => $service->reschedule(
+            $appointment->id,
+            $requestedStart,
+            'reschedule-idempotent-replay-key',
+        ));
+
+        $this->assertSame($first->id, $replay->id);
+        $this->assertTrue($replay->starts_at->equalTo($requestedStart->utc()));
+        $this->assertDatabaseCount('appointment_reschedules', 1);
+        $this->assertDatabaseHas('appointment_reschedules', [
+            'appointment_id' => $appointment->id,
+            'idempotency_key' => 'reschedule-idempotent-replay-key',
+            'status' => 'synced',
+        ]);
+    }
+
     public function test_ambiguous_calendar_update_keeps_both_slots_reserved_and_queues_reconciliation(): void
     {
         [$tenant, $appointment] = $this->confirmedAppointment('reschedule-unknown');
