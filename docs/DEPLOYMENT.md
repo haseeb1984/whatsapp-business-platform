@@ -112,3 +112,11 @@ This runs the scheduled `appointments:expire-holds` and `appointments:dispatch-r
 - Do not roll back migrations destructively without a tested data plan.
 - If queue processing fails, leave durable events/jobs persisted and pause retries safely.
 - If Meta/Google credentials are revoked, mark integration unhealthy and notify tenant admins without leaking credentials.
+
+## Latest pre-deployment verification (2026-11-23)
+
+- Verified commit: `0abf5ce3610f0dd9e315fdf065ec03887bfc6877`.
+- [CI run 45090484856](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45090484856) passed 191 tests / 793 assertions on SQLite and PostgreSQL 16, full migration rollback/replay on both, Composer/npm production dependency audits, and the Vite production build.
+- This does not replace a live Neon connection/TLS/migration rehearsal or a Hostinger runtime/deployment rehearsal.
+- Vite currently emits a ~538 kB minified main JavaScript chunk (~158 kB gzip), triggering its 500 kB advisory. Consider route-level dynamic imports/code splitting before broad production rollout.
+- The repository still needs committed `composer.lock` and `package-lock.json` plus locked install commands before reproducible deployment can be considered complete.
