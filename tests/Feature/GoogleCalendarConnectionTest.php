@@ -247,6 +247,59 @@ class GoogleCalendarConnectionTest extends TestCase
         $this->assertSame('primary', $connection->default_calendar_id);
     }
 
+    public function test_revoked_refresh_token_marks_connection_as_reauthorization_required(): void
+    {
+        [, $tenant] = $this->workspace('google-revoked-refresh@example.test');
+        config([
+            'services.google.client_id' => 'client-id',
+            'services.google.client_secret' => 'client-secret',
+            'services.google.redirect_uri' => 'https://platform.example.test/business/calendar/callback',
+        ]);
+
+        TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->create([
+            'access_token' => 'expired-access',
+            'refresh_token' => 'revoked-refresh',
+            'token_expires_at' => now()->subMinute(),
+            'status' => 'connected',
+            'default_calendar_id' => 'primary',
+        ]));
+
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response([
+                'error' => 'invalid_grant',
+                'error_description' => 'Token has been expired or revoked.',
+            ], 400),
+        ]);
+
+        try {
+            TenantContext::runForTenant($tenant->id, fn () => app(GoogleCalendarService::class)->freeBusy(
+                ['primary'],
+                '2026-12-01T00:00:00Z',
+                '2026-12-02T00:00:00Z',
+            ));
+            $this->fail('A revoked refresh token must not produce a successful Calendar response.');
+        } catch (\\RuntimeException $exception) {
+            $this->assertStringContainsString('HTTP 400', $exception->getMessage());
+        }
+
+        $connection = TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->firstOrFail());
+        $this->assertSame('reauthorization_required', $connection->status);
+        $this->assertSame('revoked-refresh', $connection->refresh_token);
+
+        try {
+            TenantContext::runForTenant($tenant->id, fn () => app(GoogleCalendarService::class)->freeBusy(
+                ['primary'],
+                '2026-12-01T00:00:00Z',
+                '2026-12-02T00:00:00Z',
+            ));
+            $this->fail('A connection requiring reauthorization must be rejected before another provider request.');
+        } catch (\\Illuminate\\Validation\\ValidationException) {
+            // Expected: the connection is no longer considered active.
+        }
+
+        Http::assertSentCount(1);
+    }
+
     private function workspace(string $email, string $role = 'business_admin'): array
     {
         $user = User::query()->create([
