@@ -181,6 +181,7 @@ class WhatsAppMessageServiceTest extends TestCase
 
         $cases = [
             ['provider-400', 'failed'],
+            ['provider-408', 'unknown'],
             ['provider-429', 'unknown'],
             ['provider-503', 'unknown'],
             ['provider-missing-id', 'unknown'],
@@ -200,7 +201,7 @@ class WhatsAppMessageServiceTest extends TestCase
             ]);
         }
 
-        Http::assertSentCount(4);
+        Http::assertSentCount(5);
     }
 
     public function test_approved_template_can_be_sent_with_exact_body_parameter_mapping(): void
