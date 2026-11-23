@@ -378,3 +378,11 @@ This roadmap distinguishes planned work from implemented work.
 - This is application-level tenant isolation coverage; live Google revocation and production OAuth validation remain separate release gates.
 
 - **CI passed:** [run 45164881189](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45164881189) — two-workspace Google Calendar disconnect regression; SQLite and PostgreSQL 16 feature suites, migration rollback/replay, dependency audits and frontend build all passed.
+
+
+## Google Calendar credential-list isolation CI verification (2026-11-23)
+
+- Added a two-workspace HTTP regression for the Calendar list endpoint. With Workspace A active, it asserts only A's bearer token is sent to the Google Calendar list API while Workspace B's connection remains separate.
+- The initial run [45165189938](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45165189938) exposed a test-fixture assumption: the fake URL hard-coded Google's public API host while the application uses its configured API base URL. The assertion now matches the configured path and verifies the exact Authorization token.
+- Corrected full CI run [45165433038](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45165433038) passed.
+- This verifies tenant credential selection at the HTTP boundary; it does not establish live Google connectivity or production OAuth readiness.
