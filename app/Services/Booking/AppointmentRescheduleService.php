@@ -146,30 +146,31 @@ class AppointmentRescheduleService
             return Appointment::query()->findOrFail($appointmentId);
         }
 
-        $appointment = Appointment::query()->findOrFail($appointmentId);
-        try {
-            $this->calendar->updateAppointmentEvent(
-                $appointment,
-                $reschedule->new_starts_at,
-                $reschedule->new_ends_at,
-            );
-        } catch (Throwable $exception) {
-            $definite = $this->recordCalendarFailure($appointmentId, $reschedule->id, $exception);
-            if (! $definite) {
-                SyncAppointmentReschedule::dispatch($tenantId, $reschedule->id);
-            }
-            throw $exception;
-        }
-
-        return DB::transaction(function () use ($appointmentId, $reschedule): Appointment {
+        $result = DB::transaction(function () use ($appointmentId, $reschedule): array {
+            // Serialize provider updates for the same request. Locks remain held
+            // until either the successful sync or its failure state is committed.
             $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointmentId);
             $request = AppointmentReschedule::query()->lockForUpdate()->findOrFail($reschedule->id);
 
             if ($request->status === 'synced') {
-                return $appointment;
+                return ['appointment' => $appointment, 'failure' => null, 'definite' => true];
             }
             if (! in_array($request->status, ['pending', 'unknown'], true)) {
                 throw ValidationException::withMessages(['reschedule' => 'The reschedule request is no longer active.']);
+            }
+
+            try {
+                $this->calendar->updateAppointmentEvent(
+                    $appointment,
+                    $request->new_starts_at,
+                    $request->new_ends_at,
+                );
+            } catch (Throwable $exception) {
+                // Persist the outcome before releasing the row locks, otherwise
+                // a competing worker could observe "pending" and call Google again.
+                $definite = $this->recordCalendarFailure($appointmentId, $request->id, $exception);
+
+                return ['appointment' => null, 'failure' => $exception, 'definite' => $definite];
             }
 
             $appointment->forceFill([
@@ -196,8 +197,17 @@ class AppointmentRescheduleService
             $this->reminders->cancelPendingFor($appointment);
             $this->reminders->scheduleFor($appointment);
 
-            return $appointment;
+            return ['appointment' => $appointment, 'failure' => null, 'definite' => true];
         });
+
+        if ($result['failure'] instanceof Throwable) {
+            if (! $result['definite']) {
+                SyncAppointmentReschedule::dispatch($tenantId, $reschedule->id);
+            }
+            throw $result['failure'];
+        }
+
+        return $result['appointment'];
     }
 
     private function assertReschedulable(Appointment $appointment): void
