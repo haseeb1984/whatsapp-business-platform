@@ -34,7 +34,7 @@ Run the non-destructive runtime configuration preflight after setting the produc
 php artisan platform:preflight --strict
 ```
 
-It checks the PHP/runtime and required configuration including Meta app/webhook credentials and SMTP configuration, without printing secret values. It does not connect to Meta or Google and does not prove that the configured Neon credentials work. Verify the database separately through the readiness endpoint and a controlled Neon migration rehearsal; run the preflight again after `config:cache` so the checks reflect the cached production configuration.
+It checks PHP 8.3+, PDO PostgreSQL/cURL/OpenSSL extensions, production/debug flags, HTTPS, PostgreSQL TLS, database queue after-commit and retry window, failed-job storage, persistent session/cache drivers, secure cookies, Meta app/webhook credentials, SMTP, Groq, Google OAuth and writable runtime directories. It does not print secret values. It does not connect to Meta or Google and does not prove that the configured Neon credentials work. Verify the database separately through the readiness endpoint and a controlled Neon migration rehearsal; run the preflight again after `config:cache` so the checks reflect the cached production configuration.
 
 
 **Dependency reproducibility gate:** the repository currently has no committed `composer.lock` or `package-lock.json`. CI currently resolves dependency versions at run time, so a passing audit/build does not guarantee the exact same dependency graph on a later run. Before production, generate and review both lockfiles, commit them, and change CI/deployment to `composer install` using the committed lockfile and `npm ci`.
