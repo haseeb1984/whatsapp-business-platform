@@ -210,7 +210,7 @@ class AppointmentRescheduleService
         return $result['appointment'];
     }
 
-    private function assertReschedulable    private function assertReschedulable(Appointment $appointment): void
+    private function assertReschedulable(Appointment $appointment): void
     {
         if ($appointment->status !== 'confirmed'
             || $appointment->calendar_sync_status !== 'synced'
