@@ -125,9 +125,9 @@ For the database queue, keep `retry_after` at 90 seconds and worker `--timeout` 
 
 ## Latest pre-deployment verification (2026-11-23)
 
-- Verified commit: `2ac6a954710581290dc55a62739b51730663614c`.
-- [CI run 45091344560](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45091344560) passed 191 tests / 793 assertions on SQLite and PostgreSQL 16, full migration rollback/replay on both, Composer/npm production dependency audits, and the Vite production build.
-- CI also verifies the route manifest contains 21 lazy-loaded Inertia page chunks and the workflow supports manual dispatch for review-branch validation.
+- Verified commit: `d7fc305de48ffe7b68f6de7913a4db2779cc744a`.
+- [CI run 45092782481](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45092782481) passed 194 tests / 813 assertions on SQLite and PostgreSQL 16, full migration rollback/replay on both, Composer/npm production dependency audits, and the Vite production build.
+- CI also verifies the route manifest contains 21 lazy-loaded Inertia page chunks, the message outbox dispatch/recovery flows, provider calls outside the message-creation transaction, duplicate-job protection, and appointment reminder completion after delivery.
 - This does not replace a live Neon connection/TLS/migration rehearsal or a Hostinger runtime/deployment rehearsal.
 - Route-level lazy loading is implemented; the latest Vite build emits a 445.87 kB minified main JavaScript chunk (142.77 kB gzip), below the 500 kB advisory threshold. Browser-level performance profiling remains pending.
 - The repository still needs committed `composer.lock` and `package-lock.json` plus locked install commands before reproducible deployment can be considered complete. CI action pins have been upgraded to Node 24-compatible releases.
