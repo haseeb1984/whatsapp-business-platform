@@ -236,7 +236,7 @@ class AppointmentRescheduleServiceTest extends TestCase
                     'reschedule-after-delete-start-key',
                 );
                 $this->fail('A reschedule must not start while calendar deletion is in progress.');
-            } catch (\\Illuminate\\Validation\\ValidationException $exception) {
+            } catch (\Illuminate\Validation\ValidationException $exception) {
                 $this->assertArrayHasKey('appointment', $exception->errors());
             }
 
