@@ -169,6 +169,56 @@ class ConversationHandoverTest extends TestCase
         $this->post('/conversations/'.$conversation->id.'/close')->assertForbidden();
     }
 
+    public function test_inbox_index_lists_only_the_active_workspaces_conversations(): void
+    {
+        [$user, $tenantA] = $this->workspace('handover-index-tenant-a@example.test', 'staff');
+        [, $tenantB] = $this->workspace('handover-index-tenant-b@example.test', 'business_admin');
+
+        $ownConversation = $this->conversation($tenantA, 'WAITING_FOR_STAFF');
+        $foreignConversation = $this->conversation($tenantB, 'WAITING_FOR_STAFF');
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenantA->id])
+            ->get('/conversations')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Business/Conversations/Index')
+                ->has('conversations', 1)
+                ->where('conversations.0.id', $ownConversation->id)
+                ->missing('conversations.1.id')
+            );
+
+        $this->assertNotSame($ownConversation->id, $foreignConversation->id);
+    }
+
+    public function test_conversation_detail_never_includes_another_tenants_messages_or_notes(): void
+    {
+        [$user, $tenantA] = $this->workspace('handover-detail-tenant-a@example.test', 'staff');
+        [, $tenantB] = $this->workspace('handover-detail-tenant-b@example.test', 'business_admin');
+        $conversation = $this->conversation($tenantA, 'WAITING_FOR_STAFF');
+        $foreignConversation = $this->conversation($tenantB, 'WAITING_FOR_STAFF');
+
+        TenantContext::runForTenant($tenantB->id, function () use ($foreignConversation): void {
+            ConversationNote::query()->create([
+                'conversation_id' => $foreignConversation->id,
+                'created_by_user_id' => null,
+                'body' => 'FOREIGN_PRIVATE_NOTE_SENTINEL',
+            ]);
+        });
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenantA->id])
+            ->get('/conversations/'.$conversation->id)
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Business/Conversations/Show')
+                ->has('messages', 1)
+                ->missing('messages.1')
+                ->has('notes', 0)
+                ->where('conversation.id', $conversation->id)
+            );
+
+        $this->get('/conversations/'.$foreignConversation->id)->assertNotFound();
+    }
+
     private function conversation(Tenant $tenant, string $state): Conversation
     {
         return TenantContext::runForTenant($tenant->id, function () use ($state): Conversation {
