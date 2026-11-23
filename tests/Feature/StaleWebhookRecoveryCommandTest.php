@@ -6,6 +6,7 @@ use App\Jobs\ProcessMetaWebhookEvent;
 use App\Models\Tenant;
 use App\Models\WebhookEvent;
 use Carbon\CarbonImmutable;
+use DateTimeInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
