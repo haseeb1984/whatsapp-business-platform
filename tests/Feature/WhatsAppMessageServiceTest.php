@@ -122,6 +122,31 @@ class WhatsAppMessageServiceTest extends TestCase
         $this->assertDatabaseCount('messages', 2);
     }
 
+    public function test_queued_automation_reply_is_cancelled_if_staff_takes_over_before_delivery(): void
+    {
+        config(['services.meta.graph_api_version' => 'v24.0']);
+        Queue::fake();
+        Http::fake();
+
+        $tenant = $this->workspace('send-text-handover-before-delivery');
+        $conversation = $this->conversation($tenant->id, 'AUTO_ACTIVE', now()->subMinutes(5));
+
+        $message = TenantContext::runForTenant($tenant->id, fn () => app(WhatsAppMessageService::class)
+            ->sendText($conversation, 'Automated reply queued'));
+
+        TenantContext::runForTenant($tenant->id, function () use ($conversation): void {
+            $conversation->forceFill(['automation_state' => 'HUMAN_ACTIVE'])->save();
+        });
+
+        (new DeliverWhatsAppMessage($tenant->id, $message->id))->handle(app(MetaWhatsAppGraphApi::class));
+
+        $this->assertDatabaseHas('messages', [
+            'id' => $message->id,
+            'delivery_status' => 'failed',
+        ]);
+        Http::assertNothingSent();
+    }
+
     public function test_ambiguous_meta_timeout_is_recorded_without_automatic_resend(): void
     {
         config(['services.meta.graph_api_version' => 'v24.0']);
