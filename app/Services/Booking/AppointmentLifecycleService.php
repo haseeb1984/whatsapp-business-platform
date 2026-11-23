@@ -130,6 +130,32 @@ class AppointmentLifecycleService
      * Call only after the external calendar event has been successfully deleted.
      */
 
+    /**
+     * Reserve the appointment while the external Calendar deletion is in flight.
+     * Rescheduling requires calendar_sync_status=synced, so this closes the
+     * cancellation/reschedule race before the provider request begins.
+     */
+    public function beginCalendarDeletion(string $appointmentId): Appointment
+    {
+        return DB::transaction(function () use ($appointmentId): Appointment {
+            $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointmentId);
+            if ($appointment->status !== 'confirmed'
+                || ! $appointment->external_event_id
+                || $appointment->calendar_sync_status !== 'synced') {
+                throw ValidationException::withMessages(['appointment' => 'Only a fully synchronized confirmed appointment can begin calendar deletion.']);
+            }
+
+            if ($appointment->reschedules()->whereIn('status', ['pending', 'unknown'])->exists()) {
+                throw ValidationException::withMessages(['appointment' => 'This appointment has a reschedule awaiting calendar confirmation. Resolve it before cancellation.']);
+            }
+
+            $appointment->forceFill(['calendar_sync_status' => 'pending'])->save();
+            $this->event($appointment, 'calendar_deletion_started');
+
+            return $appointment->refresh();
+        });
+    }
+
     public function markCalendarDeletionUnknown(string $appointmentId, string $reasonCode): Appointment
     {
         return DB::transaction(function () use ($appointmentId, $reasonCode): Appointment {
