@@ -33,6 +33,11 @@ class DashboardController extends Controller
             ->pluck('total', 'tenant_id');
 
         $messageCounts = DB::table('messages')->select('tenant_id', DB::raw('COUNT(*) as total'))->groupBy('tenant_id')->pluck('total', 'tenant_id');
+        $outboundDeliveryCounts = DB::table('messages')
+            ->select('delivery_status', DB::raw('COUNT(*) as total'))
+            ->where('direction', 'outbound')
+            ->groupBy('delivery_status')
+            ->pluck('total', 'delivery_status');
         $conversationCounts = DB::table('conversations')->select('tenant_id', DB::raw('COUNT(*) as total'))->groupBy('tenant_id')->pluck('total', 'tenant_id');
         $appointmentCounts = DB::table('appointments')->select('tenant_id', DB::raw('COUNT(*) as total'))->groupBy('tenant_id')->pluck('total', 'tenant_id');
 
@@ -97,6 +102,10 @@ class DashboardController extends Controller
                 'whatsapp_connections' => (int) $whatsappCounts->sum(),
                 'calendar_connections' => (int) $calendarCounts->sum(),
                 'messages_total' => DB::table('messages')->count(),
+                'outbound_pending' => (int) ($outboundDeliveryCounts['pending'] ?? 0),
+                'outbound_sending' => (int) ($outboundDeliveryCounts['sending'] ?? 0),
+                'outbound_unknown' => (int) ($outboundDeliveryCounts['unknown'] ?? 0),
+                'outbound_failed' => (int) ($outboundDeliveryCounts['failed'] ?? 0),
                 'conversations_total' => DB::table('conversations')->count(),
                 'appointments_total' => DB::table('appointments')->count(),
                 'audit_events_total' => Schema::hasTable('audit_events') ? DB::table('audit_events')->count() : null,
