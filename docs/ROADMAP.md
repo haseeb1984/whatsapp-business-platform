@@ -193,8 +193,8 @@ This roadmap distinguishes planned work from implemented work.
 
 ## Latest verified implementation checkpoint (2026-11-23)
 
-- Verified code commit: `4dbdea1709f1967d9c7cb6c112ec6e1004e7e5d9`.
-- CI: [run 45094615942](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45094615942) passed.
+- Verified code commit: `608ce382c79805f2068f4f52eed695ecf68b3c58`.
+- CI: [run 45095090822](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45095090822) passed.
 - Automated suite: 198 tests / 828 assertions on SQLite and PostgreSQL 16; full migration rollback/replay passed on both.
 - Composer/npm production dependency audits passed; Vite production build passed.
 - The build manifest check confirms 21 lazy-loaded Inertia page chunks; main JavaScript bundle is 445.87 kB (142.76 kB gzip).
@@ -203,5 +203,5 @@ This roadmap distinguishes planned work from implemented work.
 - Appointment reminder status is finalized by the outbox worker; staff UI messaging says replies are queued, and conversation history renders queued/sending/sent/delivered/read/failed/unknown states with clear labels. An already-authorized staff reply remains deliverable if automation is released before the worker runs; a queued automation reply is cancelled if a human takes over first.
 - Platform operations now reports outbound pending/sending/unknown/failed counts without exposing message content or customer data.
 - The transaction-boundary test confirms Meta HTTP executes after the message-creation transaction commits; duplicate queue-job tests confirm only one provider request is made.
-- `platform:preflight --strict` checks PHP 8.3+, production/debug flags, APP_KEY, HTTPS URL, PostgreSQL TLS, database queue after-commit, secure session cookies, Meta/Groq/Google config and writable runtime directories without printing secret values.
+- `platform:preflight --strict` checks PHP 8.3+, production/debug flags, APP_KEY, HTTPS URL, PostgreSQL TLS, database queue after-commit, secure session cookies, Meta app/webhook credentials, SMTP, Groq, Google OAuth and writable runtime directories without printing secret values.
 - Remaining production gates: committed dependency lockfiles, actual Neon TLS/connectivity and migration rehearsal, Hostinger runtime/deployment rehearsal, live Meta/Google validation, load/abuse testing, browser performance profiling, and backup/restore drill.
