@@ -109,14 +109,14 @@ class DeliverWhatsAppMessage implements ShouldQueue
 
                 if ($message->message_type === 'text') {
                     $actor = $metadata['actor'] ?? 'automation';
-                    $allowedStates = $actor === 'staff'
-                        ? ['HUMAN_ACTIVE', 'WAITING_FOR_STAFF']
-                        : ['AUTO_ACTIVE'];
 
-                    if (! in_array($conversation->automation_state, $allowedStates, true)
-                        || ($actor === 'staff' && isset($metadata['staff_user_id'])
-                            && $conversation->assigned_user_id !== (int) $metadata['staff_user_id'])) {
-                        $this->failBeforeSend($message, 'conversation_sender_state_changed');
+                    // Staff authorization was checked when the message was
+                    // committed to the outbox. Releasing automation afterwards
+                    // must not silently discard that already-authorized reply.
+                    // Automated replies, however, must still be cancelled if a
+                    // human takes over before delivery.
+                    if ($actor !== 'staff' && $conversation->automation_state !== 'AUTO_ACTIVE') {
+                        $this->failBeforeSend($message, 'automation_handover_before_delivery');
                         return null;
                     }
 
