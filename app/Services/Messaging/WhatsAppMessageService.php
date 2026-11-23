@@ -125,36 +125,15 @@ class WhatsAppMessageService
                 'message_type' => 'text',
                 'body' => $body,
                 'delivery_status' => 'pending',
+                'metadata' => [
+                    'whatsapp_connection_id' => $connection->id,
+                    'actor' => $actor->value,
+                    'staff_user_id' => $staffUserId,
+                ],
             ]);
 
-            try {
-                $providerMessageId = $this->graphApi->sendText(
-                    $connection,
-                    $customer->whatsapp_wa_id,
-                    $body,
-                );
-            } catch (ConnectionException) {
-                $message->forceFill(['delivery_status' => 'unknown'])->save();
-                $lockedConversation->forceFill(['last_message_at' => now()])->save();
-
-                return $message;
-            } catch (MetaWhatsAppApiException $exception) {
-                $message->forceFill([
-                    'delivery_status' => $exception->outcomeUnknown ? 'unknown' : 'failed',
-                ])->save();
-
-                $lockedConversation->forceFill(['last_message_at' => now()])->save();
-
-                return $message;
-            }
-
-            $message->forceFill([
-                'provider_message_id' => $providerMessageId,
-                'delivery_status' => 'sent',
-                'sent_at' => now(),
-            ])->save();
-
-            $lockedConversation->forceFill(['last_message_at' => now()])->save();
+            DeliverWhatsAppMessage::dispatch(app(\\App\\Support\\Tenancy\\TenantContext::class)->id(), $message->id)
+                ->afterCommit();
 
             return $message;
         });
@@ -254,39 +233,16 @@ class WhatsAppMessageService
                 'body' => 'WhatsApp template: '.$template->name,
                 'delivery_status' => 'pending',
                 'metadata' => [
-                    'template_id' => $template->provider_template_id,
+                    'whatsapp_connection_id' => $connection->id,
+                    'whatsapp_template_id' => $template->id,
+                    'template_parameters' => $normalizedParameters,
                     'template_name' => $template->name,
                     'template_language' => $template->language,
-                    'parameters' => $normalizedParameters,
                 ],
             ]);
 
-            try {
-                $providerMessageId = $this->graphApi->sendTemplate(
-                    $connection,
-                    $customer->whatsapp_wa_id,
-                    $template->name,
-                    $template->language,
-                    $components,
-                );
-            } catch (ConnectionException) {
-                $message->forceFill(['delivery_status' => 'unknown'])->save();
-                $lockedConversation->forceFill(['last_message_at' => now()])->save();
-                return $message;
-            } catch (MetaWhatsAppApiException $exception) {
-                $message->forceFill([
-                    'delivery_status' => $exception->outcomeUnknown ? 'unknown' : 'failed',
-                ])->save();
-                $lockedConversation->forceFill(['last_message_at' => now()])->save();
-                return $message;
-            }
-
-            $message->forceFill([
-                'provider_message_id' => $providerMessageId,
-                'delivery_status' => 'sent',
-                'sent_at' => now(),
-            ])->save();
-            $lockedConversation->forceFill(['last_message_at' => now()])->save();
+            DeliverWhatsAppMessage::dispatch(app(\\App\\Support\\Tenancy\\TenantContext::class)->id(), $message->id)
+                ->afterCommit();
 
             return $message;
         });
