@@ -139,9 +139,9 @@ class MetaWhatsAppWebhookTest extends TestCase
         ]);
         $this->assertDatabaseCount('customers', 1);
         $this->assertDatabaseCount('conversations', 1);
-        $message = Message::query()
+        $message = TenantContext::runForTenant($tenant->id, fn () => Message::query()
             ->where('provider_message_id', 'wamid.duplicate-worker-message')
-            ->firstOrFail();
+            ->firstOrFail());
         $this->assertSame('inbound', $message->direction);
         $this->assertSame('Please help', $message->body);
         $this->assertDatabaseCount('messages', 1);
@@ -182,7 +182,9 @@ class MetaWhatsAppWebhookTest extends TestCase
         $this->assertDatabaseCount('customers', 1);
         $this->assertDatabaseCount('conversations', 1);
         $this->assertDatabaseCount('messages', 1);
-        $message = Message::query()->where('provider_message_id', 'wamid.same-provider-message')->firstOrFail();
+        $message = TenantContext::runForTenant($tenant->id, fn () => Message::query()
+            ->where('provider_message_id', 'wamid.same-provider-message')
+            ->firstOrFail());
         $this->assertSame('One logical inbound message', $message->body);
         $this->assertDatabaseCount('webhook_events', 2);
         $this->assertDatabaseMissing('webhook_events', ['status' => 'pending']);
