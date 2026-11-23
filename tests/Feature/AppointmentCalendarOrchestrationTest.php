@@ -30,6 +30,7 @@ class FakeAppointmentGoogleCalendarService extends GoogleCalendarService
     public ?Throwable $availabilityFailure = null;
     public ?Throwable $createFailure = null;
     public ?Throwable $deleteFailure = null;
+    public ?\\Closure $deleteCallback = null;
 
     public function findAppointmentEvent(Appointment $appointment): ?string
     {
@@ -54,6 +55,10 @@ class FakeAppointmentGoogleCalendarService extends GoogleCalendarService
 
     public function deleteAppointmentEvent(Appointment $appointment): void
     {
+        if ($this->deleteCallback) {
+            ($this->deleteCallback)($appointment);
+        }
+
         if ($this->deleteFailure) {
             throw $this->deleteFailure;
         }
@@ -90,6 +95,31 @@ class AppointmentCalendarOrchestrationTest extends TestCase
 
         $cancelled = TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->cancel($appointment->id));
         $this->assertSame('cancelled', $cancelled->status);
+    }
+
+    public function test_calendar_deletion_reserves_appointment_before_external_request(): void
+    {
+        [$tenant, $appointment] = $this->booking('calendar-delete-reserved');
+        $calendar = new FakeAppointmentGoogleCalendarService();
+        $calendar->createdEventId = 'google-event-delete-reserved';
+        $this->app->instance(GoogleCalendarService::class, $calendar);
+
+        TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->confirm($appointment->id));
+
+        $calendar->deleteCallback = function (Appointment $deleting) use ($tenant): void {
+            $fresh = TenantContext::runForTenant($tenant->id, fn () => Appointment::query()->findOrFail($deleting->id));
+            $this->assertSame('confirmed', $fresh->status);
+            $this->assertSame('pending', $fresh->calendar_sync_status);
+        };
+
+        $cancelled = TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->cancel($appointment->id));
+
+        $this->assertSame('cancelled', $cancelled->status);
+        $this->assertSame('synced', $cancelled->calendar_sync_status);
+        $this->assertDatabaseHas('appointment_events', [
+            'appointment_id' => $appointment->id,
+            'event_type' => 'calendar_deletion_started',
+        ]);
     }
 
     public function test_calendar_busy_response_releases_the_temporary_hold_without_creating_an_event(): void
