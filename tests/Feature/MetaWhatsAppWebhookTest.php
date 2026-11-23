@@ -147,6 +147,47 @@ class MetaWhatsAppWebhookTest extends TestCase
         $this->assertDatabaseCount('messages', 1);
     }
 
+    public function test_separate_webhook_events_with_same_provider_message_id_create_one_message(): void
+    {
+        Queue::fake();
+        $tenant = Tenant::query()->create([
+            'name' => 'Provider Message Idempotency Workspace',
+            'slug' => 'provider-message-idempotency-workspace',
+        ]);
+
+        $payload = [
+            'from' => '923001112235',
+            'id' => 'wamid.same-provider-message',
+            'timestamp' => '1795280000',
+            'type' => 'text',
+            'text' => ['body' => 'One logical inbound message'],
+        ];
+
+        $events = collect(['delivery-a', 'delivery-b'])->map(fn (string $key) => WebhookEvent::query()->create([
+            'tenant_id' => $tenant->id,
+            'provider' => 'meta_whatsapp',
+            'provider_event_key' => hash('sha256', $key),
+            'phone_number_id' => '123456789012348',
+            'event_type' => 'message.received',
+            'payload' => $payload,
+            'status' => 'pending',
+            'attempts' => 0,
+            'received_at' => now(),
+        ]));
+
+        foreach ($events as $event) {
+            (new ProcessMetaWebhookEvent($event->id))->handle();
+        }
+
+        $this->assertDatabaseCount('customers', 1);
+        $this->assertDatabaseCount('conversations', 1);
+        $this->assertDatabaseCount('messages', 1);
+        $message = Message::query()->where('provider_message_id', 'wamid.same-provider-message')->firstOrFail();
+        $this->assertSame('One logical inbound message', $message->body);
+        $this->assertDatabaseCount('webhook_events', 2);
+        $this->assertDatabaseMissing('webhook_events', ['status' => 'pending']);
+    }
+
     public function test_invalid_signature_is_rejected_before_event_persistence(): void
     {
         config(['services.meta.app_secret' => 'test-meta-app-secret']);
