@@ -213,3 +213,10 @@ This roadmap distinguishes planned work from implemented work.
 - Added a regression test proving a reconnect response without a new refresh token leaves the old connection in `reauthorization_required` and preserves its encrypted credentials for a deliberate recovery path.
 - The Calendar settings page already derives its connected state from the connection status and exposes the reconnect action when reauthorization is required.
 - Code and test changes are committed; CI execution and live Google account validation remain outstanding.
+
+
+## Calendar reconnect usability follow-up (2026-11-23)
+
+- The Calendar settings UI now provides a deliberate **Clear saved authorization** action when Google returns `invalid_grant`. This makes the documented recovery path actionable if Google does not return a new offline refresh token on reconnect.
+- Added a success-path regression test proving a fresh Google refresh token replaces the revoked credential and restores connection status to `connected`.
+- CI and live Google OAuth validation remain outstanding; do not treat the new test as passing until the workflow reports success.
