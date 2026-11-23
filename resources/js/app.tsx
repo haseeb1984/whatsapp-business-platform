@@ -1,5 +1,4 @@
 import '../css/app.css';
-import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { createInertiaApp } from '@inertiajs/react';
 
@@ -8,10 +7,12 @@ const appName = import.meta.env.VITE_APP_NAME || 'WhatsApp Business Platform';
 createInertiaApp({
     title: (title) => title ? `${title} · ${appName}` : appName,
     resolve: (name) => {
-        const pages = import.meta.glob('./Pages/**/*.tsx', { eager: true });
-        const page = pages[`./Pages/${name}.tsx`] as { default: React.ComponentType };
+        // Load each Inertia page on demand so business and platform screens
+        // are split into route-level chunks instead of one large entry bundle.
+        const pages = import.meta.glob('./Pages/**/*.tsx');
+        const page = pages[`./Pages/${name}.tsx`];
         if (!page) throw new Error(`Page not found: ${name}`);
-        return page.default;
+        return page();
     },
     setup({ el, App, props }) {
         createRoot(el).render(<App {...props} />);
