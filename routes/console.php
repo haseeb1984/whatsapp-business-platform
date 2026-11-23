@@ -5,6 +5,50 @@ use App\Services\Booking\AppointmentLifecycleService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
+
+Artisan::command('platform:preflight {--strict}', function (): int {
+    $checks = [
+        'PHP 8.3 or newer' => PHP_VERSION_ID >= 80300,
+        'Production environment selected' => app()->environment('production'),
+        'APP_DEBUG disabled' => config('app.debug') === false,
+        'APP_KEY configured' => is_string(config('app.key')) && trim((string) config('app.key')) !== '',
+        'HTTPS application URL' => str_starts_with((string) config('app.url'), 'https://'),
+        'PostgreSQL selected' => config('database.default') === 'pgsql',
+        'PostgreSQL TLS required' => in_array(config('database.connections.pgsql.sslmode'), ['require', 'verify-ca', 'verify-full'], true),
+        'Database queue selected' => config('queue.default') === 'database',
+        'Queue dispatch after commit' => config('queue.connections.database.after_commit') === true,
+        'Secure session cookies' => config('session.secure') === true,
+        'Meta Graph API version configured' => is_string(config('services.meta.graph_api_version'))
+            && preg_match('/^v\d+\.\d+$/', (string) config('services.meta.graph_api_version')) === 1,
+        'Groq API key configured' => is_string(config('services.groq.api_key')) && trim((string) config('services.groq.api_key')) !== '',
+        'Google Calendar OAuth configured' => collect([
+            config('services.google.client_id'),
+            config('services.google.client_secret'),
+            config('services.google.redirect_uri'),
+        ])->every(fn ($value): bool => is_string($value) && trim($value) !== ''),
+        'Storage and bootstrap cache writable' => is_writable(storage_path()) && is_writable(base_path('bootstrap/cache')),
+    ];
+
+    $failed = 0;
+    foreach ($checks as $label => $passed) {
+        $this->line(($passed ? '<fg=green>PASS</>' : '<fg=yellow>WARN</>').' '.$label);
+        if (! $passed) {
+            $failed++;
+        }
+    }
+
+    $this->newLine();
+    $this->info(count($checks).' checks completed; '.$failed.' warning(s).');
+
+    if ($failed > 0 && $this->option('strict')) {
+        $this->error('Production preflight failed. Resolve every warning before deployment.');
+
+        return self::FAILURE;
+    }
+
+    return self::SUCCESS;
+})->purpose('Check production runtime configuration before deployment without exposing secrets');
+
 Artisan::command('platform:about', function (): void {
     $this->info(config('app.name').' — WhatsApp Business Platform');
     $this->line('Environment: '.app()->environment());
