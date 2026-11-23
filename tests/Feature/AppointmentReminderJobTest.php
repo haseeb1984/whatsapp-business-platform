@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\MessageActor;
 use App\Jobs\ProcessAppointmentReminder;
+use App\Jobs\DeliverWhatsAppMessage;
 use App\Models\Appointment;
 use App\Models\AppointmentReminder;
 use App\Models\BusinessHour;
@@ -20,11 +21,13 @@ use App\Models\WhatsAppTemplate;
 use App\Services\Booking\AppointmentBookingService;
 use App\Services\Booking\AppointmentLifecycleService;
 use App\Services\Messaging\WhatsAppMessageService;
+use App\Services\Meta\MetaWhatsAppGraphApi;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class AppointmentReminderJobTest extends TestCase
@@ -117,6 +120,51 @@ class AppointmentReminderJobTest extends TestCase
         ]);
     }
 
+
+    public function test_reminder_stays_processing_until_the_outbox_worker_confirms_delivery(): void
+    {
+        [$tenant, $appointment, $reminder, $conversation] = $this->confirmedReminder('reminder-outbox-delivery', 'AUTO_ACTIVE', 1);
+        config(['services.meta.graph_api_version' => 'v24.0']);
+        Queue::fake();
+        Http::fake([
+            'https://graph.facebook.com/v24.0/123456789012345/messages' => Http::response([
+                'messages' => [['id' => 'wamid.reminder-outbox']],
+            ], 200),
+        ]);
+
+        $template = TenantContext::runForTenant($tenant->id, function () {
+            $connection = WhatsAppConnection::query()->firstOrFail();
+            return WhatsAppTemplate::query()->create([
+                'whatsapp_connection_id' => $connection->id,
+                'provider_template_id' => 'reminder-outbox-provider-id',
+                'name' => 'appointment_reminder',
+                'language' => 'en_US',
+                'category' => 'UTILITY',
+                'status' => 'APPROVED',
+                'components' => [['type' => 'BODY', 'text' => 'Your {{1}} appointment is at {{2}}.']],
+                'synced_at' => now(),
+            ]);
+        });
+
+        (new ProcessAppointmentReminder($tenant->id, $reminder->id))->handle(app(WhatsAppMessageService::class));
+
+        $message = TenantContext::runForTenant($tenant->id, fn () => Message::query()->where('reminder_id', $reminder->id)->firstOrFail());
+        $this->assertSame('pending', $message->delivery_status);
+        $this->assertDatabaseHas('appointment_reminders', ['id' => $reminder->id, 'status' => 'processing']);
+
+        (new DeliverWhatsAppMessage($tenant->id, $message->id))->handle(app(MetaWhatsAppGraphApi::class));
+
+        $this->assertDatabaseHas('messages', [
+            'id' => $message->id,
+            'delivery_status' => 'sent',
+            'provider_message_id' => 'wamid.reminder-outbox',
+        ]);
+        $this->assertDatabaseHas('appointment_reminders', [
+            'id' => $reminder->id,
+            'status' => 'sent',
+            'provider_message_id' => 'wamid.reminder-outbox',
+        ]);
+    }
 
     public function test_reminder_job_cannot_process_another_tenants_reminder(): void
     {
