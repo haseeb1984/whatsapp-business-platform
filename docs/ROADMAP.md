@@ -354,3 +354,10 @@ This roadmap distinguishes planned work from implemented work.
 - The run completed SQLite feature tests, PostgreSQL 16 feature tests, SQLite and PostgreSQL migration rollback/replay, Composer and npm production dependency audits, Vite production build, and route-level lazy chunk verification.
 - The booking hold-creation regression independently rejects foreign customer, service and staff identifiers with 422 and confirms no appointment is created.
 - This is sequential route-validation evidence only; simultaneous PostgreSQL worker contention/process-crash behavior, live Meta/Google account checks, actual Neon rehearsal, Hostinger runtime validation, and deployment remain unverified.
+
+
+## Google OAuth workspace-binding regression (2026-11-23)
+
+- Added an HTTP-level test that starts Google OAuth under Workspace A, then attempts to complete the callback under Workspace B while the same authorized user belongs to both workspaces.
+- The callback must return 403 before exchanging the authorization code, send no request to Google, and create no connection. This directly exercises the stored tenant binding rather than relying only on an invalid/replayed state token.
+- The new regression is committed on PR #2; full CI verification is pending.
