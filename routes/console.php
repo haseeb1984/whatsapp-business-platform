@@ -384,7 +384,7 @@ Artisan::command('webhooks:reconcile-stale-processing {--tenant=}', function ():
 
             if (! $event
                 || $event->status !== 'processing'
-                || \\Carbon\\CarbonImmutable::parse($event->updated_at)->greaterThan(now()->subMinutes(10))
+                || \Carbon\CarbonImmutable::parse($event->updated_at)->greaterThan(now()->subMinutes(10))
                 || ! $event->tenant_id
                 || ! Tenant::query()->whereKey($event->tenant_id)->where('status', 'active')->exists()) {
                 return false;
