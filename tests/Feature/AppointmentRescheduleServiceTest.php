@@ -210,13 +210,13 @@ class AppointmentRescheduleServiceTest extends TestCase
             ->where('idempotency_key', 'reschedule-job-replay-key')
             ->firstOrFail());
 
-        $eventCountBeforeReplay = AppointmentEvent::query()->count();
+        $eventCountBeforeReplay = TenantContext::runForTenant($tenant->id, fn () => AppointmentEvent::query()->count());
 
         (new SyncAppointmentReschedule($tenant->id, $request->id))
             ->handle(app(AppointmentRescheduleService::class));
 
-        $this->assertSame('synced', $request->fresh()->status);
-        $this->assertSame($eventCountBeforeReplay, AppointmentEvent::query()->count());
+        $this->assertSame('synced', TenantContext::runForTenant($tenant->id, fn () => $request->fresh()->status));
+        $this->assertSame($eventCountBeforeReplay, TenantContext::runForTenant($tenant->id, fn () => AppointmentEvent::query()->count()));
     }
 
     public function test_reschedule_is_rejected_while_calendar_deletion_has_reserved_the_appointment(): void
