@@ -493,4 +493,44 @@ class GoogleCalendarConnectionTest extends TestCase
 
         return [$user, $tenant];
     }
+
+    public function test_default_calendar_update_cannot_modify_another_tenants_connection(): void
+    {
+        [$userA, $tenantA] = $this->workspace('google-default-isolation-a@example.test');
+        [, $tenantB] = $this->workspace('google-default-isolation-b@example.test');
+
+        TenantContext::runForTenant($tenantA->id, fn () => GoogleCalendarConnection::query()->create([
+            'access_token' => 'tenant-a-access',
+            'refresh_token' => 'tenant-a-refresh',
+            'token_expires_at' => now()->addHour(),
+            'status' => 'connected',
+            'default_calendar_id' => 'tenant-a-before@example.test',
+        ]));
+        TenantContext::runForTenant($tenantB->id, fn () => GoogleCalendarConnection::query()->create([
+            'access_token' => 'tenant-b-access',
+            'refresh_token' => 'tenant-b-refresh',
+            'token_expires_at' => now()->addHour(),
+            'status' => 'connected',
+            'default_calendar_id' => 'tenant-b-calendar@example.test',
+        ]));
+
+        Http::fake([
+            'www.googleapis.com/calendar/v3/users/me/calendarList*' => Http::response([
+                'items' => [
+                    ['id' => 'tenant-a-new@example.test', 'summary' => 'Tenant A Calendar', 'accessRole' => 'writer'],
+                ],
+            ]),
+        ]);
+
+        $this->actingAs($userA)->withSession(['current_tenant_id' => $tenantA->id])
+            ->put('/business/calendar/default', ['calendar_id' => 'tenant-a-new@example.test'])
+            ->assertRedirect();
+
+        $tenantAConnection = TenantContext::runForTenant($tenantA->id, fn () => GoogleCalendarConnection::query()->firstOrFail());
+        $tenantBConnection = TenantContext::runForTenant($tenantB->id, fn () => GoogleCalendarConnection::query()->firstOrFail());
+
+        $this->assertSame('tenant-a-new@example.test', $tenantAConnection->default_calendar_id);
+        $this->assertSame('tenant-b-calendar@example.test', $tenantBConnection->default_calendar_id);
+    }
+
 }
