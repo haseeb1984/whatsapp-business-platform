@@ -46,8 +46,35 @@ class DeliverWhatsAppMessage implements ShouldQueue
     {
         TenantContext::runForTenant($this->tenantId, function () use ($graphApi): void {
             $context = DB::transaction(function (): ?array {
+                // Appointment lifecycle operations always lock appointment, then
+                // reminder. Follow that order before locking the outbox message
+                // and conversation to avoid reintroducing a cancellation deadlock.
+                $messageSnapshot = Message::query()->find($this->messageId);
+                if (! $messageSnapshot || $messageSnapshot->direction !== 'outbound') {
+                    return null;
+                }
+
+                $reminder = null;
+                $appointment = null;
+                if ($messageSnapshot->reminder_id !== null) {
+                    $reminderSnapshot = AppointmentReminder::query()->find($messageSnapshot->reminder_id);
+                    $appointment = $reminderSnapshot
+                        ? Appointment::query()->lockForUpdate()->find($reminderSnapshot->appointment_id)
+                        : null;
+                    $reminder = AppointmentReminder::query()->lockForUpdate()->find($messageSnapshot->reminder_id);
+                }
+
                 $message = Message::query()->lockForUpdate()->find($this->messageId);
-                if (! $message || $message->direction !== 'outbound' || $message->delivery_status !== 'pending') {
+                if (! $message || $message->delivery_status !== 'pending') {
+                    return null;
+                }
+
+                if ($message->reminder_id !== null
+                    && (! $appointment || ! $reminder || $appointment->status !== 'confirmed' || $reminder->status !== 'processing')) {
+                    $this->failBeforeSend($message, 'reminder_no_longer_eligible');
+                    if ($reminder && $reminder->status === 'processing') {
+                        $reminder->forceFill(['status' => 'cancelled', 'last_error' => 'reminder_no_longer_eligible'])->save();
+                    }
                     return null;
                 }
 
@@ -56,23 +83,6 @@ class DeliverWhatsAppMessage implements ShouldQueue
                 if (! $conversation || $conversation->status !== 'open') {
                     $this->failBeforeSend($message, 'conversation_unavailable');
                     return null;
-                }
-
-                $reminder = null;
-                if ($message->reminder_id !== null) {
-                    $reminderSnapshot = AppointmentReminder::query()->find($message->reminder_id);
-                    $appointment = $reminderSnapshot
-                        ? Appointment::query()->lockForUpdate()->find($reminderSnapshot->appointment_id)
-                        : null;
-                    $reminder = AppointmentReminder::query()->lockForUpdate()->find($message->reminder_id);
-
-                    if (! $appointment || ! $reminder || $appointment->status !== 'confirmed' || $reminder->status !== 'processing') {
-                        $this->failBeforeSend($message, 'reminder_no_longer_eligible');
-                        if ($reminder && $reminder->status === 'processing') {
-                            $reminder->forceFill(['status' => 'cancelled', 'last_error' => 'reminder_no_longer_eligible'])->save();
-                        }
-                        return null;
-                    }
                 }
 
                 $connectionId = $metadata['whatsapp_connection_id'] ?? null;
@@ -228,6 +238,13 @@ class DeliverWhatsAppMessage implements ShouldQueue
             'delivery_status' => 'failed',
             'metadata' => array_merge($message->metadata ?? [], ['delivery_error' => $reason]),
         ])->save();
+
+        if ($message->reminder_id !== null) {
+            AppointmentReminder::query()
+                ->whereKey($message->reminder_id)
+                ->where('status', 'processing')
+                ->update(['status' => 'failed', 'last_error' => $reason]);
+        }
     }
 
     private function complete(string $status, ?string $providerMessageId, mixed $sentAt = null, ?string $error = null): void
