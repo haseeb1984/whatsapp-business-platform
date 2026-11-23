@@ -111,8 +111,8 @@ Artisan::command('messages:reconcile-stale-outbound {--tenant=}', function (): i
     $reconciled = 0;
 
     $reconcileForTenant = function (string $id) use (&$reconciled): void {
-        \\App\\Support\\Tenancy\\TenantContext::runForTenant($id, function () use (&$reconciled): void {
-            $candidates = \\App\\Models\\Message::query()
+        \App\Support\\Tenancy\\TenantContext::runForTenant($id, function () use (&$reconciled): void {
+            $candidates = \App\Models\\Message::query()
                 ->where('direction', 'outbound')
                 ->where('delivery_status', 'sending')
                 ->where('updated_at', '<=', now()->subMinutes(10))
@@ -122,7 +122,7 @@ Artisan::command('messages:reconcile-stale-outbound {--tenant=}', function (): i
 
             foreach ($candidates as $candidate) {
                 \\Illuminate\\Support\\Facades\\DB::transaction(function () use ($candidate, &$reconciled): void {
-                    $message = \\App\\Models\\Message::query()->lockForUpdate()->find($candidate->id);
+                    $message = \App\Models\\Message::query()->lockForUpdate()->find($candidate->id);
                     if (! $message || $message->delivery_status !== 'sending'
                         || $message->updated_at?->greaterThan(now()->subMinutes(10))) {
                         return;
@@ -137,7 +137,7 @@ Artisan::command('messages:reconcile-stale-outbound {--tenant=}', function (): i
                     ])->save();
 
                     if ($message->reminder_id !== null) {
-                        \\App\\Models\\AppointmentReminder::query()
+                        \App\Models\\AppointmentReminder::query()
                             ->whereKey($message->reminder_id)
                             ->where('status', 'processing')
                             ->update([
@@ -155,7 +155,7 @@ Artisan::command('messages:reconcile-stale-outbound {--tenant=}', function (): i
     if (is_string($tenantId) && $tenantId !== '') {
         $reconcileForTenant($tenantId);
     } else {
-        \\App\\Models\\Tenant::query()->where('status', 'active')->orderBy('id')->chunkById(100, function ($tenants) use ($reconcileForTenant): void {
+        \App\Models\\Tenant::query()->where('status', 'active')->orderBy('id')->chunkById(100, function ($tenants) use ($reconcileForTenant): void {
             foreach ($tenants as $tenant) {
                 $reconcileForTenant($tenant->id);
             }
