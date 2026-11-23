@@ -93,8 +93,13 @@ class PostgresWebhookWorkerConcurrencyTest extends TestCase
                 usleep(10_000);
             }
 
-            $this->assertFileExists($readyPaths[0], 'First worker did not become ready.');
-            $this->assertFileExists($readyPaths[1], 'Second worker did not become ready.');
+            foreach ($readyPaths as $index => $readyPath) {
+                if (! is_file($readyPath)) {
+                    $errorPath = $readyPath.'.error';
+                    $detail = is_file($errorPath) ? file_get_contents($errorPath) : 'No worker bootstrap diagnostic was written.';
+                    $this->fail('Worker '.($index + 1).' did not become ready: '.$detail);
+                }
+            }
             file_put_contents($startPath, 'go');
 
             foreach ($processes as $worker) {
