@@ -385,6 +385,52 @@ class GoogleCalendarConnectionTest extends TestCase
         $this->assertSame('old-access-token', $connection->access_token);
     }
 
+    public function test_reauthorization_with_a_new_refresh_token_restores_connected_state(): void
+    {
+        [$user, $tenant] = $this->workspace('google-reconnect-fresh-token@example.test');
+        TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->create([
+            'connected_by_user_id' => $user->id,
+            'google_account_email' => 'calendar-owner@example.test',
+            'access_token' => 'old-access-token',
+            'refresh_token' => 'revoked-refresh-token',
+            'token_expires_at' => now()->subMinute(),
+            'status' => 'reauthorization_required',
+            'default_calendar_id' => 'primary',
+        ]));
+
+        config([
+            'services.google.client_id' => 'client-id',
+            'services.google.client_secret' => 'client-secret',
+            'services.google.redirect_uri' => 'https://platform.example.test/business/calendar/callback',
+        ]);
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id]);
+        $start = $this->get('/business/calendar/connect')->assertRedirect();
+        $state = $start->getSession()->get('google_calendar_oauth.state');
+
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response([
+                'access_token' => 'fresh-access-token',
+                'refresh_token' => 'fresh-refresh-token',
+                'expires_in' => 3600,
+                'scope' => implode(' ', GoogleCalendarService::SCOPES),
+            ]),
+            'www.googleapis.com/oauth2/v2/userinfo' => Http::response([
+                'email' => 'calendar-owner@example.test',
+                'verified_email' => true,
+            ]),
+        ]);
+
+        $this->get('/business/calendar/callback?state='.$state.'&code=authorization-code')
+            ->assertRedirect('/business/calendar')
+            ->assertSessionHas('success');
+
+        $connection = TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->firstOrFail());
+        $this->assertSame('connected', $connection->status);
+        $this->assertSame('fresh-access-token', $connection->access_token);
+        $this->assertSame('fresh-refresh-token', $connection->refresh_token);
+    }
+
     private function workspace(string $email, string $role = 'business_admin'): array
     {
         $user = User::query()->create([
