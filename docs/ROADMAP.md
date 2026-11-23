@@ -314,3 +314,10 @@ This roadmap distinguishes planned work from implemented work.
 - The business profile, weekly-hours and booking-policy two-workspace regression additions are included in the PR validation history; do not overstate the separate documentation-only checkpoint as a fresh code-suite run.
 - PR #2 description now records both successful CI runs and explicitly retains real concurrent PostgreSQL worker/process-crash testing as an open gap.
 - No live Meta, Neon, Hostinger or deployment validation has been performed.
+
+
+## Google Calendar tenant-isolation follow-up (2026-11-23)
+
+- Added a two-workspace regression for the default Google Calendar mapping route. Tenant A updates its own writable calendar and the test asserts Tenant B's stored default calendar remains unchanged.
+- Existing coverage already verifies foreign staff-calendar mapping returns 404 without contacting Google.
+- The new default-calendar isolation test is committed on PR #2; CI verification is pending.
