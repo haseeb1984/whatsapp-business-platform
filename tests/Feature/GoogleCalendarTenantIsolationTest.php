@@ -65,6 +65,7 @@ class GoogleCalendarTenantIsolationTest extends TestCase
     {
         [$userA, $tenantA] = $this->workspace('calendar-list-a@example.test');
         [, $tenantB] = $this->workspace('calendar-list-b@example.test');
+        $userA->tenants()->attach($tenantB->id, ['role' => 'business_admin', 'status' => 'active']);
 
         TenantContext::runForTenant($tenantA->id, fn () => GoogleCalendarConnection::query()->create([
             'access_token' => 'tenant-a-calendar-access',
@@ -73,7 +74,7 @@ class GoogleCalendarTenantIsolationTest extends TestCase
             'status' => 'connected',
             'default_calendar_id' => 'primary',
         ]));
-        TenantContext::runForTenant($tenantB->id, fn () => GoogleCalendarConnection::query()->create([
+        $connectionB = TenantContext::runForTenant($tenantB->id, fn () => GoogleCalendarConnection::query()->create([
             'access_token' => 'tenant-b-calendar-access',
             'refresh_token' => 'tenant-b-calendar-refresh',
             'token_expires_at' => now()->addHour(),
@@ -95,6 +96,10 @@ class GoogleCalendarTenantIsolationTest extends TestCase
         Http::assertSentCount(1);
         Http::assertSent(fn ($request) => str_contains($request->url(), '/users/me/calendarList')
             && $request->hasHeader('Authorization', 'Bearer tenant-a-calendar-access'));
+
+        $connectionB = TenantContext::runForTenant($tenantB->id, fn () => GoogleCalendarConnection::query()->findOrFail($connectionB->id));
+        $this->assertSame('tenant-b-calendar-access', $connectionB->access_token);
+        $this->assertSame('connected', $connectionB->status);
     }
 
     private function workspace(string $email): array
