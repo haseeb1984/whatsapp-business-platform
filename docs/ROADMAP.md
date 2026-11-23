@@ -265,3 +265,6 @@ This roadmap distinguishes planned work from implemented work.
 - Corrected the existing response-sequence fixture so the HTTP 408, 429, 503 and missing-provider-ID cases each receive their intended response.
 - Added a template-specific HTTP 408 regression test that invokes the delivery job twice and asserts one provider request and an `unknown` result.
 - These changes are in PR #2 and await CI; no provider-side exactly-once claim is made.
+
+
+- Added a second provider-level idempotency regression: two distinct persisted webhook deliveries carrying the same Meta provider message ID are processed independently, while producing one customer, one open conversation and one inbound message. This complements same-job replay coverage. CI is pending for the latest branch head.
