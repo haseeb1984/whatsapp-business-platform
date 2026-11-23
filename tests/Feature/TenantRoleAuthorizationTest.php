@@ -1,15 +1,15 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Http\\Middleware\\RequireTenantRole;
-use App\\Http\\Middleware\\ResolveTenant;
-use App\\Models\\Tenant;
-use App\\Models\\User;
-use App\\Support\\Tenancy\\TenantContext;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Support\\Facades\\Route;
-use Tests\\TestCase;
+use App\Http\Middleware\RequireTenantRole;
+use App\Http\Middleware\ResolveTenant;
+use App\Models\Tenant;
+use App\Models\User;
+use App\Support\Tenancy\TenantContext;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
+use Tests\TestCase;
 
 class TenantRoleAuthorizationTest extends TestCase
 {
