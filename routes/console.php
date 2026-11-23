@@ -106,10 +106,75 @@ Artisan::command('appointments:dispatch-reminders {--tenant=}', function (): int
     return self::SUCCESS;
 })->purpose('Queue due appointment reminders in bounded tenant-scoped batches');
 
+Artisan::command('messages:reconcile-stale-outbound {--tenant=}', function (): int {
+    $tenantId = $this->option('tenant');
+    $reconciled = 0;
+
+    $reconcileForTenant = function (string $id) use (&$reconciled): void {
+        \\App\\Support\\Tenancy\\TenantContext::runForTenant($id, function () use (&$reconciled): void {
+            $candidates = \\App\\Models\\Message::query()
+                ->where('direction', 'outbound')
+                ->where('delivery_status', 'sending')
+                ->where('updated_at', '<=', now()->subMinutes(10))
+                ->orderBy('id')
+                ->limit(100)
+                ->get(['id']);
+
+            foreach ($candidates as $candidate) {
+                \\Illuminate\\Support\\Facades\\DB::transaction(function () use ($candidate, &$reconciled): void {
+                    $message = \\App\\Models\\Message::query()->lockForUpdate()->find($candidate->id);
+                    if (! $message || $message->delivery_status !== 'sending'
+                        || $message->updated_at?->greaterThan(now()->subMinutes(10))) {
+                        return;
+                    }
+
+                    $metadata = $message->metadata ?? [];
+                    $message->forceFill([
+                        'delivery_status' => 'unknown',
+                        'metadata' => array_merge($metadata, [
+                            'delivery_error' => 'worker_terminated_after_delivery_started; automatic_resend_blocked',
+                        ]),
+                    ])->save();
+
+                    if ($message->reminder_id !== null) {
+                        \\App\\Models\\AppointmentReminder::query()
+                            ->whereKey($message->reminder_id)
+                            ->where('status', 'processing')
+                            ->update([
+                                'status' => 'unknown',
+                                'last_error' => 'delivery_worker_terminated; automatic_resend_blocked',
+                            ]);
+                    }
+
+                    $reconciled++;
+                });
+            }
+        });
+    };
+
+    if (is_string($tenantId) && $tenantId !== '') {
+        $reconcileForTenant($tenantId);
+    } else {
+        \\App\\Models\\Tenant::query()->where('status', 'active')->orderBy('id')->chunkById(100, function ($tenants) use ($reconcileForTenant): void {
+            foreach ($tenants as $tenant) {
+                $reconcileForTenant($tenant->id);
+            }
+        });
+    }
+
+    $this->info("Marked {$reconciled} stale outbound message(s) as unknown; none were resent.");
+
+    return self::SUCCESS;
+})->purpose('Reconcile crashed outbound delivery workers without risking duplicate WhatsApp sends');
+
 Schedule::command('appointments:expire-holds')
     ->everyMinute()
     ->withoutOverlapping();
 
 Schedule::command('appointments:dispatch-reminders')
+    ->everyMinute()
+    ->withoutOverlapping();
+
+Schedule::command('messages:reconcile-stale-outbound')
     ->everyMinute()
     ->withoutOverlapping();
