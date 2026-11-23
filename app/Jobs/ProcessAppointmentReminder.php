@@ -130,16 +130,22 @@ class ProcessAppointmentReminder implements ShouldQueue
                 $status = match ($message->delivery_status) {
                     'sent', 'delivered', 'read' => 'sent',
                     'unknown' => 'unknown',
+                    'pending', 'sending' => 'processing',
                     default => 'failed',
                 };
 
-                $this->finish(
-                    $reminder->id,
-                    $status,
-                    $status === 'failed' ? 'whatsapp_send_failed' : null,
-                    $message->provider_message_id,
-                    $message->sent_at,
-                );
+                // Delivery is now performed by DeliverWhatsAppMessage after the
+                // outbox transaction commits. That worker owns the final reminder
+                // state transition; do not mark a queued message as failed here.
+                if ($status !== 'processing') {
+                    $this->finish(
+                        $reminder->id,
+                        $status,
+                        $status === 'failed' ? 'whatsapp_send_failed' : null,
+                        $message->provider_message_id,
+                        $message->sent_at,
+                    );
+                }
             } catch (ValidationException $exception) {
                 $messages = collect($exception->errors())->flatten()->implode(' ');
                 if (str_contains($messages, '24-hour')) {
