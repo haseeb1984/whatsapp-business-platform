@@ -99,6 +99,7 @@ GitHub Actions is the source of truth for the full verification pipeline:
 - Full migration rollback and replay on both database engines
 - Composer and frontend production dependency audits
 - Vite production build and lazy-loaded Inertia page-chunk manifest guard (21 page chunks)
+- Scheduler regression coverage for minute cadence and overlap protection
 
 The latest code verification is [run 45104012689](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45104012689); subsequent documentation-only runs also passed.
 
