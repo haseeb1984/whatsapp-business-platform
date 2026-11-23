@@ -305,3 +305,12 @@ This roadmap distinguishes planned work from implemented work.
 - Re-reviewed `ProcessMetaWebhookEvent::handle()`: the `processing` transition, tenant-scoped message/status mutation, and `processed` transition are inside one database transaction. A process crash before commit rolls the transaction back, so the current implementation should leave the event `pending`, not durably `processing`.
 - Updated the scheduled stale-`processing` recovery command's comments/purpose to describe it as legacy/orphaned-row cleanup only (for data left by earlier implementations or operational intervention), not as the normal recovery path for current worker crashes.
 - Sequential duplicate-worker tests remain useful for idempotency, but they do not simulate real simultaneous PostgreSQL workers or an OS/process crash. Those stronger tests remain an explicit validation gap.
+
+
+## PR #2 verification update (2026-11-23)
+
+- CI run [45154405291](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45154405291) passed with the appointment cross-tenant route assertions for hold cancellation, rescheduling, Calendar confirmation and confirmed cancellation.
+- CI run [45154516958](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45154516958) passed for the webhook crash-boundary clarification checkpoint.
+- The business profile, weekly-hours and booking-policy two-workspace regression additions are included in the PR validation history; do not overstate the separate documentation-only checkpoint as a fresh code-suite run.
+- PR #2 description now records both successful CI runs and explicitly retains real concurrent PostgreSQL worker/process-crash testing as an open gap.
+- No live Meta, Neon, Hostinger or deployment validation has been performed.
