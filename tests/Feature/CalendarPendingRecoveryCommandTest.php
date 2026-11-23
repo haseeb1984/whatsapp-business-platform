@@ -139,7 +139,7 @@ class CalendarPendingRecoveryCommandTest extends TestCase
         }
 
         [$service, $staff, $customer] = TenantContext::runForTenant($tenant->id, function (): array {
-            $service = Service::query()->create([
+            $service = Service::query()->firstOrCreate(['name' => 'Consultation'], [
                 'name' => 'Consultation',
                 'price_amount' => '100.00',
                 'currency' => 'PKR',
@@ -150,7 +150,7 @@ class CalendarPendingRecoveryCommandTest extends TestCase
             ]);
             $staff = Staff::query()->create(['name' => 'Recovery Staff', 'active' => true]);
             StaffService::query()->create(['staff_id' => $staff->id, 'service_id' => $service->id]);
-            BusinessHour::query()->create([
+            BusinessHour::query()->firstOrCreate(['weekday' => 0], [
                 'weekday' => 0,
                 'is_closed' => false,
                 'opens_at' => '09:00',
@@ -163,7 +163,7 @@ class CalendarPendingRecoveryCommandTest extends TestCase
                 'opens_at' => '09:00',
                 'closes_at' => '17:00',
             ]);
-            $customer = Customer::query()->create(['whatsapp_wa_id' => '923001112233']);
+            $customer = Customer::query()->firstOrCreate(['whatsapp_wa_id' => '923001112233']);
 
             return [$service, $staff, $customer];
         });
