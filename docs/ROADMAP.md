@@ -376,3 +376,5 @@ This roadmap distinguishes planned work from implemented work.
 - The test also asserts Workspace B remains connected with its original credentials and calendar mapping, and that only one provider revocation request is sent with Workspace A's refresh token.
 - The regression is committed on PR #2; full SQLite/PostgreSQL CI verification is pending.
 - This is application-level tenant isolation coverage; live Google revocation and production OAuth validation remain separate release gates.
+
+- **CI passed:** [run 45164881189](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45164881189) — two-workspace Google Calendar disconnect regression; SQLite and PostgreSQL 16 feature suites, migration rollback/replay, dependency audits and frontend build all passed.
