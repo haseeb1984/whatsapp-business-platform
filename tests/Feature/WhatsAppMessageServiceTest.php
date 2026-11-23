@@ -174,6 +174,7 @@ class WhatsAppMessageServiceTest extends TestCase
 
         $sequence = Http::sequence()
             ->push(['error' => ['message' => 'Invalid parameter']], 400)
+            ->push(['error' => ['message' => 'Request timed out']], 408)
             ->push(['error' => ['message' => 'Rate limited']], 429)
             ->push(['error' => ['message' => 'Temporary provider failure']], 503)
             ->push(['messages' => []], 200);
