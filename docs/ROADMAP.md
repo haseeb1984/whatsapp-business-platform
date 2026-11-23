@@ -339,3 +339,10 @@ This roadmap distinguishes planned work from implemented work.
 - The latest PR-head CI run [45162853608](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45162853608) exposed two failures in the newly added inbox index/detail isolation tests. Both came from the shared test helper inserting the same globally unique Meta `phone_number_id` for multiple workspace connections; 226 other SQLite tests passed (975 assertions) before the suite stopped.
 - Updated the helper to generate a distinct phone-number fixture by default, while keeping the known ID only in the existing outbound-reply test whose HTTP fake explicitly matches that endpoint.
 - The fixture-only correction is committed as `80a5ac51dd8bd9ba352b9592f249ffdcee5e0aa0`. A new full CI run is required; no pass is claimed until SQLite, PostgreSQL, migrations, dependency audits and frontend build all complete.
+
+
+## Booking resource tenant-isolation follow-up (2026-11-23)
+
+- Added an HTTP-level regression for appointment hold creation that independently substitutes a foreign workspace's customer ID, service ID and staff ID while keeping the other booking inputs local.
+- Each foreign resource must fail validation with 422, and no appointment may be created. This complements the existing cross-tenant availability-service check and cross-tenant appointment mutation checks.
+- Test is committed as `76c118ab0af77b260ecdb97b1345a8daa8296043`; fresh full CI is pending.
