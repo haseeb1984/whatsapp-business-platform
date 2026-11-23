@@ -12,6 +12,7 @@ class SchedulerConfigurationTest extends TestCase
         $events = collect(app(Schedule::class)->events());
 
         foreach ([
+            'webhooks:reconcile-stale-processing',
             'appointments:reconcile-calendar-pending',
             'appointments:expire-holds',
             'appointments:dispatch-reminders',
