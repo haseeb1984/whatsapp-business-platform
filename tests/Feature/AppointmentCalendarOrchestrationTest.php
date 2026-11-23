@@ -211,6 +211,13 @@ class AppointmentCalendarOrchestrationTest extends TestCase
             'appointment_id' => $appointment->id,
             'event_type' => 'calendar_deletion_unknown',
         ]);
+
+        // A retry is safe because Google Calendar treats an already deleted event
+        // as success (HTTP 404 is normalized to success by the adapter).
+        $calendar->deleteFailure = null;
+        $cancelled = TenantContext::runForTenant($tenant->id, fn () => app(AppointmentCalendarOrchestrator::class)->cancel($appointment->id));
+        $this->assertSame('cancelled', $cancelled->status);
+        $this->assertSame('synced', $cancelled->calendar_sync_status);
     }
 
     private function booking(string $slug): array
