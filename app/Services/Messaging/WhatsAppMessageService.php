@@ -43,7 +43,9 @@ class WhatsAppMessageService
                 $reminderSnapshot = AppointmentReminder::query()->findOrFail($reminderId);
                 $appointment = Appointment::query()->lockForUpdate()->findOrFail($reminderSnapshot->appointment_id);
                 $reminder = AppointmentReminder::query()->lockForUpdate()->findOrFail($reminderId);
-                if ($reminder->status !== 'processing' || $appointment->status !== 'confirmed') {
+                if ($reminder->status !== 'processing'
+                    || $appointment->status !== 'confirmed'
+                    || $appointment->customer_id !== $conversation->customer_id) {
                     throw ValidationException::withMessages(['reminder' => 'This appointment reminder is no longer eligible to send.']);
                 }
 
