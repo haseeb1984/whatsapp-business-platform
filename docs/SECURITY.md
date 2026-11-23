@@ -6,7 +6,7 @@
 - Enforce RBAC on every backend action; frontend visibility is not authorization.
 - Scope business roles to tenant membership. The request tenant context now carries the verified membership role, and role-restricted middleware protects business profile, weekly hours, holidays, services, staff, staff working hours/date exceptions, booking policies, FAQs, WhatsApp connections, Google Calendar connection/mapping, conversation inbox/handover actions and appointment availability/hold/Calendar lifecycle endpoints. Continue applying it to every future module route.
 - Protect platform administration with separate privileged permissions and audit logging.
-- Rate-limit login, password reset, public endpoints, and sensitive operations.
+- Rate-limit login, registration, password reset, email-verification resend, public readiness checks, outbound replies/notes, booking holds and Calendar operations. WhatsApp connection create/update/delete, Calendar disconnect/mapping changes, appointment cancellation, and conversation handover/assignment/close/reopen mutations also have route-level throttles; keep new provider calls and state-changing endpoints rate-limited.
 - Use secure, HTTP-only, SameSite cookies and HTTPS in production. `SESSION_SECURE_COOKIE` now defaults to `true` when `APP_ENV=production` (explicit environment override remains possible); keep it enabled behind the production HTTPS endpoint. Browser responses also receive `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, and a restrictive `Permissions-Policy`. HSTS is emitted only for secure requests in production; proxy/TLS behavior must be verified during Hostinger deployment.
 
 ## 2. Tenant isolation
