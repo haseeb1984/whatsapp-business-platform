@@ -228,7 +228,7 @@ class AppointmentReminderJobTest extends TestCase
             app(AppointmentLifecycleService::class)->cancelAfterCalendarDeletion($appointment->id);
         });
 
-        (new ProcessAppointmentReminder($tenant->id, $reminder->id))->failed(new \\RuntimeException('Late queue failure'));
+        (new ProcessAppointmentReminder($tenant->id, $reminder->id))->failed(new \RuntimeException('Late queue failure'));
 
         $this->assertDatabaseHas('appointment_reminders', [
             'id' => $reminder->id,
