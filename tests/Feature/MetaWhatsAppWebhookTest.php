@@ -130,6 +130,7 @@ class MetaWhatsAppWebhookTest extends TestCase
         $job = new ProcessMetaWebhookEvent($event->id);
         $job->handle();
         $job->handle();
+        $job->failed(new \\RuntimeException('Late queue failure callback'));
 
         $this->assertDatabaseHas('webhook_events', [
             'id' => $event->id,
