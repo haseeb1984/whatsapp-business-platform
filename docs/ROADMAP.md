@@ -21,7 +21,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Run migrations and the feature suite against a disposable PostgreSQL 16 CI database.
 - [x] Obtain a passing CI run for PHP tests and frontend production build.
 
-**Status:** Source scaffold committed; CI validates Composer, runs 198 feature tests (828 assertions) on SQLite and PostgreSQL 16, audits production dependencies, verifies full migration rollback/replay on both databases, and builds the frontend. Database-level cross-tenant relational-integrity tests cover customer/conversation, staff/service, message/conversation and message-reply references; queued FAQ-job, appointment-reminder and booking-reply isolation are also tested. A separate connection/migration rehearsal against the actual Neon project remains pending.
+**Status:** Source scaffold committed; CI validates Composer, runs 199 feature tests (840 assertions) on SQLite and PostgreSQL 16, audits production dependencies, verifies full migration rollback/replay on both databases, and builds the frontend. Database-level cross-tenant relational-integrity tests cover customer/conversation, staff/service, message/conversation and message-reply references; queued FAQ-job, appointment-reminder and booking-reply isolation are also tested. A separate connection/migration rehearsal against the actual Neon project remains pending.
 
 ## Milestone 2 — Identity, tenancy, and authorization
 - [x] Implement email/password registration, login and logout with session regeneration/invalidation.
