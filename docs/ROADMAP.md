@@ -361,3 +361,11 @@ This roadmap distinguishes planned work from implemented work.
 - Added an HTTP-level test that starts Google OAuth under Workspace A, then attempts to complete the callback under Workspace B while the same authorized user belongs to both workspaces.
 - The callback must return 403 before exchanging the authorization code, send no request to Google, and create no connection. This directly exercises the stored tenant binding rather than relying only on an invalid/replayed state token.
 - The new regression is committed on PR #2; full CI verification is pending.
+
+
+## Google OAuth workspace-binding CI verification (2026-11-23)
+
+- Full CI run [45164285714](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45164285714) passed for the OAuth callback workspace-binding regression.
+- The test starts authorization under Workspace A, then attempts callback under Workspace B for a user belonging to both. It asserts 403, no outbound Google token-exchange request, and no Calendar connection created.
+- CI completed SQLite and PostgreSQL 16 feature suites, migration rollback/replay on both databases, Composer/npm production dependency audits, Vite build, and lazy route-chunk verification.
+- This does not substitute for a true simultaneous multi-worker lock/process-crash test or live Google/Meta, Neon, Hostinger and deployment validation.
