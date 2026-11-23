@@ -71,8 +71,8 @@ class AppointmentCalendarOrchestrator
         }
 
         if ($appointment->status !== 'confirmed' || ! $appointment->external_event_id
-            || $appointment->calendar_sync_status !== 'synced') {
-            throw ValidationException::withMessages(['appointment' => 'Only a fully synchronized confirmed appointment can be cancelled here.']);
+            || ! in_array($appointment->calendar_sync_status, ['synced', 'pending', 'unknown'], true)) {
+            throw ValidationException::withMessages(['appointment' => 'Only a confirmed appointment without a failed Calendar operation can be cancelled here.']);
         }
 
         if (AppointmentReschedule::query()
