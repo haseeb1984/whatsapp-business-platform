@@ -84,6 +84,11 @@ Commit `0abf5ce3610f0dd9e315fdf065ec03887bfc6877` standardizes lock acquisition 
 [CI run 45091124578](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45090484856) passed 191 tests / 793 assertions on SQLite and PostgreSQL 16, full migration rollback/replay on both, Composer/npm production dependency audits, and the Vite production build. This is automated PostgreSQL 16 coverage, not a live Neon endpoint test.
 
 
-## Latest verified regression checkpoint (2026-11-23)
+## Previous verified regression checkpoint (superseded by the post-PR2 checkpoint below)
 
 Commit `0587f2650ee8ff3ffdf307fc595fbf18ff2d04ee` introduces route-level lazy loading for Inertia pages. [CI run 45091124578](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45091124578) passed 191 tests / 793 assertions on SQLite and PostgreSQL 16, full migration rollback/replay on both, Composer/npm production dependency audits, and the Vite production build. The main JavaScript chunk is now 445.86 kB (142.76 kB gzip), down from approximately 538 kB; browser-level performance profiling and live Neon/Hostinger checks remain pending.
+
+
+## Post-PR2 concurrency regression verification (2026-11-23)
+
+The PostgreSQL 16 CI run [45243247660](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45243247660) passed with a dedicated multi-process webhook idempotency test. It starts two independent PHP workers against the same committed event, forces PostgreSQL row-lock contention using a test-only trigger, and verifies exactly one customer, conversation and inbound message plus a `processed` event state. This is automated CI evidence, not proof of live Neon configuration. PR #5 remains open and unmerged pending review.
