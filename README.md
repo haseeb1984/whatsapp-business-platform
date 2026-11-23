@@ -95,13 +95,16 @@ Open `http://127.0.0.1:8000`. New users can register an account and create an in
 GitHub Actions is the source of truth for the full verification pipeline:
 
 - Composer manifest validation and dependency installation
-- PHP feature suite on SQLite
-- PHP feature suite on PostgreSQL 16
-- PHP dependency audit
-- Frontend production dependency audit
-- Vite production build
+- PHP feature suite on SQLite and PostgreSQL 16 (198 tests / 828 assertions on each)
+- Full migration rollback and replay on both database engines
+- Composer and frontend production dependency audits
+- Vite production build and lazy-loaded Inertia page-chunk manifest guard (21 page chunks)
+
+The latest code verification is [run 45095090822](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45095090822); subsequent documentation-only runs also passed.
 
 Run the checks locally with `composer validate`, `php artisan test`, and `npm run build`. The CI PostgreSQL service is a compatibility gate; it does not replace a connection and migration rehearsal against the actual Neon project.
+
+Before a production deployment, configure the required environment variables and run `php artisan platform:preflight --strict`. This checks configuration presence and runtime assumptions without printing secrets; it does not validate live Meta/Google credentials or prove Neon connectivity.
 
 ## Development principles
 
