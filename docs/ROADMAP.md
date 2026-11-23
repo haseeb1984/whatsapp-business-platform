@@ -298,3 +298,10 @@ This roadmap distinguishes planned work from implemented work.
 
 - Extended the cross-tenant appointment regression so a workspace cannot cancel a foreign temporary hold, reschedule a foreign appointment, confirm a foreign appointment through Google Calendar, or cancel a foreign confirmed appointment. Each route must return 404 and leave the foreign appointment unchanged.
 - This complements the existing foreign service availability validation and tenant-scoped customer/service/staff validation in hold creation. New assertions are pending CI.
+
+
+## Webhook crash-boundary clarification (2026-11-23)
+
+- Re-reviewed `ProcessMetaWebhookEvent::handle()`: the `processing` transition, tenant-scoped message/status mutation, and `processed` transition are inside one database transaction. A process crash before commit rolls the transaction back, so the current implementation should leave the event `pending`, not durably `processing`.
+- Updated the scheduled stale-`processing` recovery command's comments/purpose to describe it as legacy/orphaned-row cleanup only (for data left by earlier implementations or operational intervention), not as the normal recovery path for current worker crashes.
+- Sequential duplicate-worker tests remain useful for idempotency, but they do not simulate real simultaneous PostgreSQL workers or an OS/process crash. Those stronger tests remain an explicit validation gap.
