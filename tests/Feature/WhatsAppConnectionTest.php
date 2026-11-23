@@ -124,9 +124,24 @@ class WhatsAppConnectionTest extends TestCase
             'status' => 'pending',
         ]));
 
+        TenantContext::runForTenant($tenantB->id, fn () => \App\Models\WhatsAppTemplate::query()->create([
+            'whatsapp_connection_id' => $foreignConnection->id,
+            'provider_template_id' => 'foreign-provider-template-987',
+            'name' => 'tenant_b_private_template',
+            'language' => 'en_US',
+            'category' => 'UTILITY',
+            'status' => 'APPROVED',
+            'components' => [],
+            'synced_at' => now(),
+        ]));
+
         $this->actingAs($userA)->withSession(['current_tenant_id' => $tenantA->id]);
 
-        $this->get('/business/whatsapp')->assertOk()->assertDontSee('123450000000099');
+        $this->get('/business/whatsapp')
+            ->assertOk()
+            ->assertDontSee('123450000000099')
+            ->assertDontSee('foreign-provider-template-987')
+            ->assertDontSee('tenant_b_private_template');
         $this->put('/business/whatsapp/'.$foreignConnection->id, [])->assertNotFound();
         $this->post('/business/whatsapp/'.$foreignConnection->id.'/verify')->assertNotFound();
         $this->post('/business/whatsapp/'.$foreignConnection->id.'/templates/sync')->assertNotFound();
