@@ -257,3 +257,11 @@ This roadmap distinguishes planned work from implemented work.
 
 
 - Follow-up race-hardening: webhook job exception recovery and terminal `failed()` callbacks now lock the webhook-event row and recheck `processed` inside a transaction before writing. This prevents a stale callback from overwriting a concurrently committed successful result. A regression assertion invokes a late failure callback after processing and verifies the event remains processed. CI remains pending.
+
+
+## Outbound template timeout classification follow-up (2026-11-23)
+
+- Code review caught that free-form text sends classified HTTP 408 as ambiguous, but approved-template sends still treated it as a definite failure. Template sends now classify 408 as `unknown`, matching timeout semantics and the no-automatic-resend invariant.
+- Corrected the existing response-sequence fixture so the HTTP 408, 429, 503 and missing-provider-ID cases each receive their intended response.
+- Added a template-specific HTTP 408 regression test that invokes the delivery job twice and asserts one provider request and an `unknown` result.
+- These changes are in PR #2 and await CI; no provider-side exactly-once claim is made.
