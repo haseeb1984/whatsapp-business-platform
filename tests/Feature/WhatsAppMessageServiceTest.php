@@ -167,6 +167,42 @@ class WhatsAppMessageServiceTest extends TestCase
     }
 
 
+    public function test_provider_rejections_and_ambiguous_responses_keep_safe_delivery_states(): void
+    {
+        config(['services.meta.graph_api_version' => 'v24.0']);
+        Queue::fake();
+
+        $sequence = Http::sequence()
+            ->push(['error' => ['message' => 'Invalid parameter']], 400)
+            ->push(['error' => ['message' => 'Rate limited']], 429)
+            ->push(['error' => ['message' => 'Temporary provider failure']], 503)
+            ->push(['messages' => []], 200);
+        Http::fake(['https://graph.facebook.com/v24.0/*' => $sequence]);
+
+        $cases = [
+            ['provider-400', 'failed'],
+            ['provider-429', 'unknown'],
+            ['provider-503', 'unknown'],
+            ['provider-missing-id', 'unknown'],
+        ];
+
+        foreach ($cases as [$slug, $expectedStatus]) {
+            $tenant = $this->workspace($slug);
+            $conversation = $this->conversation($tenant->id, 'AUTO_ACTIVE', now()->subMinutes(5));
+            $message = TenantContext::runForTenant($tenant->id, fn () => app(WhatsAppMessageService::class)
+                ->sendText($conversation, 'Delivery classification check'));
+
+            (new DeliverWhatsAppMessage($tenant->id, $message->id))->handle(app(MetaWhatsAppGraphApi::class));
+
+            $this->assertDatabaseHas('messages', [
+                'id' => $message->id,
+                'delivery_status' => $expectedStatus,
+            ]);
+        }
+
+        Http::assertSentCount(4);
+    }
+
     public function test_approved_template_can_be_sent_with_exact_body_parameter_mapping(): void
     {
         config(['services.meta.graph_api_version' => 'v24.0']);
