@@ -100,6 +100,51 @@ class MetaWhatsAppWebhookTest extends TestCase
         Queue::assertPushed(ProcessMetaWebhookEvent::class);
     }
 
+    public function test_duplicate_worker_execution_processes_an_inbound_provider_message_once(): void
+    {
+        Queue::fake();
+        $tenant = Tenant::query()->create([
+            'name' => 'Webhook Idempotency Workspace',
+            'slug' => 'webhook-idempotency-workspace',
+        ]);
+
+        $event = WebhookEvent::query()->create([
+            'tenant_id' => $tenant->id,
+            'provider' => 'meta_whatsapp',
+            'provider_event_key' => hash('sha256', 'duplicate-worker-event'),
+            'phone_number_id' => '123456789012347',
+            'event_type' => 'message.received',
+            'payload' => [
+                'from' => '923001112234',
+                'id' => 'wamid.duplicate-worker-message',
+                'timestamp' => '1795280000',
+                'type' => 'text',
+                'text' => ['body' => 'Please help'],
+            ],
+            'status' => 'pending',
+            'attempts' => 0,
+            'received_at' => now(),
+        ]);
+
+        $job = new ProcessMetaWebhookEvent($event->id);
+        $job->handle();
+        $job->handle();
+
+        $this->assertDatabaseHas('webhook_events', [
+            'id' => $event->id,
+            'status' => 'processed',
+            'attempts' => 1,
+        ]);
+        $this->assertDatabaseCount('customers', 1);
+        $this->assertDatabaseCount('conversations', 1);
+        $this->assertDatabaseHas('messages', [
+            'provider_message_id' => 'wamid.duplicate-worker-message',
+            'direction' => 'inbound',
+            'body' => 'Please help',
+        ]);
+        $this->assertDatabaseCount('messages', 1);
+    }
+
     public function test_invalid_signature_is_rejected_before_event_persistence(): void
     {
         config(['services.meta.app_secret' => 'test-meta-app-secret']);
