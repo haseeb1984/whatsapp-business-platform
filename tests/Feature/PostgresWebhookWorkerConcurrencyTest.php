@@ -1,12 +1,12 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Models\\Tenant;
-use App\\Models\\WebhookEvent;
-use Illuminate\\Foundation\\Testing\\DatabaseMigrations;
-use Illuminate\\Support\\Facades\\DB;
-use Tests\\TestCase;
+use App\Models\Tenant;
+use App\Models\WebhookEvent;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
 
 class PostgresWebhookWorkerConcurrencyTest extends TestCase
 {
