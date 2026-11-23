@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Schedule;
 Artisan::command('platform:preflight {--strict}', function (): int {
     $checks = [
         'PHP 8.3 or newer' => PHP_VERSION_ID >= 80300,
-        'Production environment selected' => app()->environment('production'),
+        'Production environment selected' => config('app.env') === 'production',
         'APP_DEBUG disabled' => config('app.debug') === false,
         'APP_KEY configured' => is_string(config('app.key')) && trim((string) config('app.key')) !== '',
         'HTTPS application URL' => str_starts_with((string) config('app.url'), 'https://'),
