@@ -4,19 +4,19 @@ A reusable multi-tenant WhatsApp Business automation platform using the official
 
 ## Current implementation status
 
-**Foundation and tenancy:** Laravel 13 / React 19 / TypeScript / Inertia application, registration/login, password recovery, email verification, multi-workspace switching, tenant context, role authorization and fail-closed tenant-owned model scoping are implemented. Remaining hardening includes broader tenant-aware foreign-key coverage and queued-job isolation checks.
+**Foundation and tenancy:** Laravel 13 / React 19 / TypeScript / Inertia application, registration/login, password recovery, email verification, multi-workspace switching, tenant context, role authorization and fail-closed tenant-owned model scoping are implemented. The fail-closed tenant concern covers all 22 tenant-owned models currently present; tenant-aware composite foreign keys, bulk-write protection and background-job tenant-context lifecycle checks are implemented. The route-level negative authorization matrix is still being expanded for uncovered routes.
 
 **Business configuration:** Tenant-scoped business profile, timezone/locale, weekly hours, holidays/special hours, services/pricing, staff and assignments, staff schedules/exceptions, booking policies and FAQ management are implemented.
 
-**WhatsApp and automation:** Official Meta Cloud API connection setup, encrypted credentials, phone/WABA verification, signed and idempotent webhooks, retryable event processing, encrypted messages, delivery-status correlation, policy-aware text sending, approved template catalog synchronization and approved-template sending are implemented. The Groq FAQ assistant uses published FAQ evidence, deterministic business facts and safe human handover; unsupported questions are not answered with invented facts.
+**WhatsApp and automation:** Official Meta Cloud API connection setup, encrypted credentials, phone/WABA verification, signed and idempotent webhooks, retryable event processing, encrypted messages, delivery-status correlation, policy-aware text sending, approved template catalog synchronization and approved-template sending are implemented. Outbound text/template messages are persisted through a transactional outbox and delivered by queued workers after the creation transaction commits; duplicate-job claiming, pending recovery, stale-send reconciliation and explicit unknown outcomes are covered by tests. The Groq FAQ assistant uses published FAQ evidence, deterministic business facts and safe human handover; unsupported questions are not answered with invented facts.
 
 **Inbox and booking:** Tenant-scoped inbox, staff assignment/takeover, manual replies, internal notes and automation pause/resume are implemented. Booking includes timezone-aware availability, staff/service eligibility, temporary holds, Google FreeBusy, calendar-backed confirmation/cancellation, WhatsApp booking conversations, reminder scheduling, approved-template reminders outside the 24-hour window, delivery-state tracking, rescheduling and recovery for ambiguous Calendar outcomes.
 
 **Google Calendar and dashboards:** OAuth with state/PKCE, encrypted token storage, refresh/revocation, writable calendar selection, per-staff mappings, FreeBusy and event reconciliation are implemented. Business and platform-admin dashboards, tenant usage summaries, audit history, tenant search and CSV export are implemented.
 
-**Production acceptance still pending:** Live Meta and Google account validation, expanded security/dependency review, cron load/latency testing, actual Neon connection/migration rehearsal, Hostinger plan/runtime validation, deployment rehearsal, backup/restore drill and Meta production onboarding.
+**Production acceptance still pending:** Actual Neon connection/TLS and migration rehearsal, Hostinger plan/runtime and cron validation, live Meta and Google account validation, penetration/abuse and load testing, browser performance profiling, deployment rehearsal, backup/restore drill and Meta production onboarding. Composer/npm production dependency audits currently pass in CI.
 
-**Current CI:** GitHub Actions now validates Composer, runs the 160-test / 651-assertion suite on SQLite and PostgreSQL 16, audits PHP and frontend production dependencies, and builds the Vite frontend. The latest CI run is [44972575073](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/44972575073); check its status before treating the current branch as green.
+**Current CI:** GitHub Actions validates Composer, runs 198 tests / 828 assertions on SQLite and PostgreSQL 16, verifies full migration rollback/replay on both databases, audits PHP and frontend production dependencies, builds the Vite frontend, and checks that 21 Inertia page chunks are lazy-loaded. Latest code verification: [45095090822](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45095090822). Subsequent documentation commits also passed CI: [45095273378](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45095273378).
 
 ## Approved stack
 
@@ -88,7 +88,7 @@ Prerequisites: PHP 8.3+, Composer, Node.js 22+, npm, and a PostgreSQL database. 
    php artisan serve
    ```
 
-Open `http://127.0.0.1:8000`. New users can register an account and create an initial business workspace; existing users can sign in. The dashboard is still a foundation screen, not a completed business dashboard. Business profile, weekly hours, holidays, services, staff, FAQs, WhatsApp, conversations, appointments and Google Calendar settings are available from its links.
+Open `http://127.0.0.1:8000`. New users can register an account and create an initial business workspace; existing users can sign in. The application includes tenant-scoped business configuration, inbox, booking, Calendar integration and business/platform operations dashboards. Business profile, weekly hours, holidays, services, staff, FAQs, WhatsApp, conversations, appointments and Google Calendar settings are available from its links.
 
 ## Verification
 
