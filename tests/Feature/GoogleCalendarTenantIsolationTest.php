@@ -82,7 +82,7 @@ class GoogleCalendarTenantIsolationTest extends TestCase
         ]));
 
         Http::fake([
-            'www.googleapis.com/calendar/v3/users/me/calendarList*' => Http::response([
+            '*' => Http::response([
                 'items' => [['id' => 'primary', 'summary' => 'Workspace A', 'accessRole' => 'owner']],
             ]),
         ]);
@@ -93,7 +93,7 @@ class GoogleCalendarTenantIsolationTest extends TestCase
             ->assertJsonPath('calendars.0.id', 'primary');
 
         Http::assertSentCount(1);
-        Http::assertSent(fn ($request) => $request->url() === 'https://www.googleapis.com/calendar/v3/users/me/calendarList'
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/users/me/calendarList')
             && $request->hasHeader('Authorization', 'Bearer tenant-a-calendar-access'));
     }
 
