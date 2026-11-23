@@ -240,3 +240,10 @@ This roadmap distinguishes planned work from implemented work.
 - Changes are committed on main; CI has not yet reported a result for the latest commits. Do not count these added tests as passing until the full SQLite/PostgreSQL/build workflow completes.
 - Outbound Meta delivery classification now treats HTTP 408 as ambiguous (alongside 429 and 5xx) for both free-form and approved-template sends. A provider timeout response does not prove that Meta did not accept the message, so the outbox must retain `unknown` and must not auto-retry it. Regression coverage includes HTTP 408.
 - Meta webhook routing now resolves only connections belonging to active tenants. Events received for suspended tenants are retained as `unmatched` and are not dispatched to tenant workers; a regression test covers the quarantine behavior.
+
+
+## Webhook processing durability review (2026-11-23)
+
+- A follow-up code review found that `ProcessMetaWebhookEvent::handle()` currently writes `processing`, applies the inbound/status effects, and writes `processed` inside one database transaction. This preserves atomicity and idempotency, but means `processing` is not normally a durable intermediate state: a worker crash before commit rolls the transaction back to `pending`.
+- Consequently, `webhooks:reconcile-stale-processing` is defensive for rows left by older/manual flows, but does not by itself prove recovery of a worker crash in the current atomic handler. Do not describe it as a verified active crash-recovery path until the claim/lease is deliberately separated from the processing transaction and regression-tested for duplicate delivery, concurrent workers, and crash points.
+- No runtime behavior was changed in this review. The existing atomic transaction is retained rather than weakening webhook idempotency without a full recovery test matrix. Latest code CI remains unverified after the recent commits.
