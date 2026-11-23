@@ -66,6 +66,32 @@ class TenantRoleAuthorizationTest extends TestCase
         $this->assertDatabaseCount('whatsapp_connections', 0);
     }
 
+    public function test_staff_is_forbidden_from_remaining_admin_configuration_and_lifecycle_routes(): void
+    {
+        [$user, $tenant] = $this->makeMembership('staff');
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id]);
+        $unknownId = '00000000-0000-4000-8000-000000000001';
+
+        $this->get('/business/calendar')->assertForbidden();
+        $this->get('/business/calendar/calendars')->assertForbidden();
+        $this->put('/business/calendar/default', ['calendar_id' => 'primary'])->assertForbidden();
+        $this->put('/business/calendar/staff/'.$unknownId, ['calendar_id' => 'primary'])->assertForbidden();
+        $this->get('/business/calendar/connect')->assertForbidden();
+        $this->get('/business/whatsapp')->assertForbidden();
+        $this->put('/business/appointments/policy', [])->assertForbidden();
+        $this->post('/business/appointments/'.$unknownId.'/confirm-calendar')->assertForbidden();
+        $this->post('/business/appointments/'.$unknownId.'/cancel')->assertForbidden();
+        $this->post('/business/appointments/'.$unknownId.'/reschedule', [])->assertForbidden();
+        $this->get('/business/staff/'.$unknownId.'/exceptions')->assertForbidden();
+        $this->post('/business/staff/'.$unknownId.'/exceptions', [])->assertForbidden();
+        $this->put('/business/staff/'.$unknownId.'/exceptions/'.$unknownId, [])->assertForbidden();
+        $this->delete('/business/staff/'.$unknownId.'/exceptions/'.$unknownId)->assertForbidden();
+        $this->put('/conversations/'.$unknownId.'/assign', [])->assertForbidden();
+        $this->post('/conversations/'.$unknownId.'/close')->assertForbidden();
+        $this->post('/conversations/'.$unknownId.'/reopen')->assertForbidden();
+    }
+
     private function makeMembership(string $role): array
     {
         $user = User::query()->create([
