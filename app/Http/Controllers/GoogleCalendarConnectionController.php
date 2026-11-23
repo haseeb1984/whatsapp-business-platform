@@ -24,6 +24,7 @@ class GoogleCalendarConnectionController extends Controller
         return Inertia::render('Business/Calendar/Index', [
             'connection' => $connection ? [
                 'connected' => $connection->status === 'connected',
+                'status' => $connection->status,
                 'account_email' => $connection->google_account_email,
                 'default_calendar_id' => $connection->default_calendar_id,
                 'connected_at' => $connection->connected_at?->toIso8601String(),
