@@ -146,13 +146,53 @@ class AppointmentRescheduleService
             return Appointment::query()->findOrFail($appointmentId);
         }
 
-        $appointment = Appointment::query()->findOrFail($appointmentId);
         try {
-            $this->calendar->updateAppointmentEvent(
-                $appointment,
-                $reschedule->new_starts_at,
-                $reschedule->new_ends_at,
-            );
+            return DB::transaction(function () use ($appointmentId, $reschedule): Appointment {
+                // Serialize provider updates for the same reschedule request. The
+                // row locks stay held across the Calendar call so a duplicate
+                // request/job cannot issue a second update concurrently.
+                $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointmentId);
+                $request = AppointmentReschedule::query()->lockForUpdate()->findOrFail($reschedule->id);
+
+                if ($request->status === 'synced') {
+                    return $appointment;
+                }
+                if (! in_array($request->status, ['pending', 'unknown'], true)) {
+                    throw ValidationException::withMessages(['reschedule' => 'The reschedule request is no longer active.']);
+                }
+
+                $this->calendar->updateAppointmentEvent(
+                    $appointment,
+                    $request->new_starts_at,
+                    $request->new_ends_at,
+                );
+
+                $appointment->forceFill([
+                    'starts_at' => $request->new_starts_at,
+                    'ends_at' => $request->new_ends_at,
+                    'reserved_starts_at' => $request->new_reserved_starts_at,
+                    'reserved_ends_at' => $request->new_reserved_ends_at,
+                    'calendar_sync_status' => 'synced',
+                ])->save();
+
+                $request->forceFill(['status' => 'synced', 'last_error' => null])->save();
+                AppointmentEvent::query()->create([
+                    'appointment_id' => $appointment->id,
+                    'event_type' => 'rescheduled',
+                    'actor_type' => 'system',
+                    'metadata' => [
+                        'reschedule_id' => $request->id,
+                        'old_starts_at' => $request->old_starts_at->toIso8601String(),
+                        'new_starts_at' => $request->new_starts_at->toIso8601String(),
+                    ],
+                ]);
+
+                $appointment = $appointment->refresh();
+                $this->reminders->cancelPendingFor($appointment);
+                $this->reminders->scheduleFor($appointment);
+
+                return $appointment;
+            });
         } catch (Throwable $exception) {
             $definite = $this->recordCalendarFailure($appointmentId, $reschedule->id, $exception);
             if (! $definite) {
@@ -160,47 +200,9 @@ class AppointmentRescheduleService
             }
             throw $exception;
         }
-
-        return DB::transaction(function () use ($appointmentId, $reschedule): Appointment {
-            $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointmentId);
-            $request = AppointmentReschedule::query()->lockForUpdate()->findOrFail($reschedule->id);
-
-            if ($request->status === 'synced') {
-                return $appointment;
-            }
-            if (! in_array($request->status, ['pending', 'unknown'], true)) {
-                throw ValidationException::withMessages(['reschedule' => 'The reschedule request is no longer active.']);
-            }
-
-            $appointment->forceFill([
-                'starts_at' => $request->new_starts_at,
-                'ends_at' => $request->new_ends_at,
-                'reserved_starts_at' => $request->new_reserved_starts_at,
-                'reserved_ends_at' => $request->new_reserved_ends_at,
-                'calendar_sync_status' => 'synced',
-            ])->save();
-
-            $request->forceFill(['status' => 'synced', 'last_error' => null])->save();
-            AppointmentEvent::query()->create([
-                'appointment_id' => $appointment->id,
-                'event_type' => 'rescheduled',
-                'actor_type' => 'system',
-                'metadata' => [
-                    'reschedule_id' => $request->id,
-                    'old_starts_at' => $request->old_starts_at->toIso8601String(),
-                    'new_starts_at' => $request->new_starts_at->toIso8601String(),
-                ],
-            ]);
-
-            $appointment = $appointment->refresh();
-            $this->reminders->cancelPendingFor($appointment);
-            $this->reminders->scheduleFor($appointment);
-
-            return $appointment;
-        });
     }
 
-    private function assertReschedulable(Appointment $appointment): void
+    private function assertReschedulable    private function assertReschedulable(Appointment $appointment): void
     {
         if ($appointment->status !== 'confirmed'
             || $appointment->calendar_sync_status !== 'synced'
