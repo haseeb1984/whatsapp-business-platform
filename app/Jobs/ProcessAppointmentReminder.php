@@ -164,14 +164,15 @@ class ProcessAppointmentReminder implements ShouldQueue
 
     public function failed(Throwable $exception): void
     {
-        TenantContext::runForTenant($this->tenantId, function () use ($exception): void {
-            AppointmentReminder::query()
-                ->whereKey($this->reminderId)
-                ->whereIn('status', ['queued', 'processing'])
-                ->update([
+        TenantContext::runForTenant($this->tenantId, function (): void {
+            $this->transitionReminder(
+                $this->reminderId,
+                ['queued', 'processing'],
+                [
                     'status' => 'failed',
                     'last_error' => 'queue_attempts_exhausted',
-                ]);
+                ],
+            );
         });
     }
 
@@ -182,26 +183,55 @@ class ProcessAppointmentReminder implements ShouldQueue
         ?string $providerMessageId = null,
         mixed $sentAt = null,
     ): void {
-        AppointmentReminder::query()
-            ->whereKey($reminderId)
-            ->where('status', 'processing')
-            ->update([
-                'status' => $status,
-                'last_error' => $error,
-                'provider_message_id' => $providerMessageId,
-                'sent_at' => $sentAt,
-            ]);
+        $this->transitionReminder($reminderId, ['processing'], [
+            'status' => $status,
+            'last_error' => $error,
+            'provider_message_id' => $providerMessageId,
+            'sent_at' => $sentAt,
+        ]);
     }
 
     private function releaseReminderForRetry(string $reminderId, Throwable $exception): void
     {
-        AppointmentReminder::query()
-            ->whereKey($reminderId)
-            ->where('status', 'processing')
-            ->update([
-                'status' => 'queued',
-                'queued_at' => now(),
-                'last_error' => 'transient_processing_error',
-            ]);
+        $this->transitionReminder($reminderId, ['processing'], [
+            'status' => 'queued',
+            'queued_at' => now(),
+            'last_error' => 'transient_processing_error',
+        ]);
+    }
+
+    /**
+     * Serialize every reminder state transition with appointment cancellation.
+     * Lifecycle operations lock appointment first, then reminder; keep the
+     * same order here so a late queue callback cannot revive a cancelled reminder.
+     */
+    private function transitionReminder(string $reminderId, array $allowedStatuses, array $values): void
+    {
+        DB::transaction(function () use ($reminderId, $allowedStatuses, $values): void {
+            $snapshot = AppointmentReminder::query()->find($reminderId);
+            if (! $snapshot) {
+                return;
+            }
+
+            $appointment = Appointment::query()->lockForUpdate()->find($snapshot->appointment_id);
+            if (! $appointment) {
+                return;
+            }
+
+            $reminder = AppointmentReminder::query()->lockForUpdate()->find($reminderId);
+            if (! $reminder || ! in_array($reminder->status, $allowedStatuses, true)) {
+                return;
+            }
+
+            if ($appointment->status !== 'confirmed' && $values['status'] !== 'cancelled') {
+                $values = [
+                    'status' => 'cancelled',
+                    'queued_at' => null,
+                    'last_error' => 'appointment_no_longer_confirmed',
+                ];
+            }
+
+            $reminder->forceFill($values)->save();
+        });
     }
 }
