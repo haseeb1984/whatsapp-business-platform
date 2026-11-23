@@ -82,6 +82,10 @@ class AppointmentCalendarOrchestrator
             throw ValidationException::withMessages(['appointment' => 'This appointment has a reschedule awaiting calendar confirmation. Resolve it before cancellation.']);
         }
 
+        // Atomically reserve the appointment before the external call so a
+        // concurrent reschedule cannot update the same Calendar event.
+        $this->lifecycle->beginCalendarDeletion($appointmentId);
+
         try {
             $this->calendar->deleteAppointmentEvent($appointment);
         } catch (Throwable $exception) {
