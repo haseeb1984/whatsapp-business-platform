@@ -8,7 +8,6 @@ use App\Services\Meta\MetaWhatsAppGraphApi;
 use App\Models\Conversation;
 use App\Models\Customer;
 use App\Models\Message;
-use App\Models\Tenant;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
