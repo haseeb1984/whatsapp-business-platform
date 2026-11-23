@@ -206,3 +206,10 @@ This roadmap distinguishes planned work from implemented work.
 - `platform:preflight --strict` checks PHP 8.3+, production/debug flags, APP_KEY, HTTPS URL, PostgreSQL TLS, database queue after-commit, secure session cookies, Meta app/webhook credentials, SMTP, Groq, Google OAuth and writable runtime directories without printing secret values.
 - Remaining production gates: committed dependency lockfiles, actual Neon TLS/connectivity and migration rehearsal, Hostinger runtime/deployment rehearsal, live Meta/Google validation, load/abuse testing, browser performance profiling, and backup/restore drill.
 \n\n## Latest unverified change (2026-11-23)\n\n- Added `CalendarPendingRecoveryCommandTest` covering stale candidate dispatch, fresh/failed row exclusion, lease refresh, duplicate scheduler-tick suppression and tenant-scoped execution.\n- The Calendar job constructor was inspected and confirmed to accept `(tenantId, appointmentId)`, matching the recovery command dispatch order.\n- The follow-up fixture-schema and PHP namespace corrections are included through commit `071ae1e94c6cbeb5a25fba5e9c00eceb36d56e8e`. No CI result has been verified for this test change; these tests are not claimed as passing.\n
+
+## Google Calendar reauthorization hardening (2026-11-23)
+
+- OAuth callback no longer reuses a previously stored refresh token when the connection is already marked `reauthorization_required`. This prevents a revoked token from being silently reactivated when Google omits a new refresh token from the consent response.
+- Added a regression test proving a reconnect response without a new refresh token leaves the old connection in `reauthorization_required` and preserves its encrypted credentials for a deliberate recovery path.
+- The Calendar settings page already derives its connected state from the connection status and exposes the reconnect action when reauthorization is required.
+- Code and test changes are committed; CI execution and live Google account validation remain outstanding.
