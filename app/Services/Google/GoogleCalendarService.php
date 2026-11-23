@@ -87,7 +87,19 @@ class GoogleCalendarService
             'refresh_token' => $connection->refresh_token,
             'grant_type' => 'refresh_token',
         ]);
-        $data = $this->validatedTokenResponse($response);
+
+        try {
+            $data = $this->validatedTokenResponse($response);
+        } catch (RuntimeException $exception) {
+            // Google returns invalid_grant / invalid_client as a definitive 4xx.
+            // Preserve encrypted credentials for an explicit reconnect flow, but
+            // stop treating this connection as usable until OAuth succeeds again.
+            if (in_array($response->status(), [400, 401], true)) {
+                $connection->forceFill(['status' => 'reauthorization_required'])->save();
+            }
+
+            throw $exception;
+        }
 
         $connection->forceFill([
             'access_token' => $data['access_token'],
