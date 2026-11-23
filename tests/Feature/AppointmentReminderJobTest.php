@@ -219,6 +219,24 @@ class AppointmentReminderJobTest extends TestCase
         $this->assertFalse(app()->bound(TenantContext::class), 'A completed reminder job must not leak tenant context.');
     }
 
+    public function test_late_failed_queue_callback_cannot_overwrite_cancelled_reminder(): void
+    {
+        [$tenant, $appointment, $reminder] = $this->confirmedReminder('reminder-cancel-before-failed-callback', 'AUTO_ACTIVE', 1);
+
+        TenantContext::runForTenant($tenant->id, function () use ($appointment, $reminder): void {
+            $reminder->forceFill(['status' => 'processing'])->save();
+            app(AppointmentLifecycleService::class)->cancelAfterCalendarDeletion($appointment->id);
+        });
+
+        (new ProcessAppointmentReminder($tenant->id, $reminder->id))->failed(new \\RuntimeException('Late queue failure'));
+
+        $this->assertDatabaseHas('appointment_reminders', [
+            'id' => $reminder->id,
+            'status' => 'cancelled',
+            'last_error' => null,
+        ]);
+    }
+
     public function test_scheduler_dispatches_due_reminders_in_a_tenant_scoped_batch(): void
     {
         [$tenant, $appointment, $reminder] = $this->confirmedReminder('reminder-scheduler', 'AUTO_ACTIVE', 1);
