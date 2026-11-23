@@ -132,7 +132,7 @@ For the database queue, keep `retry_after` at 90 seconds and worker `--timeout` 
 - If queue processing fails, leave durable events/jobs persisted and pause retries safely.
 - If Meta/Google credentials are revoked, mark integration unhealthy and notify tenant admins without leaking credentials.
 
-## Latest pre-deployment verification (2026-11-23)
+## Previous pre-deployment verification (superseded by the post-PR2 checkpoint below)
 
 - Verified commit: `608ce382c79805f2068f4f52eed695ecf68b3c58`.
 - [CI run 45104012689](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45104012689) passed 199 tests / 840 assertions on SQLite and PostgreSQL 16, full migration rollback/replay on both, Composer/npm production dependency audits, and the Vite production build.
@@ -140,3 +140,8 @@ For the database queue, keep `retry_after` at 90 seconds and worker `--timeout` 
 - This does not replace a live Neon connection/TLS/migration rehearsal or a Hostinger runtime/deployment rehearsal.
 - Route-level lazy loading is implemented; the latest Vite build emits a 445.87 kB minified main JavaScript chunk (142.76 kB gzip), below the 500 kB advisory threshold. Browser-level performance profiling remains pending.
 - The repository still needs committed `composer.lock` and `package-lock.json` plus locked install commands before reproducible deployment can be considered complete. CI action pins have been upgraded to Node 24-compatible releases.
+
+
+## Post-PR2 concurrency verification (2026-11-23)
+
+[CI run 45243247660](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45243247660) passed on the PostgreSQL 16 CI service and ran the true multi-worker webhook idempotency regression test from PR #5. Two independent PHP processes contend on the same webhook event; a test-only PostgreSQL trigger holds the first transaction to force overlap, and the test verifies one customer, one conversation and one inbound message. This is CI evidence only, not a live Neon rehearsal. PR #5 remains open for review; no production deployment has been performed.
