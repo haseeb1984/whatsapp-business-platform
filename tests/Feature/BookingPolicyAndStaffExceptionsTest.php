@@ -139,6 +139,36 @@ class BookingPolicyAndStaffExceptionsTest extends TestCase
         $this->post('/business/staff/'.$staff->id.'/exceptions', $payload)->assertSessionHasErrors('date');
     }
 
+    public function test_booking_policy_update_is_scoped_to_the_current_tenant(): void
+    {
+        [$userA, $tenantA] = $this->workspace('policy-isolation-a@example.test', 'business_admin');
+        [, $tenantB] = $this->workspace('policy-isolation-b@example.test', 'business_admin');
+
+        TenantContext::runForTenant($tenantB->id, function (): void {
+            BookingPolicy::query()->create([
+                'minimum_notice_minutes' => 240,
+                'booking_horizon_days' => 90,
+                'slot_interval_minutes' => 15,
+                'hold_minutes' => 8,
+            ]);
+        });
+
+        $this->actingAs($userA)->withSession(['current_tenant_id' => $tenantA->id]);
+        $this->put('/business/appointments/policy', [
+            'minimum_notice_minutes' => 30,
+            'booking_horizon_days' => 30,
+            'slot_interval_minutes' => 30,
+            'hold_minutes' => 10,
+        ])->assertRedirect();
+
+        $policyB = TenantContext::runForTenant($tenantB->id, fn () => BookingPolicy::query()->firstOrFail());
+        $this->assertSame(240, $policyB->minimum_notice_minutes);
+        $this->assertSame(90, $policyB->booking_horizon_days);
+        $policyA = TenantContext::runForTenant($tenantA->id, fn () => BookingPolicy::query()->firstOrFail());
+        $this->assertSame(30, $policyA->minimum_notice_minutes);
+        $this->assertSame(30, $policyA->booking_horizon_days);
+    }
+
     private function workspace(string $email, string $role): array
     {
         $user = User::query()->create([
