@@ -169,7 +169,7 @@ class MetaWhatsAppGraphApi
             $status = $response->status();
             throw new MetaWhatsAppApiException(
                 'Meta rejected the WhatsApp message request.',
-                $status === 408 || $status === 408 || $status === 429 || $status >= 500,
+                $status === 408 || $status === 429 || $status >= 500,
             );
         }
 
@@ -211,7 +211,7 @@ class MetaWhatsAppGraphApi
             $status = $response->status();
             throw new MetaWhatsAppApiException(
                 'Meta rejected the WhatsApp template request.',
-                $status === 429 || $status >= 500,
+                $status === 408 || $status === 429 || $status >= 500,
             );
         }
 
