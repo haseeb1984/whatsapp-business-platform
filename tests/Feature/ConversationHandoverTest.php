@@ -130,7 +130,7 @@ class ConversationHandoverTest extends TestCase
         $this->assertDatabaseCount('conversation_notes', 0);
         $this->assertDatabaseCount('messages', 1);
         $this->assertSame(
-            $auditEventsForTenantABefore + 6,
+            $auditEventsForTenantABefore + 8,
             DB::table('audit_events')->where('tenant_id', $tenantA->id)->count(),
         );
         $this->assertSame(
