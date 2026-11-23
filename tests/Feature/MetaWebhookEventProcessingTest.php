@@ -259,6 +259,25 @@ class MetaWebhookEventProcessingTest extends TestCase
         $this->assertDatabaseHas('messages', ['id' => $message->id, 'delivery_status' => 'failed']);
     }
 
+    public function test_late_failed_queue_callback_does_not_overwrite_a_processed_event(): void
+    {
+        Queue::fake();
+        $tenant = $this->tenant('processor-late-failed-callback');
+        $event = $this->inboundEvent($tenant->id, 'wamid.processed-before-failed-callback');
+
+        $job = new ProcessMetaWebhookEvent($event->id);
+        $job->handle();
+        $job->failed(new \RuntimeException('Late queue callback after successful commit'));
+
+        $this->assertDatabaseHas('webhook_events', [
+            'id' => $event->id,
+            'status' => 'processed',
+        ]);
+        TenantContext::runForTenant($tenant->id, function (): void {
+            $this->assertDatabaseCount('messages', 1);
+        });
+    }
+
     private function inboundEvent(string $tenantId, string $providerMessageId): WebhookEvent
     {
         return WebhookEvent::query()->create([
