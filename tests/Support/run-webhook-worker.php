@@ -11,6 +11,7 @@ if (! is_string($eventId) || ! is_string($readyPath) || ! is_string($startPath))
 }
 
 try {
+    require dirname(__DIR__, 2).'/vendor/autoload.php';
     $app = require dirname(__DIR__, 2).'/bootstrap/app.php';
     $app->make(Kernel::class)->bootstrap();
 } catch (Throwable $exception) {
