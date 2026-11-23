@@ -88,7 +88,7 @@ class ProcessMetaWebhookEvent implements ShouldQueue
     public function failed(?Throwable $exception): void
     {
         $event = WebhookEvent::query()->find($this->eventId);
-        if (! $event) {
+        if (! $event || $event->status === 'processed') {
             return;
         }
 
