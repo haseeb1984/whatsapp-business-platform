@@ -76,6 +76,40 @@ class AppointmentReminderJobTest extends TestCase
         ]);
     }
 
+    public function test_text_reminder_cannot_be_attached_to_another_customers_conversation(): void
+    {
+        [$tenant, $appointment, $reminder] = $this->confirmedReminder('reminder-customer-isolation', 'AUTO_ACTIVE', 1);
+
+        $otherConversation = TenantContext::runForTenant($tenant->id, function (): Conversation {
+            $otherCustomer = Customer::query()->create(['whatsapp_wa_id' => '923009998877']);
+
+            return Conversation::query()->create([
+                'customer_id' => $otherCustomer->id,
+                'status' => 'open',
+                'automation_state' => 'AUTO_ACTIVE',
+                'last_message_at' => now(),
+            ]);
+        });
+
+        $messenger = app(WhatsAppMessageService::class);
+
+        try {
+            TenantContext::runForTenant($tenant->id, fn () => $messenger->sendText(
+                $otherConversation,
+                'Appointment reminder',
+                MessageActor::Automation,
+                null,
+                null,
+                $reminder->id,
+            ));
+            $this->fail('A reminder must never be attached to a different customer conversation.');
+        } catch (\\Illuminate\\Validation\\ValidationException $exception) {
+            $this->assertArrayHasKey('reminder', $exception->errors());
+        }
+
+        $this->assertDatabaseMissing('messages', ['reminder_id' => $reminder->id]);
+    }
+
     public function test_reminder_uses_idempotent_whatsapp_sender_and_records_provider_message(): void
     {
         [$tenant, $appointment, $reminder, $conversation] = $this->confirmedReminder('reminder-send-success', 'AUTO_ACTIVE', 1);
