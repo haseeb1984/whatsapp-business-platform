@@ -1,23 +1,23 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Jobs\\SyncAppointmentCalendarEvent;
-use App\\Models\\Appointment;
-use App\\Models\\BusinessHour;
-use App\\Models\\Customer;
-use App\\Models\\Service;
-use App\\Models\\Staff;
-use App\\Models\\StaffService;
-use App\\Models\\StaffWorkingHour;
-use App\\Models\\Tenant;
-use App\\Models\\User;
-use App\\Support\\Tenancy\\TenantContext;
-use Carbon\\CarbonImmutable;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Support\\Facades\\Artisan;
-use Illuminate\\Support\\Facades\\Queue;
-use Tests\\TestCase;
+use App\Jobs\SyncAppointmentCalendarEvent;
+use App\Models\Appointment;
+use App\Models\BusinessHour;
+use App\Models\Customer;
+use App\Models\Service;
+use App\Models\Staff;
+use App\Models\StaffService;
+use App\Models\StaffWorkingHour;
+use App\Models\Tenant;
+use App\Models\User;
+use App\Support\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Queue;
+use Tests\TestCase;
 
 class CalendarPendingRecoveryCommandTest extends TestCase
 {
