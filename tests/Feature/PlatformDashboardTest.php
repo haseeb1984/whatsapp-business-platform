@@ -3,9 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\Tenant;
+use App\Models\Customer;
+use App\Models\Conversation;
+use App\Models\Message;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use App\Support\Tenancy\TenantContext;
 use Tests\TestCase;
 
 class PlatformDashboardTest extends TestCase
@@ -16,12 +20,30 @@ class PlatformDashboardTest extends TestCase
     {
         config(['platform.admin_emails' => ['platform-admin@example.test']]);
         $admin = $this->user('platform-admin@example.test');
-        Tenant::query()->create([
+        $tenant = Tenant::query()->create([
             'name' => 'Salon Workspace',
             'slug' => 'platform-salon',
             'timezone' => 'Asia/Karachi',
             'status' => 'active',
         ]);
+        TenantContext::runForTenant($tenant->id, function (): void {
+            $customer = Customer::query()->create(['whatsapp_wa_id' => '923001112233']);
+            $conversation = Conversation::query()->create([
+                'customer_id' => $customer->id,
+                'status' => 'open',
+                'automation_state' => 'AUTO_ACTIVE',
+            ]);
+
+            foreach (['pending', 'sending', 'unknown', 'failed'] as $status) {
+                Message::query()->create([
+                    'conversation_id' => $conversation->id,
+                    'direction' => 'outbound',
+                    'message_type' => 'text',
+                    'body' => 'Operational status sample',
+                    'delivery_status' => $status,
+                ]);
+            }
+        });
 
         $this->actingAs($admin)->get('/platform')
             ->assertOk()
@@ -30,6 +52,10 @@ class PlatformDashboardTest extends TestCase
                 ->where('metrics.tenants_total', 1)
                 ->where('metrics.tenants_active', 1)
                 ->where('metrics.users_total', 1)
+                ->where('metrics.outbound_pending', 1)
+                ->where('metrics.outbound_sending', 1)
+                ->where('metrics.outbound_unknown', 1)
+                ->where('metrics.outbound_failed', 1)
                 ->has('tenants.data', 1)
                 ->where('tenants.data.0.name', 'Salon Workspace')
             );
