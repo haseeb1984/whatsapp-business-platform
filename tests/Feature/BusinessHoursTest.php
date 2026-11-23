@@ -102,6 +102,47 @@ class BusinessHoursTest extends TestCase
         $this->put('/business/hours', ['days' => []])->assertForbidden();
     }
 
+    public function test_hours_update_does_not_overwrite_another_tenants_weekly_hours(): void
+    {
+        [$userA, $tenantA] = $this->workspace('hours-isolation-a@example.test');
+        [, $tenantB] = $this->workspace('hours-isolation-b@example.test');
+
+        TenantContext::runForTenant($tenantB->id, function (): void {
+            BusinessHour::query()->create([
+                'weekday' => 0,
+                'is_closed' => false,
+                'opens_at' => '10:00',
+                'closes_at' => '18:00',
+            ]);
+        });
+
+        $this->actingAs($userA)->withSession(['current_tenant_id' => $tenantA->id]);
+        $days = [];
+        for ($weekday = 0; $weekday < 7; $weekday++) {
+            $days[] = [
+                'weekday' => $weekday,
+                'is_closed' => false,
+                'opens_at' => '08:00',
+                'closes_at' => '16:00',
+            ];
+        }
+
+        $this->put('/business/hours', ['days' => $days])->assertRedirect();
+
+        $this->assertDatabaseHas('business_hours', [
+            'tenant_id' => $tenantB->id,
+            'weekday' => 0,
+            'opens_at' => '10:00',
+            'closes_at' => '18:00',
+        ]);
+        $this->assertDatabaseHas('business_hours', [
+            'tenant_id' => $tenantA->id,
+            'weekday' => 0,
+            'opens_at' => '08:00',
+            'closes_at' => '16:00',
+        ]);
+    }
+
     private function workspace(string $email, string $role = 'business_admin'): array
     {
         $user = User::query()->create([
