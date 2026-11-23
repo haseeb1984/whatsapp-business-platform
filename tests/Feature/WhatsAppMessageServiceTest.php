@@ -15,6 +15,7 @@ use App\Services\Meta\MetaWhatsAppGraphApi;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -27,11 +28,15 @@ class WhatsAppMessageServiceTest extends TestCase
     {
         config(['services.meta.graph_api_version' => 'v24.0']);
         Queue::fake();
-        Http::fake([
-            'https://graph.facebook.com/v24.0/123456789012345/messages' => Http::response([
+        Http::fake(function () {
+            // RefreshDatabase keeps one outer test transaction open. The
+            // sender's own transaction must already be committed before HTTP.
+            $this->assertSame(1, DB::transactionLevel());
+
+            return Http::response([
                 'messages' => [['id' => 'wamid.outbound-1']],
-            ], 200),
-        ]);
+            ], 200);
+        });
 
         $tenant = $this->workspace('send-text-success');
         $conversation = $this->conversation($tenant->id, 'AUTO_ACTIVE', now()->subHour());
@@ -39,6 +44,7 @@ class WhatsAppMessageServiceTest extends TestCase
         $message = TenantContext::runForTenant($tenant->id, fn () => app(WhatsAppMessageService::class)->sendText($conversation, 'Thanks for contacting us.'));
 
         $this->assertSame('pending', $message->delivery_status);
+        Queue::assertPushed(DeliverWhatsAppMessage::class, fn (DeliverWhatsAppMessage $job): bool => $job->tenantId === $tenant->id && $job->messageId === $message->id);
         $deliveryJob = new DeliverWhatsAppMessage($tenant->id, $message->id);
         $deliveryJob->handle(app(MetaWhatsAppGraphApi::class));
         $deliveryJob->handle(app(MetaWhatsAppGraphApi::class));
