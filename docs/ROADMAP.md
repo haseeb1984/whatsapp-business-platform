@@ -184,3 +184,13 @@ This roadmap distinguishes planned work from implemented work.
 - Do not add paid infrastructure/providers without approval.
 - Keep README and docs updated with actual implementation status.
 - After each milestone, report changed files, tests run, results, limitations and next milestone.
+
+## Latest verified implementation checkpoint (2026-11-23)
+
+- Commit: `0abf5ce3610f0dd9e315fdf065ec03887bfc6877` — standardized appointment/reminder row-lock ordering in the reminder template send path to reduce lock-order inversion with cancellation/rescheduling.
+- CI: [run 45090484856](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45090484856) passed.
+- Automated suite: 191 tests / 793 assertions on SQLite and PostgreSQL 16.
+- Full migration rollback/replay passed on both database engines.
+- Composer and npm production dependency audits passed; Vite production build passed.
+- Remaining production gates are unchanged: committed dependency lockfiles, actual Neon TLS/connectivity and migration rehearsal, Hostinger runtime/deployment rehearsal, live Meta/Google validation, load/abuse testing, and backup/restore drill.
+- Build note: Vite reports the main JavaScript chunk at approximately 538 kB minified (158 kB gzip), above its 500 kB advisory threshold. Build succeeds; route-level code splitting is a performance follow-up, not a CI failure.
