@@ -165,6 +165,7 @@ This roadmap distinguishes planned work from implemented work.
 
 
 ## Milestone 10 — Production hardening and deployment
+- [x] Add a strict production preflight command for PHP version, environment/debug flags, APP_KEY, HTTPS URL, PostgreSQL TLS, database queue/after-commit, secure cookies, Meta/Groq/Google configuration and writable runtime directories.
 - [x] Automated tests across critical workflows (191 tests / 793 assertions on SQLite and PostgreSQL 16).
 - [x] PostgreSQL 16 migration/test compatibility matrix in CI; live Neon connectivity and TLS validation remain pending.
 - [x] Automated PHP and frontend production dependency audits in GitHub Actions.
