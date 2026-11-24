@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Service;
 use App\Models\Staff;
 use App\Models\StaffService;
+use App\Models\TenantInvitation;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,7 +29,8 @@ class StaffController extends Controller
                 'active' => $member->active,
                 'service_ids' => $member->serviceAssignments->pluck('service_id')->all(),
             ])->all(),
-            'services' => Service::query()->where('active', true)->orderBy('name')->get(['id', 'name']),\n            'invitations' => TenantInvitation::query()->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->orderByDesc('created_at')->get(['id', 'email', 'role', 'expires_at']),
+            'services' => Service::query()->where('active', true)->orderBy('name')->get(['id', 'name']),
+            'invitations' => TenantInvitation::query()->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->orderByDesc('created_at')->get(['id', 'email', 'role', 'expires_at']),\n            'invitations' => TenantInvitation::query()->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->orderByDesc('created_at')->get(['id', 'email', 'role', 'expires_at']),
         ]);
     }
 
