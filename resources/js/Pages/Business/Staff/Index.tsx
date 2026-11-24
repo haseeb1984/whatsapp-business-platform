@@ -1,3 +1,4 @@
+import FormErrorSummary from '../../../Components/FormErrorSummary';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
@@ -46,6 +47,7 @@ export default function BusinessStaff() {
                 <h1 className="mt-4 text-3xl font-bold text-slate-900">Staff management</h1>
                 <p className="mt-2 text-slate-600">Add team members and assign the services they can provide.</p>
                 <form onSubmit={submit} className="mt-8 grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2">
+                    <FormErrorSummary errors={errors} />
                     <label className="text-sm font-medium text-slate-700">Full name<input className={field} value={data.name} onChange={e => setData('name', e.target.value)} maxLength={160} required />{errors.name && <span className="text-red-600">{errors.name}</span>}</label>
                     <label className="text-sm font-medium text-slate-700">Email<input type="email" className={field} value={data.email} onChange={e => setData('email', e.target.value)} />{errors.email && <span className="text-red-600">{errors.email}</span>}</label>
                     <label className="text-sm font-medium text-slate-700">Phone<input className={field} value={data.phone} onChange={e => setData('phone', e.target.value)} maxLength={32} /></label>
