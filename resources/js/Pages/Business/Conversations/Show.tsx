@@ -1,3 +1,4 @@
+import FormErrorSummary from '../../../Components/FormErrorSummary';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useEffect } from 'react';
@@ -80,7 +81,8 @@ export default function ConversationShow() {
                         {isAdmin && conversation.status === 'open' && <button onClick={() => router.post('/conversations/' + conversation.id + '/close')} className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700">Close conversation</button>}
                         {isAdmin && conversation.status === 'closed' && <button onClick={() => router.post('/conversations/' + conversation.id + '/reopen')} className="rounded-lg border border-blue-300 px-4 py-2 text-sm text-blue-800">Reopen for staff</button>}
                     </div>
-                    {isAdmin && conversation.status === 'open' && <form onSubmit={assign} className="mt-5 flex flex-wrap items-end gap-2 border-t border-slate-100 pt-4"><label className="min-w-64 flex-1 text-sm font-medium text-slate-700">Assign to workspace user<select className={field} value={assignment.data.assigned_user_id} onChange={event => assignment.setData('assigned_user_id', event.target.value)} required><option value="">Choose team member</option>{team_members.map(member => <option key={member.id} value={member.id}>{member.name} · {member.email}</option>)}</select></label><button disabled={assignment.processing} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700">Assign</button></form>}
+                    {isAdmin && conversation.status === 'open' && <form onSubmit={assign} className="mt-5 flex flex-wrap items-end gap-2 border-t border-slate-100 pt-4">
+                        <FormErrorSummary errors={assignment.errors} /><label className="min-w-64 flex-1 text-sm font-medium text-slate-700">Assign to workspace user<select className={field} value={assignment.data.assigned_user_id} onChange={event => assignment.setData('assigned_user_id', event.target.value)} required><option value="">Choose team member</option>{team_members.map(member => <option key={member.id} value={member.id}>{member.name} · {member.email}</option>)}</select></label><button disabled={assignment.processing} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700">Assign</button></form>}
                 </div>
                 <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
                     <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-lg font-semibold text-slate-900">Message history</h2><span className="text-xs text-slate-500">Live refresh · 8 sec</span></div>
@@ -95,12 +97,14 @@ export default function ConversationShow() {
                 </section>
                 {humanActive && conversation.status === 'open' && <div className="mt-6 grid gap-6 md:grid-cols-2">
                     <form onSubmit={submitReply} className="rounded-xl border border-slate-200 bg-white p-5">
+                        <FormErrorSummary errors={reply.errors} />
                         <h2 className="font-semibold text-slate-900">Reply to customer</h2>
                         <textarea className={field} rows={4} maxLength={4096} value={reply.data.body} onChange={event => reply.setData('body', event.target.value)} placeholder="Write a WhatsApp reply..." required />
                         {reply.errors.body && <p className="mt-1 text-sm text-red-600">{reply.errors.body}</p>}
                         <button disabled={reply.processing} className="mt-3 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white">Send reply</button>
                     </form>
                     <form onSubmit={submitNote} className="rounded-xl border border-slate-200 bg-white p-5">
+                        <FormErrorSummary errors={note.errors} />
                         <h2 className="font-semibold text-slate-900">Internal note</h2>
                         <textarea className={field} rows={4} maxLength={5000} value={note.data.body} onChange={event => note.setData('body', event.target.value)} placeholder="Private note for your team..." required />
                         {note.errors.body && <p className="mt-1 text-sm text-red-600">{note.errors.body}</p>}
