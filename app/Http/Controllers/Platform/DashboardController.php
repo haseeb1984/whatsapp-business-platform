@@ -67,7 +67,14 @@ class DashboardController extends Controller
         ]);
 
         $queuePending = Schema::hasTable('jobs') ? DB::table('jobs')->count() : null;
+        $queueOldestCreatedAt = Schema::hasTable('jobs') ? DB::table('jobs')->min('created_at') : null;
+        $queueOldestAgeMinutes = is_numeric($queueOldestCreatedAt)
+            ? max(0, (int) floor((now()->timestamp - (int) $queueOldestCreatedAt) / 60))
+            : null;
         $queueFailed = Schema::hasTable('failed_jobs') ? DB::table('failed_jobs')->count() : null;
+        $queueFailedLast24Hours = Schema::hasTable('failed_jobs')
+            ? DB::table('failed_jobs')->where('failed_at', '>=', now()->subDay())->count()
+            : null;
         $recentFailures = Schema::hasTable('failed_jobs')
             ? DB::table('failed_jobs')->orderByDesc('failed_at')->limit(8)->get(['id', 'queue', 'failed_at'])->map(fn ($job): array => [
                 'id' => (string) $job->id,
@@ -110,7 +117,9 @@ class DashboardController extends Controller
                 'appointments_total' => DB::table('appointments')->count(),
                 'audit_events_total' => Schema::hasTable('audit_events') ? DB::table('audit_events')->count() : null,
                 'queue_pending' => $queuePending,
+                'queue_oldest_age_minutes' => $queueOldestAgeMinutes,
                 'queue_failed' => $queueFailed,
+                'queue_failed_last_24_hours' => $queueFailedLast24Hours,
             ],
             'tenants' => $tenants,
             'filters' => ['q' => $filters['q'] ?? '', 'status' => $filters['status'] ?? ''],
