@@ -68,6 +68,7 @@ class TenantRoleAuthorizationTest extends TestCase
 
     public function test_staff_is_forbidden_from_remaining_admin_configuration_and_lifecycle_routes(): void
     {
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
         [$user, $tenant] = $this->makeMembership('staff');
 
         $holiday = $service = $staff = $faq = $connection = null;
