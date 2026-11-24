@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\AiProviderInterface;
 use App\Jobs\GenerateAutomatedFaqReply;
 use App\Models\Conversation;
 use App\Models\Customer;
@@ -11,6 +12,7 @@ use App\Models\Service;
 use App\Models\Tenant;
 use App\Models\WhatsAppConnection;
 use App\Services\AI\BusinessIntentRouter;
+use App\Services\AI\BusinessToolAssistant;
 use App\Services\AI\GroundedFaqAssistant;
 use App\Services\Messaging\WhatsAppMessageService;
 use App\Support\Tenancy\TenantContext;
@@ -187,6 +189,49 @@ class AutomatedFaqReplyJobTest extends TestCase
         $this->assertDatabaseCount('messages', 1);
         Http::assertNothingSent();
         $this->assertFalse(app()->bound(TenantContext::class), 'A completed background job must not leak tenant context.');
+    }
+
+
+    public function test_ai_selected_read_only_service_tool_can_answer_a_question_missed_by_deterministic_intents(): void
+    {
+        config(['services.meta.graph_api_version' => 'v24.0']);
+        Http::fake([
+            'https://graph.facebook.com/v24.0/123456789012345/messages' => Http::response([
+                'messages' => [['id' => 'wamid.business-tool-reply']],
+            ], 200),
+        ]);
+
+        [$tenant, $conversation, $inbound] = $this->conversation('auto-business-tool', 'AUTO_ACTIVE', 'Do you have balayage?');
+        TenantContext::runForTenant($tenant->id, fn () => Service::query()->create([
+            'name' => 'Balayage',
+            'price_amount' => '4500.00',
+            'currency' => 'PKR',
+            'duration_minutes' => 120,
+            'active' => true,
+        ]));
+
+        $provider = Mockery::mock(AiProviderInterface::class);
+        $provider->shouldReceive('generate')->once()->andReturn(json_encode([
+            'decision' => 'tool',
+            'tool' => 'search_services',
+            'arguments' => ['query' => 'balayage'],
+        ], JSON_THROW_ON_ERROR));
+        app()->instance(AiProviderInterface::class, $provider);
+
+        (new GenerateAutomatedFaqReply($tenant->id, $conversation->id, $inbound->id))->handle(
+            app(GroundedFaqAssistant::class),
+            app(BusinessIntentRouter::class),
+            app(WhatsAppMessageService::class),
+            app(BusinessToolAssistant::class),
+        );
+
+        TenantContext::runForTenant($tenant->id, function () use ($inbound): void {
+            $reply = Message::query()->where('direction', 'outbound')->firstOrFail();
+            $this->assertSame($inbound->id, $reply->reply_to_message_id);
+            $this->assertStringContainsString('Balayage — 4500.00 PKR (120 minutes)', $reply->body);
+            $this->assertSame('sent', $reply->delivery_status);
+        });
+        Http::assertSentCount(1);
     }
 
     private function conversation(string $slug, string $state, string $body): array
