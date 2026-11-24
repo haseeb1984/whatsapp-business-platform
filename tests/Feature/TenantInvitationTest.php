@@ -31,6 +31,7 @@ class TenantInvitationTest extends TestCase
         $this->assertSame(64, strlen($invitation->token_hash));
         $this->assertNotSame('New.Member@example.test', $invitation->token_hash);
         Notification::assertSentOnDemand(\App\Notifications\TenantStaffInvitation::class);
+        $this->assertContains(\Illuminate\Contracts\Queue\ShouldQueue::class, class_implements(\App\Notifications\TenantStaffInvitation::class));
     }
 
     public function test_invitation_acceptance_activates_only_the_invited_role_and_is_single_use(): void
