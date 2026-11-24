@@ -95,8 +95,8 @@ class NotificationPreferencesTest extends TestCase
     {
         Notification::fake();
         [$owner, $tenant] = $this->workspace('notification-assignment');
-        $assignee = User::factory()->create();
-        $observer = User::factory()->create();
+        $assignee = $this->user('assignee-notification-assignment@example.test');
+        $observer = $this->user('observer-notification-assignment@example.test');
         $tenant->users()->attach($assignee->id, ['role' => 'staff', 'status' => 'active']);
         $tenant->users()->attach($observer->id, ['role' => 'manager', 'status' => 'active']);
 
@@ -123,8 +123,8 @@ class NotificationPreferencesTest extends TestCase
     {
         Notification::fake();
         [$owner, $tenant] = $this->workspace('notification-handover');
-        $manager = User::factory()->create();
-        $staff = User::factory()->create();
+        $manager = $this->user('manager-notification-handover@example.test');
+        $staff = $this->user('staff-notification-handover@example.test');
         $tenant->users()->attach($manager->id, ['role' => 'manager', 'status' => 'active']);
         $tenant->users()->attach($staff->id, ['role' => 'staff', 'status' => 'active']);
 
@@ -144,10 +144,19 @@ class NotificationPreferencesTest extends TestCase
         Notification::assertNotSentTo($staff, ConversationHandoverNotification::class);
     }
 
+    private function user(string $email): User
+    {
+        return User::query()->create([
+            'name' => 'Notification Member',
+            'email' => $email,
+            'password' => 'test-password',
+        ]);
+    }
+
     private function workspace(string $slug): array
     {
         $tenant = Tenant::query()->create(['name' => 'Notification Workspace', 'slug' => $slug]);
-        $user = User::factory()->create();
+        $user = $this->user($slug.'@example.test');
         $tenant->users()->attach($user->id, ['role' => 'business_admin', 'status' => 'active']);
 
         return [$user, $tenant];
