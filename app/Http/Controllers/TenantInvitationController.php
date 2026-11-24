@@ -66,7 +66,7 @@ class TenantInvitationController extends Controller
             $expiresAt->toDayDateTimeString(),
         ));
 
-        return back()->with('success', 'Invitation sent. It expires in 7 days.');
+        return back()->with('success', 'Invitation created; email queued for delivery. It expires in 7 days.');
     }
 
     public function show(Request $request, string $token): Response
