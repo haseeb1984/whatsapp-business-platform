@@ -8,6 +8,7 @@ use App\Http\Controllers\BusinessHoursController;
 use App\Http\Controllers\BusinessHolidayController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\StaffController;
+use App\Http\Controllers\TenantInvitationController;
 use App\Http\Controllers\StaffWorkingHoursController;
 use App\Http\Controllers\FaqController;
 use App\Http\Controllers\WhatsAppConnectionController;
@@ -74,6 +75,11 @@ Route::middleware('auth')->group(function (): void {
     });
 });
 
+Route::middleware(['auth', 'verified'])->group(function (): void {
+    Route::get('/invitations/{token}', [TenantInvitationController::class, 'show'])->middleware('throttle:20,1')->name('invitations.show');
+    Route::post('/invitations/{token}/accept', [TenantInvitationController::class, 'accept'])->middleware('throttle:10,1')->name('invitations.accept');
+});
+
 Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::middleware(['tenant.role:business_admin', 'audit'])->group(function (): void {
@@ -90,6 +96,8 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::put('/business/services/{service}', [ServiceController::class, 'update'])->name('business.services.update');
         Route::delete('/business/services/{service}', [ServiceController::class, 'destroy'])->name('business.services.destroy');
         Route::get('/business/staff', [StaffController::class, 'index'])->name('business.staff.index');
+        Route::post('/business/invitations', [TenantInvitationController::class, 'store'])->middleware('throttle:10,1')->name('business.invitations.store');
+        Route::delete('/business/invitations/{invitation}', [TenantInvitationController::class, 'destroy'])->name('business.invitations.destroy');
         Route::post('/business/staff', [StaffController::class, 'store'])->name('business.staff.store');
         Route::put('/business/staff/{staff}', [StaffController::class, 'update'])->name('business.staff.update');
         Route::delete('/business/staff/{staff}', [StaffController::class, 'destroy'])->name('business.staff.destroy');
@@ -113,7 +121,7 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::post('/business/whatsapp/{connection}/templates/sync', [WhatsAppConnectionController::class, 'syncTemplates'])->middleware('throttle:5,1')->name('business.whatsapp.templates.sync');
         Route::delete('/business/whatsapp/{connection}', [WhatsAppConnectionController::class, 'destroy'])->middleware('throttle:5,1')->name('business.whatsapp.destroy');
     });
-    Route::middleware(['tenant.role:business_admin,staff', 'audit'])->group(function (): void {
+    Route::middleware(['tenant.role:business_admin,manager,staff', 'audit'])->group(function (): void {
         Route::get('/conversations', [ConversationController::class, 'index'])->name('conversations.index');
         Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])->name('conversations.show');
         Route::post('/conversations/{conversation}/take', [ConversationController::class, 'take'])->middleware('throttle:30,1')->name('conversations.take');
