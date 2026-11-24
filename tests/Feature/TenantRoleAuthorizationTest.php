@@ -146,7 +146,7 @@ class TenantRoleAuthorizationTest extends TestCase
         [$user, $tenantA] = $this->makeMembership('business_admin');
         $records = [];
 
-        TenantContext::runForTenant($this->makeMembership('business_admin')[1]->id, function () use (&$records): void {
+        TenantContext::runForTenant($this->makeMembership('business_admin', 'foreign-business-admin')[1]->id, function () use (&$records): void {
             $records['holiday'] = \App\Models\BusinessHoliday::query()->create([
                 'date' => '2026-12-02', 'name' => 'Foreign holiday', 'is_closed' => true,
             ]);
@@ -206,11 +206,11 @@ class TenantRoleAuthorizationTest extends TestCase
         $this->assertDatabaseHas('whatsapp_connections', ['id' => $records['connection']->id, 'status' => 'pending']);
     }
 
-    private function makeMembership(string $role): array
+    private function makeMembership(string $role, ?string $emailPrefix = null): array
     {
         $user = User::query()->create([
             'name' => 'Tenant User',
-            'email' => $role.'@example.test',
+            'email' => ($emailPrefix ?? $role).'@example.test',
             'password' => 'StrongPassword123',
         ]);
         $user->forceFill(['email_verified_at' => now()])->save();
