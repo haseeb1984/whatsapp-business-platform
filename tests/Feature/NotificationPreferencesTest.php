@@ -85,7 +85,7 @@ class NotificationPreferencesTest extends TestCase
                 'email_handover_requests' => true,
             ], JSON_THROW_ON_ERROR)]);
 
-        $this->assertSame([], $notification->via($user));
+        $this->assertSame(['database'], $notification->via($user));
         $handover = new ConversationHandoverNotification($tenant->id, $tenant->name, 'conversation-id');
         $this->assertSame(['mail'], $handover->via($user));
 
