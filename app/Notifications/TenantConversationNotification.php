@@ -60,7 +60,7 @@ abstract class TenantConversationNotification extends Notification implements Sh
 
     protected function conversationUrl(): string
     {
-        return route('conversations.show', $this->conversationId);
+        return route('workspaces.index');
     }
 
     abstract public function toMail(object $notifiable): MailMessage;
