@@ -75,6 +75,7 @@ class TenantMembershipLifecycleTest extends TestCase
         $otherAdmin = $this->member($tenant, 'membership-other-admin@example.test', 'business_admin');
         $this->actingAs($admin)->withSession(['current_tenant_id' => $tenant->id]);
 
+        $this->patch('/business/members/'.$admin->id.'/role', ['role' => 'manager'])->assertStatus(409);
         $this->post('/business/members/'.$admin->id.'/suspend')->assertStatus(409);
         $this->delete('/business/members/'.$admin->id)->assertStatus(409);
         $this->post('/business/members/'.$otherAdmin->id.'/suspend')->assertForbidden();
