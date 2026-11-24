@@ -53,10 +53,31 @@ abstract class TenantConversationNotification extends Notification implements Sh
             $preferences = [];
         }
 
-        return ($preferences[$this->preferenceKey()] ?? true) ? ['mail'] : [];
+        $channels = ['database'];
+        if (filter_var($preferences[$this->preferenceKey()] ?? true, FILTER_VALIDATE_BOOLEAN)) {
+            $channels[] = 'mail';
+        }
+
+        return $channels;
     }
 
     abstract protected function preferenceKey(): string;
+
+    abstract protected function databaseTitle(): string;
+
+    abstract protected function databaseMessage(): string;
+
+    public function toDatabase(object $notifiable): array
+    {
+        return [
+            'tenant_id' => $this->tenantId,
+            'tenant_name' => $this->tenantName,
+            'conversation_id' => $this->conversationId,
+            'title' => $this->databaseTitle(),
+            'message' => $this->databaseMessage(),
+            'url' => route('conversations.show', $this->conversationId),
+        ];
+    }
 
     protected function conversationUrl(): string
     {
