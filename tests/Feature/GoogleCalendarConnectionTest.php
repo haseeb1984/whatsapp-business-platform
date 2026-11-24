@@ -241,7 +241,7 @@ class GoogleCalendarConnectionTest extends TestCase
 
         $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id])
             ->put('/business/calendar/default', ['calendar_id' => 'readonly@example.test'])
-            ->assertStatus(422);
+            ->assertSessionHasErrors('calendar_id');
 
         $connection = TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->firstOrFail());
         $this->assertSame('primary', $connection->default_calendar_id);
@@ -561,6 +561,35 @@ class GoogleCalendarConnectionTest extends TestCase
 
         $this->assertSame('tenant-a-new@example.test', $tenantAConnection->default_calendar_id);
         $this->assertSame('tenant-b-calendar@example.test', $tenantBConnection->default_calendar_id);
+    }
+
+    public function test_calendar_mapping_validation_rejects_malformed_identifiers_before_google_api_calls(): void
+    {
+        [$user, $tenant] = $this->workspace('google-calendar-validation@example.test');
+        $staff = TenantContext::runForTenant($tenant->id, fn () => Staff::query()->create([
+            'name' => 'Calendar Validation Staff',
+            'active' => true,
+        ]));
+        TenantContext::runForTenant($tenant->id, fn () => GoogleCalendarConnection::query()->create([
+            'access_token' => 'calendar-access',
+            'refresh_token' => 'calendar-refresh',
+            'token_expires_at' => now()->addHour(),
+            'status' => 'connected',
+            'default_calendar_id' => 'primary',
+        ]));
+
+        Http::fake();
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id]);
+
+        $this->put('/business/calendar/default', ['calendar_id' => ['unexpected-array']])
+            ->assertSessionHasErrors('calendar_id');
+
+        $this->put('/business/calendar/staff/'.$staff->id, ['calendar_id' => str_repeat('x', 256)])
+            ->assertSessionHasErrors('calendar_id');
+
+        Http::assertNothingSent();
+        $storedStaff = TenantContext::runForTenant($tenant->id, fn () => Staff::query()->findOrFail($staff->id));
+        $this->assertNull($storedStaff->google_calendar_id);
     }
 
 }
