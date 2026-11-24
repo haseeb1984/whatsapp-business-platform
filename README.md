@@ -16,7 +16,7 @@ A reusable multi-tenant WhatsApp Business automation platform using the official
 
 **Production acceptance still pending:** Actual Neon connection/TLS and migration rehearsal, Hostinger plan/runtime and cron validation, live Meta and Google account validation, penetration/abuse and load testing, browser performance profiling, deployment rehearsal, backup/restore drill and Meta production onboarding. Composer and npm lockfiles are committed, and CI uses reproducible locked installs; this does not replace live infrastructure validation.
 
-**Current CI:** The main CI workflow validates Composer, runs the SQLite and PostgreSQL 16 feature suites (including the true two-process PostgreSQL webhook idempotency test), verifies full migration rollback/replay on both databases, audits PHP and frontend production dependencies, installs frontend dependencies with lockfile-exact `npm ci`, builds the Vite frontend, and checks lazy-loaded Inertia page chunks. The latest queue-recovery test batch [PR #17](https://github.com/haseeb1984/whatsapp-business-platform/pull/17) passed its full CI run [45297353400](https://github.com/actions/runs/45297353400) and was merged as `f68c92973115ac6ac1b7aec941210557654f6f4b`. Follow-up [PR #18](https://github.com/haseeb1984/whatsapp-business-platform/pull/18) switched frontend CI to lockfile-exact `npm ci`; its full CI [45298374901](https://github.com/actions/runs/45298374901) passed, and it was merged as `af4a81b589328ff1b5a3363836fc8bed3fb7fe94`. Main and work were synchronized after PR #19; its expanded tenant-role authorization matrix passed full CI and post-merge verification.
+**Current CI:** The main CI workflow validates Composer, runs the SQLite and PostgreSQL 16 feature suites (including the true two-process PostgreSQL webhook idempotency test), verifies full migration rollback/replay on both databases, audits PHP and frontend production dependencies, installs frontend dependencies with lockfile-exact `npm ci`, builds the Vite frontend, and checks lazy-loaded Inertia page chunks. The latest queue-recovery test batch [PR #17](https://github.com/haseeb1984/whatsapp-business-platform/pull/17) passed its full CI run [45297353400](https://github.com/actions/runs/45297353400) and was merged as `f68c92973115ac6ac1b7aec941210557654f6f4b`. Follow-up [PR #18](https://github.com/haseeb1984/whatsapp-business-platform/pull/18) switched frontend CI to lockfile-exact `npm ci`; its full CI [45298374901](https://github.com/actions/runs/45298374901) passed, and it was merged as `af4a81b589328ff1b5a3363836fc8bed3fb7fe94`. PR #19 expanded the tenant-role authorization matrix; PR #20 hardened `/health/ready` queue-schema checks; PR #21 added cross-tenant foreign-ID update/delete regressions for holidays, services, staff, FAQs and WhatsApp connections. All three passed full CI and were merged. Latest merge: PR #21, `f9fad51ba2218b60c83bd4c1d2cd8387c95735b6`; full CI [45309223904](https://github.com/actions/runs/45309223904) passed all 17 steps.
 
 ## Approved stack
 
@@ -49,6 +49,7 @@ One application and one codebase serve multiple independent businesses. Each ten
 | [Security](docs/SECURITY.md) | Tenant isolation, secrets and privacy |
 | [Deployment](docs/DEPLOYMENT.md) | Hostinger + Neon deployment |
 | [Roadmap](docs/ROADMAP.md) | Milestones and acceptance gates |
+| [Go-live checklist](docs/GO-LIVE-CHECKLIST.md) | Evidence-based production acceptance, cutover, rollback and handover checklist |
 
 ## Local development setup
 
@@ -101,7 +102,7 @@ GitHub Actions is the source of truth for the full verification pipeline:
 - Vite production build and lazy-loaded Inertia page-chunk manifest guard
 - Scheduler regression coverage for minute cadence and overlap protection
 
-The latest post-merge `main` verification is [run 45277647644](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45277647644), which passed after all feature PRs were merged. The PostgreSQL multi-worker webhook concurrency regression from [PR #5](https://github.com/haseeb1984/whatsapp-business-platform/pull/5) now runs in the main PostgreSQL 16 CI suite.
+The latest PR #21 full CI verification is [run 45309223904](https://github.com/actions/runs/45309223904), which passed all 17 checks before merge to `main`. The PostgreSQL multi-worker webhook concurrency regression from [PR #5](https://github.com/haseeb1984/whatsapp-business-platform/pull/5) now runs in the main PostgreSQL 16 CI suite.
 
 Run the checks locally with `composer validate`, `php artisan test`, and `npm run build`. The CI PostgreSQL service is a compatibility gate; it does not replace a connection and migration rehearsal against the actual Neon project.
 
