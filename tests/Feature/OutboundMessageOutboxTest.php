@@ -82,11 +82,12 @@ class OutboundMessageOutboxTest extends TestCase
     {
         $first = Tenant::query()->create(['name' => 'Outbox Active One', 'slug' => 'outbox-active-one', 'status' => 'active']);
         $second = Tenant::query()->create(['name' => 'Outbox Active Two', 'slug' => 'outbox-active-two', 'status' => 'active']);
-        $suspended = Tenant::query()->create(['name' => 'Outbox Suspended', 'slug' => 'outbox-suspended', 'status' => 'suspended']);
+        $suspended = Tenant::query()->create(['name' => 'Outbox Suspended', 'slug' => 'outbox-suspended', 'status' => 'active']);
 
         $firstMessage = $this->outboundMessage($first, 'pending', now()->subMinutes(8));
         $secondMessage = $this->outboundMessage($second, 'pending', now()->subMinutes(9));
         $suspendedMessage = $this->outboundMessage($suspended, 'pending', now()->subMinutes(12));
+        $suspended->update(['status' => 'suspended']);
 
         Queue::fake();
 
