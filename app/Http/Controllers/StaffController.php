@@ -32,6 +32,7 @@ class StaffController extends Controller
             ])->all(),
             'services' => Service::query()->where('active', true)->orderBy('name')->get(['id', 'name']),
             'invitations' => TenantInvitation::query()->where('tenant_id', app(TenantContext::class)->id())->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->orderByDesc('created_at')->get(['id', 'email', 'role', 'expires_at']),
+            'memberships' => DB::table('tenant_user')->join('users', 'users.id', '=', 'tenant_user.user_id')->where('tenant_user.tenant_id', app(TenantContext::class)->id())->whereIn('tenant_user.role', ['staff', 'manager'])->orderBy('users.name')->get(['users.id as user_id', 'users.name', 'users.email', 'tenant_user.role', 'tenant_user.status']),
         ]);
     }
 

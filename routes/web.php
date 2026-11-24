@@ -9,6 +9,7 @@ use App\Http\Controllers\BusinessHolidayController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\TenantInvitationController;
+use App\Http\Controllers\TenantMembershipController;
 use App\Http\Controllers\StaffWorkingHoursController;
 use App\Http\Controllers\FaqController;
 use App\Http\Controllers\WhatsAppConnectionController;
@@ -98,6 +99,10 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::get('/business/staff', [StaffController::class, 'index'])->name('business.staff.index');
         Route::post('/business/invitations', [TenantInvitationController::class, 'store'])->middleware('throttle:10,1')->name('business.invitations.store');
         Route::delete('/business/invitations/{invitation}', [TenantInvitationController::class, 'destroy'])->name('business.invitations.destroy');
+        Route::patch('/business/members/{user}/role', [TenantMembershipController::class, 'updateRole'])->name('business.members.role');
+        Route::post('/business/members/{user}/suspend', [TenantMembershipController::class, 'suspend'])->name('business.members.suspend');
+        Route::post('/business/members/{user}/reactivate', [TenantMembershipController::class, 'reactivate'])->name('business.members.reactivate');
+        Route::delete('/business/members/{user}', [TenantMembershipController::class, 'destroy'])->name('business.members.destroy');
         Route::post('/business/staff', [StaffController::class, 'store'])->name('business.staff.store');
         Route::put('/business/staff/{staff}', [StaffController::class, 'update'])->name('business.staff.update');
         Route::delete('/business/staff/{staff}', [StaffController::class, 'destroy'])->name('business.staff.destroy');

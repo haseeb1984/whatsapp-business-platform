@@ -106,7 +106,7 @@ class TenantInvitationController extends Controller
 
                     if ($staffProfile) {
                         abort_if($staffProfile->user_id !== null && (int) $staffProfile->user_id !== (int) $request->user()->getKey(), 409);
-                        $staffProfile->forceFill(['user_id' => $request->user()->getKey()])->save();
+                        $staffProfile->forceFill(['user_id' => $request->user()->getKey(), 'active' => true])->save();
 
                         return;
                     }
