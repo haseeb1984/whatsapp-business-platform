@@ -70,6 +70,29 @@ class TenantRoleAuthorizationTest extends TestCase
     {
         [$user, $tenant] = $this->makeMembership('staff');
 
+        $holiday = $service = $staff = $faq = $connection = null;
+        \App\Support\Tenancy\TenantContext::runForTenant($tenant->id, function () use (&$holiday, &$service, &$staff, &$faq, &$connection): void {
+            $holiday = \App\Models\BusinessHoliday::query()->create([
+                'date' => '2026-12-01', 'name' => 'Test holiday', 'is_closed' => true,
+            ]);
+            $service = \App\Models\Service::query()->create([
+                'name' => 'Test service', 'price_amount' => 100, 'currency' => 'PKR',
+                'duration_minutes' => 30, 'buffer_before_minutes' => 0,
+                'buffer_after_minutes' => 0, 'active' => true,
+            ]);
+            $staff = \App\Models\Staff::query()->create([
+                'name' => 'Test staff', 'active' => true,
+            ]);
+            $faq = \App\Models\Faq::query()->create([
+                'question' => 'Test question?', 'answer' => 'Test answer',
+                'locale' => 'en', 'status' => 'draft',
+            ]);
+            $connection = \App\Models\WhatsAppConnection::query()->create([
+                'phone_number_id' => '123456789012399', 'waba_id' => '987654321098799',
+                'access_token' => 'encrypted-test-token', 'status' => 'pending',
+            ]);
+        });
+
         $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id]);
         $unknownId = '00000000-0000-4000-8000-000000000001';
 
@@ -83,7 +106,7 @@ class TenantRoleAuthorizationTest extends TestCase
         $this->post('/business/appointments/'.$unknownId.'/confirm-calendar')->assertForbidden();
         $this->post('/business/appointments/'.$unknownId.'/cancel')->assertForbidden();
         $this->post('/business/appointments/'.$unknownId.'/reschedule', [])->assertForbidden();
-        $this->get('/business/staff/'.$unknownId.'/exceptions')->assertForbidden();
+        $this->get('/business/staff/'.$staff->id.'/exceptions')->assertForbidden();
         $this->post('/business/staff/'.$unknownId.'/exceptions', [])->assertForbidden();
         $this->put('/business/staff/'.$unknownId.'/exceptions/'.$unknownId, [])->assertForbidden();
         $this->delete('/business/staff/'.$unknownId.'/exceptions/'.$unknownId)->assertForbidden();
@@ -91,22 +114,22 @@ class TenantRoleAuthorizationTest extends TestCase
         $this->put('/business/hours', [])->assertForbidden();
         $this->get('/business/holidays')->assertForbidden();
         $this->post('/business/holidays', [])->assertForbidden();
-        $this->put('/business/holidays/'.$unknownId, [])->assertForbidden();
+        $this->put('/business/holidays/'.$holiday->id, [])->assertForbidden();
         $this->delete('/business/holidays/'.$unknownId)->assertForbidden();
         $this->get('/business/services')->assertForbidden();
         $this->post('/business/services', [])->assertForbidden();
-        $this->put('/business/services/'.$unknownId, [])->assertForbidden();
+        $this->put('/business/services/'.$service->id, [])->assertForbidden();
         $this->delete('/business/services/'.$unknownId)->assertForbidden();
         $this->get('/business/staff')->assertForbidden();
         $this->post('/business/staff', [])->assertForbidden();
         $this->put('/business/staff/'.$unknownId, [])->assertForbidden();
         $this->delete('/business/staff/'.$unknownId)->assertForbidden();
-        $this->get('/business/staff/'.$unknownId.'/hours')->assertForbidden();
+        $this->get('/business/staff/'.$staff->id.'/hours')->assertForbidden();
         $this->put('/business/staff/'.$unknownId.'/hours', [])->assertForbidden();
         $this->get('/business/faqs')->assertForbidden();
-        $this->put('/business/faqs/'.$unknownId, [])->assertForbidden();
+        $this->put('/business/faqs/'.$faq->id, [])->assertForbidden();
         $this->delete('/business/faqs/'.$unknownId)->assertForbidden();
-        $this->put('/business/whatsapp/'.$unknownId, [])->assertForbidden();
+        $this->put('/business/whatsapp/'.$connection->id, [])->assertForbidden();
         $this->post('/business/whatsapp/'.$unknownId.'/verify')->assertForbidden();
         $this->post('/business/whatsapp/'.$unknownId.'/templates/sync')->assertForbidden();
         $this->delete('/business/whatsapp/'.$unknownId)->assertForbidden();
