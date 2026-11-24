@@ -30,7 +30,7 @@ class StaffController extends Controller
                 'service_ids' => $member->serviceAssignments->pluck('service_id')->all(),
             ])->all(),
             'services' => Service::query()->where('active', true)->orderBy('name')->get(['id', 'name']),
-            'invitations' => TenantInvitation::query()->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->orderByDesc('created_at')->get(['id', 'email', 'role', 'expires_at']),\n            'invitations' => TenantInvitation::query()->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->orderByDesc('created_at')->get(['id', 'email', 'role', 'expires_at']),
+            'invitations' => TenantInvitation::query()->where('tenant_id', app(TenantContext::class)->id())->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->orderByDesc('created_at')->get(['id', 'email', 'role', 'expires_at']),
         ]);
     }
 
