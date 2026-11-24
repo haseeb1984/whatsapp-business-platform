@@ -149,6 +149,7 @@ class NotificationPreferencesTest extends TestCase
         return User::query()->create([
             'name' => 'Notification Member',
             'email' => $email,
+            'email_verified_at' => now(),
             'password' => 'test-password',
         ]);
     }
