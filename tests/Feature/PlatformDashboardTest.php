@@ -8,6 +8,7 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use App\Support\Tenancy\TenantContext;
 use Tests\TestCase;
@@ -58,6 +59,41 @@ class PlatformDashboardTest extends TestCase
                 ->where('metrics.outbound_failed', 1)
                 ->has('tenants.data', 1)
                 ->where('tenants.data.0.name', 'Salon Workspace')
+            );
+    }
+
+    public function test_platform_console_reports_queue_backlog_age_and_recent_failures_without_job_payloads(): void
+    {
+        config(['platform.admin_emails' => ['platform-admin@example.test']]);
+        $admin = $this->user('platform-admin@example.test');
+
+        DB::table('jobs')->insert([
+            'queue' => 'default',
+            'payload' => '{"displayName":"SensitiveJobPayload"}',
+            'attempts' => 1,
+            'reserved_at' => null,
+            'available_at' => now()->subMinutes(17)->timestamp,
+            'created_at' => now()->subMinutes(17)->timestamp,
+        ]);
+        DB::table('failed_jobs')->insert([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'connection' => 'database',
+            'queue' => 'default',
+            'payload' => '{"displayName":"SensitiveJobPayload"}',
+            'exception' => 'Sensitive exception details',
+            'failed_at' => now()->subHours(2),
+        ]);
+
+        $this->actingAs($admin)->get('/platform')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('metrics.queue_pending', 1)
+                ->where('metrics.queue_oldest_age_minutes', 17)
+                ->where('metrics.queue_failed', 1)
+                ->where('metrics.queue_failed_last_24_hours', 1)
+                ->has('recent_failures', 1)
+                ->missing('recent_failures.0.payload')
+                ->missing('recent_failures.0.exception')
             );
     }
 
