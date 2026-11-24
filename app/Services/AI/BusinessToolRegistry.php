@@ -50,7 +50,7 @@ class BusinessToolRegistry
         $escaped = addcslashes($term, '%_\\');
         $services = Service::query()
             ->where('active', true)
-            ->where('name', 'like', '%'.$escaped.'%')
+            ->whereRaw('LOWER(name) LIKE ?', ['%'.mb_strtolower($escaped).'%'])
             ->orderBy('name')
             ->limit(5)
             ->get(['name', 'price_amount', 'currency', 'duration_minutes']);
