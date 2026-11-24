@@ -78,6 +78,49 @@ class OutboundMessageOutboxTest extends TestCase
         Queue::assertNothingPushed();
     }
 
+    public function test_global_pending_dispatch_scans_active_tenants_and_skips_suspended_tenants(): void
+    {
+        $first = Tenant::query()->create(['name' => 'Outbox Active One', 'slug' => 'outbox-active-one', 'status' => 'active']);
+        $second = Tenant::query()->create(['name' => 'Outbox Active Two', 'slug' => 'outbox-active-two', 'status' => 'active']);
+        $suspended = Tenant::query()->create(['name' => 'Outbox Suspended', 'slug' => 'outbox-suspended', 'status' => 'suspended']);
+
+        $firstMessage = $this->outboundMessage($first, 'pending', now()->subMinutes(8));
+        $secondMessage = $this->outboundMessage($second, 'pending', now()->subMinutes(9));
+        $suspendedMessage = $this->outboundMessage($suspended, 'pending', now()->subMinutes(12));
+
+        Queue::fake();
+
+        $this->artisan('messages:dispatch-pending')
+            ->expectsOutput('Dispatched 2 pending outbound message(s).')
+            ->assertExitCode(0);
+
+        Queue::assertPushed(DeliverWhatsAppMessage::class, 2);
+        Queue::assertPushed(DeliverWhatsAppMessage::class, fn (DeliverWhatsAppMessage $job): bool => $job->tenantId === $first->id
+            && $job->messageId === $firstMessage->id);
+        Queue::assertPushed(DeliverWhatsAppMessage::class, fn (DeliverWhatsAppMessage $job): bool => $job->tenantId === $second->id
+            && $job->messageId === $secondMessage->id);
+        Queue::assertNotPushed(DeliverWhatsAppMessage::class, fn (DeliverWhatsAppMessage $job): bool => $job->tenantId === $suspended->id);
+
+        $this->assertDatabaseHas('messages', ['id' => $suspendedMessage->id, 'delivery_status' => 'pending']);
+        $this->assertFalse(app()->bound(TenantContext::class), 'Global outbox dispatch must clear tenant context after each tenant.');
+    }
+
+    public function test_global_pending_dispatch_uses_the_five_minute_lease_to_avoid_scheduler_flooding(): void
+    {
+        $tenant = Tenant::query()->create(['name' => 'Outbox Lease', 'slug' => 'outbox-global-lease']);
+        $message = $this->outboundMessage($tenant, 'pending', now()->subMinutes(8));
+
+        Queue::fake();
+
+        $this->artisan('messages:dispatch-pending')->assertExitCode(0);
+        $this->artisan('messages:dispatch-pending')
+            ->expectsOutput('Dispatched 0 pending outbound message(s).')
+            ->assertExitCode(0);
+
+        Queue::assertPushed(DeliverWhatsAppMessage::class, 1);
+        $this->assertDatabaseHas('messages', ['id' => $message->id, 'delivery_status' => 'pending']);
+    }
+
     private function outboundMessage(Tenant $tenant, string $status, $updatedAt): Message
     {
         return TenantContext::runForTenant($tenant->id, function () use ($status, $updatedAt): Message {
