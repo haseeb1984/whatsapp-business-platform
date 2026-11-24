@@ -3,12 +3,22 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class TenantStaffInvitation extends Notification
+class TenantStaffInvitation extends Notification implements ShouldQueue
 {
     use Queueable;
+
+    public int $tries = 3;
+
+    public int $timeout = 30;
+
+    public function backoff(): array
+    {
+        return [30, 120, 300];
+    }
 
     public function __construct(
         public readonly string $tenantName,
