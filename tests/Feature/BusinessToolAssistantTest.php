@@ -107,7 +107,7 @@ class BusinessToolAssistantTest extends TestCase
         ));
 
         $this->assertSame('answered', $result->status);
-        $this->assertStringContainsString('Sunday: 10:00–18:00', $result->answer);
+        $this->assertStringContainsString('Monday: 10:00–18:00', $result->answer);
     }
 
     public function test_malformed_provider_output_fails_closed(): void
