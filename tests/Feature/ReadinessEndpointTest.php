@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class ReadinessEndpointTest extends TestCase
@@ -21,6 +22,25 @@ class ReadinessEndpointTest extends TestCase
                 'checks' => [
                     'database' => true,
                     'queue_storage' => true,
+                ],
+            ]);
+    }
+
+    public function test_readiness_reports_degraded_when_database_queue_table_is_incomplete(): void
+    {
+        config(['queue.default' => 'database']);
+        Schema::dropIfExists('jobs');
+        Schema::create('jobs', function (\Illuminate\Database\Schema\Blueprint $table): void {
+            $table->id();
+        });
+
+        $this->getJson('/health/ready')
+            ->assertStatus(503)
+            ->assertExactJson([
+                'status' => 'degraded',
+                'checks' => [
+                    'database' => true,
+                    'queue_storage' => false,
                 ],
             ]);
     }

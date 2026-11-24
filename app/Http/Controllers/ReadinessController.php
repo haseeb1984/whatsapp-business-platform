@@ -21,8 +21,13 @@ class ReadinessController extends Controller
         $queueReady = false;
         if ($databaseReady) {
             try {
+                $queueTable = config('queue.connections.database.table', 'jobs');
                 $queueReady = config('queue.default') !== 'database'
-                    || Schema::hasTable(config('queue.connections.database.table', 'jobs'));
+                    || (is_string($queueTable)
+                        && $queueTable !== ''
+                        && Schema::hasColumns($queueTable, [
+                            'id', 'queue', 'payload', 'attempts', 'reserved_at', 'available_at', 'created_at',
+                        ]));
             } catch (Throwable) {
                 $queueReady = false;
             }
