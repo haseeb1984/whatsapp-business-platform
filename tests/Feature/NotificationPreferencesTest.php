@@ -146,12 +146,14 @@ class NotificationPreferencesTest extends TestCase
 
     private function user(string $email): User
     {
-        return User::query()->create([
+        $user = User::query()->create([
             'name' => 'Notification Member',
             'email' => $email,
-            'email_verified_at' => now(),
             'password' => 'test-password',
         ]);
+        $user->forceFill(['email_verified_at' => now()])->save();
+
+        return $user;
     }
 
     private function workspace(string $slug): array
