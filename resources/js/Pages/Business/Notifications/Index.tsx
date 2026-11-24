@@ -60,7 +60,7 @@ export default function NotificationPreferences() {
                         </button>
                     </div>
                 </form>
-                <p className="mt-4 text-xs text-slate-500">Email delivery uses the workspace mail configuration and queue. Inbox updates continue to use the existing in-app polling refresh.</p>
+                <p className="mt-4 text-xs text-slate-500">Email delivery uses the application mail transport and queue configuration. Inbox updates continue to use the existing in-app polling refresh.</p>
             </div>
         </main>
     );
