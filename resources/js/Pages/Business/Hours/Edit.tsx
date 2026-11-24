@@ -1,3 +1,4 @@
+import FormErrorSummary from '../../../Components/FormErrorSummary';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 
@@ -26,6 +27,7 @@ export default function EditBusinessHours() {
                 <h1 className="mt-4 text-3xl font-bold text-slate-900">Business hours</h1>
                 <p className="mt-2 text-slate-600">Set the regular weekly opening hours. Overnight opening periods are not supported in this version.</p>
                 <form onSubmit={submit} className="mt-8 space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <FormErrorSummary errors={errors} />
                     {data.days.map((day, index) => (
                         <div key={day.weekday} className="grid gap-3 border-b border-slate-100 pb-4 sm:grid-cols-[1fr_auto_1fr_1fr] sm:items-center">
                             <p className="font-semibold text-slate-800">{day.label}</p>

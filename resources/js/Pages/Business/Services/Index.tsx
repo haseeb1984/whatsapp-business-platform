@@ -1,3 +1,4 @@
+import FormErrorSummary from '../../../Components/FormErrorSummary';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
@@ -62,6 +63,7 @@ export default function BusinessServices() {
                 <h1 className="mt-4 text-3xl font-bold text-slate-900">Services and pricing</h1>
                 <p className="mt-2 text-slate-600">Configure bookable services, currency, duration and scheduling buffers.</p>
                 <form onSubmit={submit} className="mt-8 grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2">
+                    <FormErrorSummary errors={errors} />
                     <label className="text-sm font-medium text-slate-700">Service name<input className={field} value={data.name} onChange={e => setData('name', e.target.value)} maxLength={120} required />{errors.name && <span className="text-red-600">{errors.name}</span>}</label>
                     <label className="text-sm font-medium text-slate-700">Description<input className={field} value={data.description ?? ''} onChange={e => setData('description', e.target.value)} maxLength={3000} /></label>
                     <label className="text-sm font-medium text-slate-700">Price<input type="number" min="0" step="0.01" className={field} value={data.price_amount} onChange={e => setData('price_amount', e.target.value)} required />{errors.price_amount && <span className="text-red-600">{errors.price_amount}</span>}</label>

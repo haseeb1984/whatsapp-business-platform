@@ -1,3 +1,4 @@
+import FormErrorSummary from '../../../Components/FormErrorSummary';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
@@ -38,6 +39,7 @@ export default function BusinessFaqs() {
                 <h1 className="mt-4 text-3xl font-bold text-slate-900">FAQs and approved answers</h1>
                 <p className="mt-2 text-slate-600">Only published FAQs are eligible for the future AI retrieval workflow. Keep answers accurate and business-approved.</p>
                 <form onSubmit={submit} className="mt-8 grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <FormErrorSummary errors={errors} />
                     <label className="text-sm font-medium text-slate-700">Question<input className={field} value={data.question} onChange={e => setData('question', e.target.value)} maxLength={500} required />{errors.question && <span className="text-red-600">{errors.question}</span>}</label>
                     <label className="text-sm font-medium text-slate-700">Approved answer<textarea className={field} rows={5} value={data.answer} onChange={e => setData('answer', e.target.value)} maxLength={10000} required />{errors.answer && <span className="text-red-600">{errors.answer}</span>}</label>
                     <div className="grid gap-4 sm:grid-cols-2">

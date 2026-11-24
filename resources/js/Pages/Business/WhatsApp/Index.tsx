@@ -1,3 +1,4 @@
+import FormErrorSummary from '../../../Components/FormErrorSummary';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
@@ -64,6 +65,7 @@ export default function WhatsAppConnections() {
                 <p className="mt-2 text-slate-600">Register a Meta phone number and its permanent access token. Tokens are encrypted at rest and never returned to this page.</p>
                 <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Connections remain pending until Meta confirms the phone number and its WABA membership.</p>
                 <form onSubmit={submit} className="mt-8 grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2">
+                    <FormErrorSummary errors={errors} />
                     <label className="text-sm font-medium text-slate-700">Phone Number ID<input className={field} value={data.phone_number_id} onChange={e => setData('phone_number_id', e.target.value)} required maxLength={64} />{errors.phone_number_id && <span className="text-red-600">{errors.phone_number_id}</span>}</label>
                     <label className="text-sm font-medium text-slate-700">WhatsApp Business Account ID<input className={field} value={data.waba_id} onChange={e => setData('waba_id', e.target.value)} required maxLength={64} />{errors.waba_id && <span className="text-red-600">{errors.waba_id}</span>}</label>
                     <label className="text-sm font-medium text-slate-700">Display phone number<input className={field} value={data.display_phone_number} onChange={e => setData('display_phone_number', e.target.value)} maxLength={32} /></label>
