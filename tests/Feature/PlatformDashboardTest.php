@@ -150,6 +150,55 @@ class PlatformDashboardTest extends TestCase
         $this->assertStringContainsString("'+cmd|/C calc", $csv);
     }
 
+
+    public function test_platform_console_reports_integration_authorization_health_without_exposing_credentials(): void
+    {
+        config(['platform.admin_emails' => ['platform-admin@example.test']]);
+        $admin = $this->user('platform-admin@example.test');
+        $tenant = Tenant::query()->create([
+            'name' => 'Integration Health Workspace',
+            'slug' => 'integration-health',
+            'status' => 'active',
+        ]);
+
+        DB::table('whatsapp_connections')->insert([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'tenant_id' => $tenant->id,
+            'phone_number_id' => 'health-phone-1',
+            'waba_id' => 'health-waba-1',
+            'access_token' => 'never-return-this-meta-token',
+            'status' => 'pending',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('google_calendar_connections')->insert([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'tenant_id' => $tenant->id,
+            'google_account_email' => 'calendar@example.test',
+            'access_token' => 'never-return-this-google-token',
+            'refresh_token' => null,
+            'token_expires_at' => now()->subHour(),
+            'scope' => 'https://www.googleapis.com/auth/calendar',
+            'default_calendar_id' => 'primary',
+            'status' => 'connected',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)->get('/platform')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('metrics.whatsapp_pending', 1)
+                ->where('metrics.whatsapp_inactive', 1)
+                ->where('metrics.calendar_reauthorization_required', 0)
+                ->where('metrics.calendar_expired_tokens', 1)
+                ->where('metrics.calendar_missing_refresh_tokens', 1)
+                ->missing('metrics.access_token')
+                ->missing('metrics.refresh_token')
+            );
+    }
+
     private function user(string $email): User
     {
         $user = User::query()->create([
