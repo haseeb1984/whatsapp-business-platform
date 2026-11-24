@@ -10,14 +10,17 @@ use App\Models\Faq;
 use App\Models\Message;
 use App\Models\Service;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Models\WhatsAppConnection;
 use App\Services\AI\BusinessIntentRouter;
 use App\Services\AI\BusinessToolAssistant;
 use App\Services\AI\GroundedFaqAssistant;
 use App\Services\Messaging\WhatsAppMessageService;
+use App\Notifications\ConversationHandoverNotification;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 use Mockery;
 use Tests\TestCase;
 
@@ -64,6 +67,9 @@ class AutomatedFaqReplyJobTest extends TestCase
     {
         Http::fake();
         [$tenant, $conversation, $inbound] = $this->conversation('auto-faq-handoff', 'AUTO_ACTIVE', 'What are your opening hours?');
+        $admin = User::factory()->create();
+        $tenant->users()->attach($admin->id, ['role' => 'business_admin', 'status' => 'active']);
+        Notification::fake();
 
         (new GenerateAutomatedFaqReply($tenant->id, $conversation->id, $inbound->id))->handle(
             app(GroundedFaqAssistant::class),
@@ -76,6 +82,7 @@ class AutomatedFaqReplyJobTest extends TestCase
             $this->assertDatabaseCount('messages', 1);
         });
         Http::assertNothingSent();
+        Notification::assertSentTo($admin, ConversationHandoverNotification::class);
     }
 
     public function test_queued_faq_job_does_nothing_after_staff_has_taken_over(): void
