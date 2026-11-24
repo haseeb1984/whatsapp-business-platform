@@ -141,6 +141,71 @@ class TenantRoleAuthorizationTest extends TestCase
         $this->post('/conversations/'.$unknownId.'/reopen')->assertForbidden();
     }
 
+    public function test_business_admin_cannot_update_or_delete_another_tenants_configuration_records(): void
+    {
+        [$user, $tenantA] = $this->makeMembership('business_admin');
+        $records = [];
+
+        TenantContext::runForTenant($this->makeMembership('business_admin')[1]->id, function () use (&$records): void {
+            $records['holiday'] = \\App\\Models\\BusinessHoliday::query()->create([
+                'date' => '2026-12-02', 'name' => 'Foreign holiday', 'is_closed' => true,
+            ]);
+            $records['service'] = \\App\\Models\\Service::query()->create([
+                'name' => 'Foreign service', 'price_amount' => 200, 'currency' => 'PKR',
+                'duration_minutes' => 30, 'buffer_before_minutes' => 0,
+                'buffer_after_minutes' => 0, 'active' => true,
+            ]);
+            $records['staff'] = \\App\\Models\\Staff::query()->create([
+                'name' => 'Foreign staff', 'active' => true,
+            ]);
+            $records['faq'] = \\App\\Models\\Faq::query()->create([
+                'question' => 'Foreign question?', 'answer' => 'Foreign answer',
+                'locale' => 'en', 'status' => 'draft',
+            ]);
+            $records['connection'] = \\App\\Models\\WhatsAppConnection::query()->create([
+                'phone_number_id' => '123456789012398', 'waba_id' => '987654321098798',
+                'access_token' => 'foreign-encrypted-token', 'status' => 'pending',
+            ]);
+        });
+
+        $this->actingAs($user)->withSession(['current_tenant_id' => $tenantA->id]);
+
+        $this->put('/business/holidays/'.$records['holiday']->id, [
+            'date' => '2026-12-03', 'name' => 'Tampered holiday', 'is_closed' => true,
+        ])->assertNotFound();
+        $this->delete('/business/holidays/'.$records['holiday']->id)->assertNotFound();
+
+        $this->put('/business/services/'.$records['service']->id, [
+            'name' => 'Tampered service', 'price_amount' => 200, 'currency' => 'PKR',
+            'duration_minutes' => 30, 'buffer_before_minutes' => 0,
+            'buffer_after_minutes' => 0, 'active' => true,
+        ])->assertNotFound();
+        $this->delete('/business/services/'.$records['service']->id)->assertNotFound();
+
+        $this->put('/business/staff/'.$records['staff']->id, [
+            'name' => 'Tampered staff', 'active' => true, 'service_ids' => [],
+        ])->assertNotFound();
+        $this->delete('/business/staff/'.$records['staff']->id)->assertNotFound();
+
+        $this->put('/business/faqs/'.$records['faq']->id, [
+            'question' => 'Tampered question?', 'answer' => 'Tampered answer',
+            'locale' => 'en', 'status' => 'draft',
+        ])->assertNotFound();
+        $this->delete('/business/faqs/'.$records['faq']->id)->assertNotFound();
+
+        $this->put('/business/whatsapp/'.$records['connection']->id, [
+            'phone_number_id' => '123456789012398', 'waba_id' => '987654321098798',
+            'status' => 'pending',
+        ])->assertNotFound();
+        $this->delete('/business/whatsapp/'.$records['connection']->id)->assertNotFound();
+
+        $this->assertDatabaseHas('business_holidays', ['id' => $records['holiday']->id, 'name' => 'Foreign holiday']);
+        $this->assertDatabaseHas('services', ['id' => $records['service']->id, 'name' => 'Foreign service']);
+        $this->assertDatabaseHas('staff_members', ['id' => $records['staff']->id, 'name' => 'Foreign staff']);
+        $this->assertDatabaseHas('faqs', ['id' => $records['faq']->id, 'question' => 'Foreign question?']);
+        $this->assertDatabaseHas('whatsapp_connections', ['id' => $records['connection']->id, 'status' => 'pending']);
+    }
+
     private function makeMembership(string $role): array
     {
         $user = User::query()->create([
