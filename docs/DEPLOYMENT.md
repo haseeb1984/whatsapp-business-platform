@@ -41,6 +41,8 @@ It checks PHP 8.3+, PDO PostgreSQL/cURL/OpenSSL extensions, production/debug fla
 
 The public, rate-limited `GET /health/ready` endpoint checks database connectivity and (when using Laravel's database queue) the queue storage table. It does not prove that cron workers are running or that Meta/Google credentials are valid; those require separate operational checks.
 
+The platform operations console reports the database queue backlog count, age in minutes of the oldest queued job, total Laravel failed jobs, and failures in the last 24 hours. Recent failure rows expose only the failed-job ID, queue name, and timestamp; serialized payloads and exception traces are deliberately excluded from the dashboard. Use restricted server-side access and Laravel's `queue:failed` / `queue:retry <uuid>` commands only after inspecting the underlying failure and confirming that the job is safe to retry. A retry of an outbound delivery job must be treated cautiously: the message outbox state and provider outcome may be ambiguous, so do not blindly retry a job that could send a duplicate WhatsApp message.
+
 Failed Meta webhook events are retained with `status=failed` after their automatic retry budget is exhausted. After inspecting the event and correcting any underlying integration or data issue, an operator can replay one event with `php artisan webhooks:replay-failed <event-id>`. The command rejects non-failed events and events belonging to suspended or missing tenants; it never bulk-replays the dead-letter set. Monitor the platform console's failed queue count separately because webhook dead-letter rows and Laravel `failed_jobs` are distinct failure stores.
 
 
