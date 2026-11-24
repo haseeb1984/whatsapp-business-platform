@@ -5,12 +5,13 @@ import { useState } from 'react';
 type StaffMember = { id: string; user_id: number | null; name: string; email: string | null; phone: string | null; active: boolean; service_ids: string[] };
 type ServiceOption = { id: string; name: string };
 type Invitation = { id: string; email: string; role: string; expires_at: string };
-type Props = { staff: StaffMember[]; services: ServiceOption[]; invitations: Invitation[] };
+type Membership = { user_id: number; name: string; email: string; role: 'staff' | 'manager'; status: 'active' | 'suspended' };
+type Props = { staff: StaffMember[]; services: ServiceOption[]; invitations: Invitation[]; memberships: Membership[] };
 type StaffForm = { name: string; email: string; phone: string; active: boolean; service_ids: string[] };
 const emptyForm: StaffForm = { name: '', email: '', phone: '', active: true, service_ids: [] };
 
 export default function BusinessStaff() {
-    const { staff, services, invitations } = usePage<Props>().props;
+    const { staff, services, invitations, memberships } = usePage<Props>().props;
     const inviteForm = useForm({ email: '', role: 'staff' });
     const { data, setData, post, put, processing, errors, reset } = useForm<StaffForm>(emptyForm);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -67,6 +68,22 @@ export default function BusinessStaff() {
                         <button disabled={inviteForm.processing} className="rounded-lg bg-blue-700 px-5 py-2.5 font-semibold text-white disabled:opacity-50">Send invitation</button>
                     </form>
                     {invitations.length > 0 && <div className="mt-6"><h3 className="font-semibold text-slate-800">Pending invitations</h3><ul className="mt-2 divide-y divide-slate-100">{invitations.map(invitation => <li key={invitation.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"><span>{invitation.email} · {invitation.role} · expires {new Date(invitation.expires_at).toLocaleString()}</span><button type="button" onClick={() => router.delete('/business/invitations/' + invitation.id)} className="text-red-700 underline">Revoke</button></li>)}</ul></div>}
+                </section>
+                <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h2 className="text-lg font-semibold text-slate-900">Workspace access</h2>
+                    <p className="mt-1 text-sm text-slate-600">Manage invited staff and managers. Business-admin access is protected separately.</p>
+                    {memberships.length === 0 ? <p className="mt-4 text-sm text-slate-500">No staff or manager accounts have joined yet.</p> : <ul className="mt-4 divide-y divide-slate-100">
+                        {memberships.map(member => <li key={member.user_id} className="flex flex-wrap items-center justify-between gap-3 py-4">
+                            <div><p className="font-semibold text-slate-800">{member.name} <span className="text-sm font-normal text-slate-500">· {member.status}</span></p><p className="text-sm text-slate-500">{member.email}</p></div>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <select aria-label={"Role for " + member.name} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" value={member.role} onChange={e => router.patch("/business/members/" + member.user_id + "/role", { role: e.target.value })}><option value="staff">Staff</option><option value="manager">Manager</option></select>
+                                {member.status === "active"
+                                    ? <button type="button" onClick={() => router.post("/business/members/" + member.user_id + "/suspend")} className="rounded-lg border border-amber-300 px-3 py-2 text-sm text-amber-800">Suspend</button>
+                                    : <button type="button" onClick={() => router.post("/business/members/" + member.user_id + "/reactivate")} className="rounded-lg border border-green-300 px-3 py-2 text-sm text-green-800">Reactivate</button>}
+                                <button type="button" onClick={() => { if (window.confirm("Remove this person from the workspace? Their scheduling profile will be unlinked and deactivated.")) router.delete("/business/members/" + member.user_id); }} className="rounded-lg border border-red-300 px-3 py-2 text-sm text-red-700">Remove access</button>
+                            </div>
+                        </li>)}
+                    </ul>}
                 </section>
                 <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                     <h2 className="text-lg font-semibold text-slate-900">Team members</h2>
