@@ -84,6 +84,22 @@ class TenantMembershipLifecycleTest extends TestCase
         $this->assertDatabaseHas('tenant_user', ['tenant_id' => $tenant->id, 'user_id' => $otherAdmin->id, 'status' => 'active']);
     }
 
+    public function test_only_business_admin_can_manage_workspace_memberships(): void
+    {
+        [$admin, $tenant] = $this->workspace('membership-manager-admin@example.test');
+        $manager = $this->member($tenant, 'membership-manager@example.test', 'manager');
+        $staff = $this->member($tenant, 'membership-staff@example.test', 'staff');
+
+        $this->actingAs($manager)->withSession(['current_tenant_id' => $tenant->id]);
+        $this->patch('/business/members/'.$staff->id.'/role', ['role' => 'manager'])->assertForbidden();
+        $this->post('/business/members/'.$staff->id.'/suspend')->assertForbidden();
+        $this->post('/business/members/'.$staff->id.'/reactivate')->assertForbidden();
+        $this->delete('/business/members/'.$staff->id)->assertForbidden();
+
+        $this->actingAs($staff)->withSession(['current_tenant_id' => $tenant->id]);
+        $this->patch('/business/members/'.$manager->id.'/role', ['role' => 'staff'])->assertForbidden();
+    }
+
     public function test_membership_lifecycle_cannot_cross_tenant_boundaries(): void
     {
         [$admin, $tenantA] = $this->workspace('membership-tenant-a@example.test');
