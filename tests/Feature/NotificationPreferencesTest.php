@@ -46,10 +46,13 @@ class NotificationPreferencesTest extends TestCase
         );
         $tenantBStored = DB::table('tenant_user')->where('tenant_id', $otherTenant->id)->where('user_id', $user->id)->value('notification_preferences');
 
-        $this->assertSame([
+        $expectedPreferences = [
             'email_conversation_assignments' => false,
             'email_handover_requests' => true,
-        ], $tenantAPreferences);
+        ];
+        ksort($tenantAPreferences);
+        ksort($expectedPreferences);
+        $this->assertSame($expectedPreferences, $tenantAPreferences);
         $this->assertNull($tenantBStored);
     }
 
