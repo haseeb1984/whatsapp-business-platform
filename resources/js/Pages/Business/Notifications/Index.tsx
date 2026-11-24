@@ -20,7 +20,7 @@ export default function NotificationPreferences() {
         <main className="min-h-screen bg-slate-50 px-5 py-8 sm:px-8">
             <Head title="Notification preferences" />
             <div className="mx-auto max-w-3xl">
-                <a href="/dashboard" className="text-sm text-blue-700 hover:underline">← Dashboard</a>
+                <div className="flex flex-wrap gap-3 text-sm"><a href="/dashboard" className="text-blue-700 hover:underline">← Dashboard</a><a href="/business/notifications/inbox" className="text-blue-700 hover:underline">Notification inbox</a></div>
                 <h1 className="mt-4 text-3xl font-bold text-slate-900">Notification preferences</h1>
                 <p className="mt-2 text-slate-600">Choose which workspace events should send email notifications to your account. These settings apply only to your membership in this workspace.</p>
 
