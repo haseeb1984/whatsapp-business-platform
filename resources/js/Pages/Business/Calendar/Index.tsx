@@ -1,4 +1,5 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
+import FormErrorSummary from '@/Components/FormErrorSummary';
 import { useEffect, useState } from 'react';
 
 type CalendarOption = { id: string; summary: string; primary: boolean; access_role: string };
@@ -13,12 +14,14 @@ function StaffCalendarRow({ member, calendars }: { member: StaffOption; calendar
     const form = useForm({ calendar_id: member.google_calendar_id || '' });
     return (
         <form onSubmit={event => { event.preventDefault(); form.put('/business/calendar/staff/' + member.id); }} className="flex flex-wrap items-center gap-3 border-t border-slate-100 py-3">
-            <span className="min-w-40 flex-1 text-sm font-medium text-slate-800">{member.name}</span>
-            <select className="min-w-56 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900" value={form.data.calendar_id} onChange={event => form.setData('calendar_id', event.target.value)}>
+            <label htmlFor={"staff-calendar-" + member.id} className="min-w-40 flex-1 text-sm font-medium text-slate-800">{member.name}</label>
+            <select id={"staff-calendar-" + member.id} aria-invalid={Boolean(form.errors.calendar_id)} aria-describedby={form.errors.calendar_id ? "staff-calendar-error-" + member.id : undefined} className="min-w-56 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900" value={form.data.calendar_id} onChange={event => form.setData('calendar_id', event.target.value)}>
                 <option value="">Use tenant default calendar</option>
                 {calendars.map(calendar => <option key={calendar.id} value={calendar.id}>{calendar.summary}{calendar.primary ? ' (Primary)' : ''}</option>)}
             </select>
             <button disabled={form.processing} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700">Save</button>
+            <FormErrorSummary errors={form.errors} />
+            {form.errors.calendar_id && <p id={"staff-calendar-error-" + member.id} className="text-sm text-red-700">{form.errors.calendar_id}</p>}
         </form>
     );
 }
@@ -72,8 +75,10 @@ export default function GoogleCalendarSettings() {
                         {loading && <p className="mt-2 text-sm text-slate-500">Loading calendars…</p>}
                         {calendarError && <p className="mt-2 text-sm text-red-700">{calendarError}</p>}
                         {!loading && calendars.length > 0 && <form onSubmit={event => { event.preventDefault(); defaultCalendar.put('/business/calendar/default'); }} className="mt-3 flex flex-wrap items-end gap-3">
-                            <label className="min-w-64 flex-1 text-sm font-medium text-slate-700">Tenant default calendar<select className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value={defaultCalendar.data.calendar_id} onChange={event => defaultCalendar.setData('calendar_id', event.target.value)}>{calendars.map(item => <option key={item.id} value={item.id}>{item.summary}{item.primary ? ' (Primary)' : ''}</option>)}</select></label>
+                            <label htmlFor="tenant-default-calendar" className="min-w-64 flex-1 text-sm font-medium text-slate-700">Tenant default calendar<select id="tenant-default-calendar" aria-invalid={Boolean(defaultCalendar.errors.calendar_id)} aria-describedby={defaultCalendar.errors.calendar_id ? "tenant-default-calendar-error" : undefined} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value={defaultCalendar.data.calendar_id} onChange={event => defaultCalendar.setData('calendar_id', event.target.value)}>{calendars.map(item => <option key={item.id} value={item.id}>{item.summary}{item.primary ? ' (Primary)' : ''}</option>)}</select></label>
                             <button disabled={defaultCalendar.processing} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Save default</button>
+                            <FormErrorSummary errors={defaultCalendar.errors} />
+                            {defaultCalendar.errors.calendar_id && <p id="tenant-default-calendar-error" className="mt-2 text-sm text-red-700">{defaultCalendar.errors.calendar_id}</p>}
                         </form>}
                     </section>
                     <section className="mt-5 rounded-xl border border-slate-200 bg-white p-5">

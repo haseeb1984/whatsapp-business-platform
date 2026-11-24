@@ -9,6 +9,7 @@ use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -157,7 +158,14 @@ class GoogleCalendarConnectionController extends Controller
 
     public function updateDefaultCalendar(Request $request, GoogleCalendarService $calendar): RedirectResponse
     {
-        $validated = $request->validate(['calendar_id' => ['required', 'string', 'max:255']]);
+        $validated = $request->validate(
+            ['calendar_id' => ['required', 'string', 'max:255']],
+            [
+                'calendar_id.required' => 'Choose a default Google Calendar.',
+                'calendar_id.string' => 'The selected calendar is invalid.',
+                'calendar_id.max' => 'The selected calendar identifier is too long.',
+            ],
+        );
         $this->assertCalendarExists($calendar, $validated['calendar_id']);
 
         $connection = GoogleCalendarConnection::query()->firstOrFail();
@@ -168,7 +176,13 @@ class GoogleCalendarConnectionController extends Controller
 
     public function updateStaffCalendar(Request $request, string $staffId, GoogleCalendarService $calendar): RedirectResponse
     {
-        $validated = $request->validate(['calendar_id' => ['nullable', 'string', 'max:255']]);
+        $validated = $request->validate(
+            ['calendar_id' => ['nullable', 'string', 'max:255']],
+            [
+                'calendar_id.string' => 'The selected staff calendar is invalid.',
+                'calendar_id.max' => 'The selected calendar identifier is too long.',
+            ],
+        );
         $staff = Staff::query()->findOrFail($staffId);
 
         if (is_string($validated['calendar_id'] ?? null) && $validated['calendar_id'] !== '') {
@@ -188,7 +202,9 @@ class GoogleCalendarConnectionController extends Controller
         );
 
         if (! $exists) {
-            abort(422, 'Choose a writable calendar from the connected Google account.');
+            throw ValidationException::withMessages([
+                'calendar_id' => 'Choose a writable calendar from the connected Google account.',
+            ]);
         }
     }
 
