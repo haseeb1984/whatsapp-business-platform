@@ -21,6 +21,7 @@ use App\Http\Controllers\GoogleCalendarConnectionController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\ReadinessController;
+use App\Http\Controllers\NotificationPreferencesController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -127,6 +128,8 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::delete('/business/whatsapp/{connection}', [WhatsAppConnectionController::class, 'destroy'])->middleware('throttle:5,1')->name('business.whatsapp.destroy');
     });
     Route::middleware(['tenant.role:business_admin,manager,staff', 'audit'])->group(function (): void {
+        Route::get('/business/notifications', [NotificationPreferencesController::class, 'edit'])->name('business.notifications.edit');
+        Route::put('/business/notifications', [NotificationPreferencesController::class, 'update'])->middleware('throttle:20,1')->name('business.notifications.update');
         Route::get('/conversations', [ConversationController::class, 'index'])->name('conversations.index');
         Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])->name('conversations.show');
         Route::post('/conversations/{conversation}/take', [ConversationController::class, 'take'])->middleware('throttle:30,1')->name('conversations.take');
