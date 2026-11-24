@@ -98,8 +98,6 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::get('/business/staff', [StaffController::class, 'index'])->name('business.staff.index');
         Route::post('/business/invitations', [TenantInvitationController::class, 'store'])->middleware('throttle:10,1')->name('business.invitations.store');
         Route::delete('/business/invitations/{invitation}', [TenantInvitationController::class, 'destroy'])->name('business.invitations.destroy');
-        Route::post('/business/invitations', [TenantInvitationController::class, 'store'])->middleware('throttle:10,1')->name('business.invitations.store');
-        Route::delete('/business/invitations/{invitation}', [TenantInvitationController::class, 'destroy'])->name('business.invitations.destroy');
         Route::post('/business/staff', [StaffController::class, 'store'])->name('business.staff.store');
         Route::put('/business/staff/{staff}', [StaffController::class, 'update'])->name('business.staff.update');
         Route::delete('/business/staff/{staff}', [StaffController::class, 'destroy'])->name('business.staff.destroy');
