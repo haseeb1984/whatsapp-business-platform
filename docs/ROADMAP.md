@@ -117,11 +117,12 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Move unsupported/insufficient FAQ questions to `WAITING_FOR_STAFF` without generating unsupported claims.
 - [x] Add same-tenant unique inbound-to-outbound correlation to prevent duplicate automated sends.
 - [x] Deterministic intent routing for service catalog/pricing, today/tomorrow/weekly hours and business contact/location; exact tenant data is used before FAQ fallback.
-- [ ] Strict model-invoked allowlisted tools and additional business workflows. Deterministic English, Urdu and Roman Urdu intents now cover service catalog/pricing, weekly/today/tomorrow hours and configured contact details; broader locale/intent coverage remains pending.
+- [x] Strict model-selected allowlisted read-only tools: list/search active services, retrieve today/tomorrow/weekly hours, and retrieve configured public contact details. Tool names, exact argument keys/types, output decisions and tenant-scoped execution are validated server-side; unknown tools and malformed arguments fail closed. The tool selector runs only after deterministic routing and approved FAQ retrieval hand off.
+- [ ] Broader locale/intent coverage and additional booking-related business workflows; current tools are read-only and cannot create, change or cancel bookings.
 - [x] Groq rate-limit/timeout handling with deterministic high-confidence fallback and handoff.
 - [x] Prompt-injection-safe FAQ selection and tenant-isolation tests (CI passing).
 
-**Status:** Groq remains the grounded FAQ selector. Deterministic business facts now answer common service, pricing, hours and contact questions from tenant records; missing structured facts fall back to approved FAQs, then hand off if evidence is still insufficient. Natural-language service booking phrases are routed into the booking flow. Allowlisted tools and broader multilingual intent coverage remain pending.
+**Status:** Groq remains the grounded FAQ selector and can now select only a server-allowlisted read-only business tool after FAQ evidence is insufficient. The backend validates the exact tool name and argument schema, executes tenant-scoped reads, and constructs the reply from stored business data rather than model-generated facts. Tests cover unknown tools, extra/invalid arguments, cross-tenant service isolation, active-service filtering and the queued WhatsApp reply path. Booking mutations remain outside the tool allowlist and continue through the dedicated booking workflow.
 
 ## Milestone 7 — Booking domain
 - [x] Timezone-aware availability from tenant business hours, holiday overrides, staff weekly schedules and service duration/buffers.
