@@ -416,3 +416,14 @@ This roadmap distinguishes planned work from implemented work.
 - Branch policy checkpoint: only `main` and `work` are intended; both point to the same merge commit and there are no open pull requests at this checkpoint.
 - Production has **not** been deployed. Actual Neon connection/TLS and migration rehearsal, Hostinger runtime/cron rehearsal, live Meta and Google acceptance, load/abuse testing, backup/restore drill, and rollback rehearsal remain release gates.
 - Queue visibility is observability, not proof of a running worker or a successful external provider delivery. Operators must inspect the underlying failure and provider state before taking recovery action.
+
+
+## Queue recovery and reproducible CI batch — 2026-11-24
+
+- PR #17 added regression coverage for global pending-outbox dispatch across multiple active tenants, exclusion of suspended tenants, tenant-context cleanup after global scans, and the five-minute dispatch lease that prevents repeated scheduler ticks from flooding the queue.
+- The first PR-head CI attempt exposed a test-fixture ordering issue: the suspended tenant was created before tenant-scoped fixtures. The test now creates its fixtures while the tenant is active and suspends it immediately before exercising the global dispatcher.
+- Corrected full CI run [45297353400](https://github.com/actions/runs/45297353400) passed all steps: Composer validation/install/audit, SQLite tests and migration rollback/replay, PostgreSQL 16 tests and migration rollback/replay, frontend dependency audit, Vite build, and lazy page-chunk verification.
+- PR #17 was squash-merged as `f68c92973115ac6ac1b7aec941210557654f6f4b`; `main` and `work` were synchronized to the same commit, with no open pull requests.
+- Follow-up CI hardening changes the frontend dependency install from `npm install` to `npm ci`, ensuring CI uses the committed `package-lock.json` without silently resolving a different dependency tree. The README verification checkpoint now reflects the merged PR #17 and the locked install policy.
+- The frontend-install hardening is awaiting its own full CI verification before merge.
+- Production acceptance remains a separate release phase: live Neon TLS/connectivity and migration rehearsal, Hostinger PHP/cron/runtime checks, live Meta and Google acceptance, load/abuse testing, browser profiling, backup/restore and rollback rehearsal. No production deployment has been performed.
