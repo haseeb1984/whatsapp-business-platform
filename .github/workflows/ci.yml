@@ -75,7 +75,7 @@ jobs:
         with:
           node-version: 22
       - name: Install frontend dependencies
-        run: npm install
+        run: npm ci
       - name: Audit frontend production dependencies
         run: npm audit --omit=dev
       - name: Build frontend
