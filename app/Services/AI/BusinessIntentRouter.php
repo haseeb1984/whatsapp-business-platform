@@ -107,7 +107,8 @@ class BusinessIntentRouter
             if ($holiday) {
                 if ($holiday->is_closed) {
                     $suffix = $holiday->name ? $this->copy($language, ' for '.$holiday->name, '، '.$holiday->name.' کی وجہ سے', '، '.$holiday->name.' ki wajah se') : '';
-                    return new BusinessIntentResult('answered', $this->copy($language, 'We are closed '.$label.$suffix.'.', $label.' چھٹی ہے'.$suffix.'۔', $label.' chhutti hai'.$suffix.'.'), $isTomorrow ? 'tomorrow_hours' : 'today_hours');
+                    $englishLabel = $language === 'en' ? mb_strtolower($label) : $label;
+                    return new BusinessIntentResult('answered', $this->copy($language, 'We are closed '.$englishLabel.$suffix.'.', $label.' چھٹی ہے'.$suffix.'۔', $label.' chhutti hai'.$suffix.'.'), $isTomorrow ? 'tomorrow_hours' : 'today_hours');
                 }
                 if ($holiday->opens_at && $holiday->closes_at) {
                     $hours = substr((string) $holiday->opens_at, 0, 5).'–'.substr((string) $holiday->closes_at, 0, 5);
