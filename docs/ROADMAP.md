@@ -69,9 +69,9 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Staff-specific weekly working hours editor with tenant-aware foreign key and validation (CI passing).
 - [x] Staff-specific date exceptions and booking policy configuration (minimum notice, booking horizon, slot interval, temporary-hold duration).
 - [x] FAQ CRUD, draft/published/archived lifecycle, locale validation and tenant-scoped search (CI passing).
-- [ ] Dashboard forms and validation.
+- [x] Dashboard forms and validation: reusable accessible validation summaries are rendered across business profile, weekly hours, holidays, services, staff CRUD/schedules/exceptions, FAQs, WhatsApp connections, appointment policy and conversation assignment/reply/notes; existing field-level/server validation remains authoritative.
 
-**Status:** Business profile, weekly hours, holiday/special-hours management, service/pricing CRUD, staff/service assignments, staff weekly availability/date exceptions, booking policies and FAQ management are committed with tenant isolation and role controls. Full business dashboards and remaining UX polish are in progress.
+**Status:** Business profile, weekly hours, holiday/special-hours management, service/pricing CRUD, staff/service assignments, staff weekly availability/date exceptions, booking policies and FAQ management are committed with tenant isolation and role controls. Reusable accessible validation summaries now surface server-side errors across the principal business configuration and conversation forms. Calendar integration forms and remaining dashboard polish still need review.
 
 ## Milestone 4 — WhatsApp Cloud API foundation
 - [x] Persist outbound text/template messages as a durable tenant-scoped outbox record before provider delivery; dispatch after transaction commit.
