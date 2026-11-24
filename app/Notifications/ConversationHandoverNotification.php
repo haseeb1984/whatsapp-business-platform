@@ -16,8 +16,8 @@ class ConversationHandoverNotification extends TenantConversationNotification
         return (new MailMessage)
             ->subject('A WhatsApp conversation needs staff attention')
             ->greeting('Staff handover requested')
-            ->line('A customer conversation in '.$this->tenantName.' is waiting for a team member.')
-            ->action('Open conversation', $this->conversationUrl())
+            ->line('A customer conversation in '.$this->tenantName.' is waiting for a team member. Select this workspace to open the inbox.')
+            ->action('Choose workspace', $this->conversationUrl())
             ->line('You can change handover email preferences in your workspace settings.');
     }
 }
