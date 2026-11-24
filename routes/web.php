@@ -121,7 +121,7 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         Route::post('/business/whatsapp/{connection}/templates/sync', [WhatsAppConnectionController::class, 'syncTemplates'])->middleware('throttle:5,1')->name('business.whatsapp.templates.sync');
         Route::delete('/business/whatsapp/{connection}', [WhatsAppConnectionController::class, 'destroy'])->middleware('throttle:5,1')->name('business.whatsapp.destroy');
     });
-    Route::middleware(['tenant.role:business_admin,staff', 'audit'])->group(function (): void {
+    Route::middleware(['tenant.role:business_admin,manager,staff', 'audit'])->group(function (): void {
         Route::get('/conversations', [ConversationController::class, 'index'])->name('conversations.index');
         Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])->name('conversations.show');
         Route::post('/conversations/{conversation}/take', [ConversationController::class, 'take'])->middleware('throttle:30,1')->name('conversations.take');
