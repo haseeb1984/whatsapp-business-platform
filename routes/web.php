@@ -8,6 +8,7 @@ use App\Http\Controllers\BusinessHoursController;
 use App\Http\Controllers\BusinessHolidayController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\StaffController;
+use App\Http\Controllers\TenantInvitationController;
 use App\Http\Controllers\StaffWorkingHoursController;
 use App\Http\Controllers\FaqController;
 use App\Http\Controllers\WhatsAppConnectionController;
