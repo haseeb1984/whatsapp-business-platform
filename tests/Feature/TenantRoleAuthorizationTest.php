@@ -147,22 +147,22 @@ class TenantRoleAuthorizationTest extends TestCase
         $records = [];
 
         TenantContext::runForTenant($this->makeMembership('business_admin')[1]->id, function () use (&$records): void {
-            $records['holiday'] = \\App\\Models\\BusinessHoliday::query()->create([
+            $records['holiday'] = \App\Models\BusinessHoliday::query()->create([
                 'date' => '2026-12-02', 'name' => 'Foreign holiday', 'is_closed' => true,
             ]);
-            $records['service'] = \\App\\Models\\Service::query()->create([
+            $records['service'] = \App\Models\Service::query()->create([
                 'name' => 'Foreign service', 'price_amount' => 200, 'currency' => 'PKR',
                 'duration_minutes' => 30, 'buffer_before_minutes' => 0,
                 'buffer_after_minutes' => 0, 'active' => true,
             ]);
-            $records['staff'] = \\App\\Models\\Staff::query()->create([
+            $records['staff'] = \App\Models\Staff::query()->create([
                 'name' => 'Foreign staff', 'active' => true,
             ]);
-            $records['faq'] = \\App\\Models\\Faq::query()->create([
+            $records['faq'] = \App\Models\Faq::query()->create([
                 'question' => 'Foreign question?', 'answer' => 'Foreign answer',
                 'locale' => 'en', 'status' => 'draft',
             ]);
-            $records['connection'] = \\App\\Models\\WhatsAppConnection::query()->create([
+            $records['connection'] = \App\Models\WhatsAppConnection::query()->create([
                 'phone_number_id' => '123456789012398', 'waba_id' => '987654321098798',
                 'access_token' => 'foreign-encrypted-token', 'status' => 'pending',
             ]);
