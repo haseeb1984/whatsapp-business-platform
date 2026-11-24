@@ -129,7 +129,11 @@ The minute scheduler also recovers pending outbox rows older than five minutes i
 
 For the database queue, keep `retry_after` at 90 seconds and worker `--timeout` below that (45 seconds here); the WhatsApp delivery job itself has a 30-second timeout and one attempt. Verify Hostinger CLI/cron process limits before using these values in production.
 
-## 9. Rollback and recovery
+## 9. Go-live acceptance checklist
+
+Use the evidence-based [Go-live checklist](GO-LIVE-CHECKLIST.md) as the release record. Do not mark a gate complete from a passing CI run alone: attach sanitized command output, provider test evidence, timestamps, and the responsible operator. The checklist separates repository/CI evidence from live account and hosting acceptance.
+
+## 10. Rollback and recovery
 
 - Back up database before schema changes.
 - Use backward-compatible migrations where possible.

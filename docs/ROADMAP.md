@@ -443,3 +443,12 @@ This roadmap distinguishes planned work from implemented work.
 - Scheduler coverage already asserts six operational reconciliation/dispatch commands run every minute with overlap prevention. The deployment runbook now explicitly lists the scheduler and bounded worker as separate cron responsibilities.
 - PR #19 authorization matrix is marked verified after its passing PR and post-merge CI runs above. README, security notes, deployment notes and this roadmap checkpoint are aligned with the merged state.
 - Actual Neon TLS/connectivity/migration, Hostinger PHP/cron/resource limits, live Meta/Google credentials, performance/abuse testing, backup/restore and rollback drills remain external acceptance gates. No production deployment or live-account mutation has been performed.
+
+
+## Cross-tenant configuration binding and release checklist checkpoint (2026-11-24)
+
+- PR #21 added a business-admin regression that creates foreign-tenant holiday, service, staff, FAQ and WhatsApp connection records, attempts both update and delete through the active tenant, expects HTTP 404 for every request, and verifies the foreign records remain unchanged.
+- The first CI attempts exposed test-only fixture defects (PHP namespace escaping, duplicate user email, then duplicate tenant slug); each was corrected before merge. The final PR-head CI [run 45309223904](https://github.com/actions/runs/45309223904) passed all 17 steps across SQLite, PostgreSQL 16, migration rollback/replay, dependency audits and frontend build/chunk verification.
+- PR #21 was squash-merged to `main` as `f9fad51ba2218b60c83bd4c1d2cd8387c95735b6`. `work` was force-with-lease synchronized to the same commit. Keep only `main` and `work` as active working branches.
+- Added a go-live checklist document to convert remaining external acceptance gates into explicit evidence and operator sign-off steps. Documentation does not claim that live Neon, Hostinger, Meta or Google checks have been performed.
+- Still external / access-dependent: real Neon TLS/connectivity and production-like migration rehearsal; Hostinger PHP extensions, cron cadence and bounded worker runtime; live Meta webhook/signature/send/template acceptance; live Google OAuth/Calendar acceptance; load and abuse testing; backup/restore and rollback drills; monitoring and incident handover. Production remains undeployed.
