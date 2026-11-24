@@ -8,6 +8,7 @@ use App\Models\Conversation;
 use App\Models\ConversationNote;
 use App\Models\Message;
 use App\Services\Messaging\WhatsAppMessageService;
+use App\Services\Messaging\ConversationNotificationService;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -181,6 +182,8 @@ class ConversationController extends Controller
             ])->save();
         });
 
+        app(ConversationNotificationService::class)->assigned($conversationId, (int) $validated['assigned_user_id']);
+
         return back()->with('success', 'Conversation assigned to a workspace team member.');
     }
 
@@ -197,6 +200,8 @@ class ConversationController extends Controller
                 'handover_reason' => $validated['reason'] ?? 'Requested by team member',
             ])->save();
         });
+
+        app(ConversationNotificationService::class)->handover($conversationId);
 
         return back()->with('success', 'Automation paused and staff handover requested.');
     }
