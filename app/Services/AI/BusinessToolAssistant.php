@@ -28,6 +28,11 @@ class BusinessToolAssistant
             'description' => 'Read configured public business contact details only.',
             'arguments' => [],
         ],
+        [
+            'name' => 'get_booking_policy',
+            'description' => 'Read the configured minimum booking notice, booking horizon and appointment slot interval.',
+            'arguments' => [],
+        ],
     ];
 
     public function __construct(
