@@ -2,6 +2,7 @@
 
 namespace App\Services\AI;
 
+use App\Models\BookingPolicy;
 use App\Models\Service;
 
 class BusinessToolRegistry
@@ -29,6 +30,9 @@ class BusinessToolRegistry
             'get_business_hours' => $this->businessHours($arguments, $locale),
             'get_business_contact' => $arguments === []
                 ? $this->intents->route('contact details', $locale)
+                : $this->notHandled('invalid_tool_arguments'),
+            'get_booking_policy' => $arguments === []
+                ? $this->bookingPolicy($locale)
                 : $this->notHandled('invalid_tool_arguments'),
             default => $this->notHandled('unknown_tool'),
         };
@@ -100,6 +104,27 @@ class BusinessToolRegistry
         };
 
         return $this->intents->route($message, $locale);
+    }
+
+
+    private function bookingPolicy(string $locale): BusinessIntentResult
+    {
+        $policy = BookingPolicy::query()->first();
+        $minimumNotice = $policy?->minimum_notice_minutes ?? 60;
+        $bookingHorizon = $policy?->booking_horizon_days ?? 60;
+        $slotInterval = $policy?->slot_interval_minutes ?? 15;
+
+        $language = str_starts_with(mb_strtolower(str_replace('_', '-', $locale)), 'ur-latn')
+            ? 'roman'
+            : (str_starts_with(mb_strtolower($locale), 'ur') ? 'ur' : 'en');
+
+        $answer = match ($language) {
+            'ur' => "بکنگ کے اصول: کم از کم پیشگی اطلاع {$minimumNotice} منٹ ہے، بکنگ {$bookingHorizon} دن پہلے تک کی جا سکتی ہے، اور دستیاب اوقات {$slotInterval} منٹ کے وقفے سے ہوتے ہیں۔",
+            'roman' => "Booking ke qawaid: kam az kam {$minimumNotice} minute pehle booking zaroori hai, booking {$bookingHorizon} din pehle tak ki ja sakti hai, aur slots {$slotInterval} minute ke waqfay se hain.",
+            default => "Booking policy: please book at least {$minimumNotice} minutes ahead. Appointments can be booked up to {$bookingHorizon} days in advance, with slots offered every {$slotInterval} minutes.",
+        };
+
+        return new BusinessIntentResult('answered', $answer, 'booking_policy');
     }
 
     private function notHandled(string $reason): BusinessIntentResult

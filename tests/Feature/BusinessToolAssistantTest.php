@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Contracts\AiProviderInterface;
+use App\Models\BookingPolicy;
 use App\Models\BusinessHour;
 use App\Models\Service;
 use App\Models\Tenant;
@@ -73,6 +74,7 @@ class BusinessToolAssistantTest extends TestCase
             ['decision' => 'tool', 'tool' => 'list_services', 'arguments' => ['tenant_id' => 'foreign-tenant']],
             ['decision' => 'tool', 'tool' => 'search_services', 'arguments' => ['query' => 'hair', 'limit' => 1000]],
             ['decision' => 'tool', 'tool' => 'get_business_hours', 'arguments' => ['period' => 'all']],
+            ['decision' => 'tool', 'tool' => 'get_booking_policy', 'arguments' => ['tenant_id' => 'another-tenant']],
         ] as $decision) {
             $assistant = $this->assistant($decision);
             $result = TenantContext::runForTenant($tenant->id, fn () => $assistant->answer(
@@ -108,6 +110,36 @@ class BusinessToolAssistantTest extends TestCase
 
         $this->assertSame('answered', $result->status);
         $this->assertStringContainsString('Monday: 10:00–18:00', $result->answer);
+    }
+
+
+    public function test_booking_policy_tool_returns_only_configured_read_only_booking_rules(): void
+    {
+        $tenant = $this->tenant('business-tools-booking-policy');
+        TenantContext::runForTenant($tenant->id, fn () => BookingPolicy::query()->create([
+            'minimum_notice_minutes' => 90,
+            'booking_horizon_days' => 45,
+            'slot_interval_minutes' => 30,
+            'hold_minutes' => 12,
+        ]));
+
+        $assistant = $this->assistant([
+            'decision' => 'tool',
+            'tool' => 'get_booking_policy',
+            'arguments' => [],
+        ]);
+
+        $result = TenantContext::runForTenant($tenant->id, fn () => $assistant->answer(
+            'How far in advance can I book?',
+            'en',
+        ));
+
+        $this->assertSame('answered', $result->status);
+        $this->assertSame('booking_policy', $result->intent);
+        $this->assertSame(
+            'Booking policy: please book at least 90 minutes ahead. Appointments can be booked up to 45 days in advance, with slots offered every 30 minutes.',
+            $result->answer,
+        );
     }
 
     public function test_malformed_provider_output_fails_closed(): void
