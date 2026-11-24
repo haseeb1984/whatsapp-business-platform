@@ -114,7 +114,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Move unsupported/insufficient FAQ questions to `WAITING_FOR_STAFF` without generating unsupported claims.
 - [x] Add same-tenant unique inbound-to-outbound correlation to prevent duplicate automated sends.
 - [x] Deterministic intent routing for service catalog/pricing, today/tomorrow/weekly hours and business contact/location; exact tenant data is used before FAQ fallback.
-- [ ] Allowlisted tools, expanded multilingual intents and additional business workflows.
+- [ ] Strict model-invoked allowlisted tools and additional business workflows. Deterministic English, Urdu and Roman Urdu intents now cover service catalog/pricing, weekly/today/tomorrow hours and configured contact details; broader locale/intent coverage remains pending.
 - [x] Groq rate-limit/timeout handling with deterministic high-confidence fallback and handoff.
 - [x] Prompt-injection-safe FAQ selection and tenant-isolation tests (CI passing).
 

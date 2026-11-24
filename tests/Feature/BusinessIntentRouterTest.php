@@ -130,6 +130,58 @@ class BusinessIntentRouterTest extends TestCase
         $this->assertSame('Tomorrow’s hours are 10:00–16:00 Asia/Karachi.', $result->answer);
     }
 
+    public function test_urdu_pricing_questions_return_only_configured_active_services(): void
+    {
+        $tenant = $this->tenant('intent-urdu-pricing');
+        TenantContext::runForTenant($tenant->id, fn () => Service::query()->create([
+            'name' => 'Consultation',
+            'price_amount' => '1500.00',
+            'currency' => 'PKR',
+            'duration_minutes' => 30,
+            'active' => true,
+        ]));
+
+        $result = TenantContext::runForTenant($tenant->id, fn () => app(BusinessIntentRouter::class)->route('آپ کی خدمات کی قیمت کتنی ہے؟', 'ur-PK'));
+
+        $this->assertSame('answered', $result->status);
+        $this->assertSame('service_pricing', $result->intent);
+        $this->assertStringContainsString('ہماری موجودہ خدمات اور قیمتیں یہ ہیں:', $result->answer);
+        $this->assertStringContainsString('Consultation — 1500.00 PKR', $result->answer);
+    }
+
+    public function test_roman_urdu_tomorrow_hours_are_resolved_in_business_timezone(): void
+    {
+        $tenant = $this->tenant('intent-roman-urdu-hours');
+        TenantContext::runForTenant($tenant->id, fn () => BusinessHour::query()->create([
+            'weekday' => 0,
+            'is_closed' => false,
+            'opens_at' => '10:00',
+            'closes_at' => '16:00',
+        ]));
+
+        $result = TenantContext::runForTenant($tenant->id, fn () => app(BusinessIntentRouter::class)->route('Kal khulay hain?', 'ur-Latn-PK'));
+
+        $this->assertSame('answered', $result->status);
+        $this->assertSame('tomorrow_hours', $result->intent);
+        $this->assertStringContainsString('Kal hamaray auqat 10:00 se 16:00 tak hain.', $result->answer);
+    }
+
+    public function test_roman_urdu_contact_questions_return_only_configured_fields(): void
+    {
+        $tenant = $this->tenant('intent-roman-urdu-contact');
+        TenantContext::runForTenant($tenant->id, fn () => BusinessProfile::query()->create([
+            'display_name' => 'Primary Business',
+            'phone' => '+923001112233',
+            'address' => 'North Nazimabad, Karachi',
+        ]));
+
+        $result = TenantContext::runForTenant($tenant->id, fn () => app(BusinessIntentRouter::class)->route('Aap ka pata kahan hai?', 'ur-Latn'));
+
+        $this->assertSame('answered', $result->status);
+        $this->assertStringContainsString('Pata: North Nazimabad, Karachi', $result->answer);
+        $this->assertStringContainsString('Phone: +923001112233', $result->answer);
+    }
+
     private function tenant(string $slug): Tenant
     {
         return Tenant::query()->create([

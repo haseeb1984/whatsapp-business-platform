@@ -32,7 +32,7 @@ Automated outbound messages store a same-tenant `reply_to_message_id` with a uni
 
 Remaining steps:
 1. detect intent (FAQ, booking, handover, greeting, unsupported);
-2. combine published FAQs with structured business facts such as hours, services and prices;
+2. combine published FAQs with structured business facts such as hours, services and prices; the deterministic business-intent router supports English, Urdu and Roman Urdu for service catalog/pricing, weekly/today/tomorrow hours, and configured contact details;
 3. expand staff handover workflow and notifications; the initial `AUTO_ACTIVE` gate and `WAITING_FOR_STAFF` fallback are implemented;
 4. execute only allowlisted application tools with schema-validated arguments and tenant authorization;
 5. add bounded usage metrics, provider latency and safe operational telemetry.
