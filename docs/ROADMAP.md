@@ -7,7 +7,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Record Hostinger Business + Neon architecture and exclude Vercel.
 - [x] Add system, database, integration, security and deployment specifications.
 - [ ] Verify actual Hostinger and Neon account limits.
-- [ ] Generate and commit `composer.lock` and `package-lock.json`, then switch CI/deployment to deterministic locked installs (`composer install` from lock and `npm ci`).
+- [x] Generate and commit `composer.lock` and `package-lock.json`; CI uses deterministic locked installs (`composer install` from lock and `npm ci`).
 
 **Status:** Documentation foundation committed.
 
@@ -405,3 +405,14 @@ This roadmap distinguishes planned work from implemented work.
 - The workflow's final `gh pr create` command was blocked by the repository Actions setting that prevents `GITHUB_TOKEN` from creating pull requests. The lockfile commit was nevertheless pushed successfully as `719fa191143e3a01d328815fa5e79429d08e2458` on `chore/dependency-lockfiles-45244631505`.
 - Opened reviewable [PR #6](https://github.com/haseeb1984/whatsapp-business-platform/pull/6) separately. Its regular CI run [45245038911](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45245038911) passed.
 - Lockfiles are generated and CI-verified on PR #6, but are not yet merged into `main`; do not mark deterministic locked installs as active on main until review and merge.
+
+
+## Latest verified checkpoint — 2026-11-24
+
+- PR #15, **queue health visibility**, was squash-merged into `main` as commit `44d27235b672ed9f9b5496b859a3f2c86f3fc513`; the `work` branch was fast-forward/synchronized to the same commit.
+- The platform operations dashboard now reports the age of the oldest queued job and the number of failed jobs in the previous 24 hours. Recent failure summaries intentionally omit serialized job payloads and exception traces.
+- Deployment guidance documents operator-reviewed queue recovery and warns against blind retries of outbound WhatsApp jobs because provider acceptance can be ambiguous.
+- Post-merge CI [run 45294585292](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45294585292) passed: SQLite feature suite, SQLite migration rollback/replay, PostgreSQL 16 feature suite, PostgreSQL migration rollback/replay, Composer validation/audit, npm production audit, Vite production build, and lazy-loaded route chunk verification.
+- Branch policy checkpoint: only `main` and `work` are intended; both point to the same merge commit and there are no open pull requests at this checkpoint.
+- Production has **not** been deployed. Actual Neon connection/TLS and migration rehearsal, Hostinger runtime/cron rehearsal, live Meta and Google acceptance, load/abuse testing, backup/restore drill, and rollback rehearsal remain release gates.
+- Queue visibility is observability, not proof of a running worker or a successful external provider delivery. Operators must inspect the underlying failure and provider state before taking recovery action.
