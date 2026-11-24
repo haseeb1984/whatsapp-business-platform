@@ -31,6 +31,25 @@ class DashboardController extends Controller
             ->where('status', 'connected')
             ->groupBy('tenant_id')
             ->pluck('total', 'tenant_id');
+        $whatsappStatusCounts = DB::table('whatsapp_connections')
+            ->select('status', DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+        $calendarStatusCounts = DB::table('google_calendar_connections')
+            ->select('status', DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+        $calendarExpiredTokens = DB::table('google_calendar_connections')
+            ->where('status', 'connected')
+            ->whereNotNull('token_expires_at')
+            ->where('token_expires_at', '<=', now())
+            ->count();
+        $calendarMissingRefreshTokens = DB::table('google_calendar_connections')
+            ->where('status', 'connected')
+            ->where(function ($query): void {
+                $query->whereNull('refresh_token')->orWhere('refresh_token', '');
+            })
+            ->count();
 
         $messageCounts = DB::table('messages')->select('tenant_id', DB::raw('COUNT(*) as total'))->groupBy('tenant_id')->pluck('total', 'tenant_id');
         $outboundDeliveryCounts = DB::table('messages')
@@ -107,7 +126,12 @@ class DashboardController extends Controller
                 'tenants_suspended' => Tenant::query()->where('status', 'suspended')->count(),
                 'users_total' => User::query()->count(),
                 'whatsapp_connections' => (int) $whatsappCounts->sum(),
+                'whatsapp_pending' => (int) ($whatsappStatusCounts['pending'] ?? 0),
+                'whatsapp_inactive' => (int) collect($whatsappStatusCounts)->except('active')->sum(),
                 'calendar_connections' => (int) $calendarCounts->sum(),
+                'calendar_reauthorization_required' => (int) ($calendarStatusCounts['reauthorization_required'] ?? 0),
+                'calendar_expired_tokens' => (int) $calendarExpiredTokens,
+                'calendar_missing_refresh_tokens' => (int) $calendarMissingRefreshTokens,
                 'messages_total' => DB::table('messages')->count(),
                 'outbound_pending' => (int) ($outboundDeliveryCounts['pending'] ?? 0),
                 'outbound_sending' => (int) ($outboundDeliveryCounts['sending'] ?? 0),
