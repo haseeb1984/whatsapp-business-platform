@@ -25,6 +25,25 @@ class ReadinessEndpointTest extends TestCase
             ]);
     }
 
+    public function test_readiness_reports_degraded_when_database_queue_table_is_incomplete(): void
+    {
+        config(['queue.default' => 'database']);
+        Schema::dropIfExists('jobs');
+        Schema::create('jobs', function (\Illuminate\Database\Schema\Blueprint $table): void {
+            $table->id();
+        });
+
+        $this->getJson('/health/ready')
+            ->assertStatus(503)
+            ->assertExactJson([
+                'status' => 'degraded',
+                'checks' => [
+                    'database' => true,
+                    'queue_storage' => false,
+                ],
+            ]);
+    }
+
     public function test_responses_include_baseline_browser_security_headers(): void
     {
         $this->getJson('/health/ready')
