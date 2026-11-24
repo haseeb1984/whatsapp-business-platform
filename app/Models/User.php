@@ -25,7 +25,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
     public function tenants()
     {
         return $this->belongsToMany(Tenant::class)
-            ->withPivot(['role', 'status'])
+            ->withPivot(['role', 'status', 'notification_preferences'])
             ->withTimestamps();
     }
 }

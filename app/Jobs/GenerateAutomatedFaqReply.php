@@ -10,6 +10,7 @@ use App\Services\AI\BusinessToolAssistant;
 use App\Services\AI\FaqAssistantResult;
 use App\Services\AI\GroundedFaqAssistant;
 use App\Services\Messaging\WhatsAppMessageService;
+use App\Services\Messaging\ConversationNotificationService;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -103,10 +104,10 @@ class GenerateAutomatedFaqReply implements ShouldQueue
             }
 
             if ($result->status !== 'answered' || ! is_string($result->answer) || trim($result->answer) === '' || mb_strlen($result->answer) > 4096) {
-                DB::transaction(function () use ($result): void {
+                $handoverRequested = DB::transaction(function () use ($result): bool {
                     $conversation = Conversation::query()->lockForUpdate()->find($this->conversationId);
                     if (! $conversation || $conversation->status !== 'open' || $conversation->automation_state !== 'AUTO_ACTIVE') {
-                        return;
+                        return false;
                     }
 
                     $latestInbound = Message::query()
@@ -115,16 +116,24 @@ class GenerateAutomatedFaqReply implements ShouldQueue
                         ->orderByDesc('created_at')
                         ->first();
 
-                    if ($latestInbound?->id === $this->inboundMessageId) {
-                        $conversation->forceFill([
-                            'automation_state' => 'WAITING_FOR_STAFF',
-                            'handover_requested_at' => now(),
-                            'handover_reason' => str_starts_with($result->source, 'business_fact_unavailable:')
-                                ? 'Requested business information is not configured: '.substr($result->source, strlen('business_fact_unavailable:'))
-                                : 'No sufficiently relevant approved FAQ answer was available.',
-                        ])->save();
+                    if ($latestInbound?->id !== $this->inboundMessageId) {
+                        return false;
                     }
+
+                    $conversation->forceFill([
+                        'automation_state' => 'WAITING_FOR_STAFF',
+                        'handover_requested_at' => now(),
+                        'handover_reason' => str_starts_with($result->source, 'business_fact_unavailable:')
+                            ? 'Requested business information is not configured: '.substr($result->source, strlen('business_fact_unavailable:'))
+                            : 'No sufficiently relevant approved FAQ answer was available.',
+                    ])->save();
+
+                    return true;
                 });
+
+                if ($handoverRequested) {
+                    app(ConversationNotificationService::class)->handover($this->conversationId);
+                }
 
                 return;
             }
