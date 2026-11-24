@@ -1,3 +1,4 @@
+import FormErrorSummary from '../../../Components/FormErrorSummary';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 
@@ -19,6 +20,7 @@ function ExceptionRow({ staffId, item }: { staffId: string; item: Exception }) {
     }
     return (
         <form onSubmit={save} className="grid gap-3 rounded-lg border border-slate-200 p-4 md:grid-cols-6">
+            <FormErrorSummary errors={form.errors} />
             <label className="text-sm font-medium text-slate-700">Date<input type="date" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value={form.data.date} onChange={event => form.setData('date', event.target.value)} /></label>
             <label className="flex items-center gap-2 self-end pb-2 text-sm text-slate-700"><input type="checkbox" checked={form.data.is_closed} onChange={event => form.setData('is_closed', event.target.checked)} /> Unavailable / leave</label>
             {!form.data.is_closed && <>
@@ -48,6 +50,7 @@ export default function StaffExceptions() {
                 <h1 className="mt-4 text-3xl font-bold text-slate-900">Availability exceptions</h1>
                 <p className="mt-2 text-slate-600">Manage leave days or one-off working hours for {staff.name}. These dates override the weekly staff schedule.</p>
                 <form onSubmit={create} className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
+                    <FormErrorSummary errors={form.errors} />
                     <h2 className="font-semibold text-slate-900">Add exception</h2>
                     <div className="mt-4 grid gap-3 sm:grid-cols-5">
                         <label className="text-sm font-medium text-slate-700">Date<input type="date" className={field} value={form.data.date} onChange={event => form.setData('date', event.target.value)} required /></label>
