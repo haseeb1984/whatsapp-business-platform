@@ -171,18 +171,23 @@ class ConversationController extends Controller
             ],
         ]);
 
-        DB::transaction(function () use ($conversationId, $validated): void {
+        $assignmentChanged = DB::transaction(function () use ($conversationId, $validated): bool {
             $conversation = Conversation::query()->lockForUpdate()->findOrFail($conversationId);
             abort_unless($conversation->status === 'open', 409);
+            $changed = (int) $conversation->assigned_user_id !== (int) $validated['assigned_user_id'];
 
             $conversation->forceFill([
                 'assigned_user_id' => $validated['assigned_user_id'],
                 'automation_state' => $conversation->automation_state === 'AUTO_ACTIVE' ? 'WAITING_FOR_STAFF' : $conversation->automation_state,
                 'handover_requested_at' => $conversation->handover_requested_at ?? now(),
             ])->save();
+
+            return $changed;
         });
 
-        app(ConversationNotificationService::class)->assigned($conversationId, (int) $validated['assigned_user_id']);
+        if ($assignmentChanged) {
+            app(ConversationNotificationService::class)->assigned($conversationId, (int) $validated['assigned_user_id']);
+        }
 
         return back()->with('success', 'Conversation assigned to a workspace team member.');
     }
