@@ -161,7 +161,7 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Basic per-tenant message/conversation/appointment usage metrics, append-only admin mutation audit history and WhatsApp/Calendar connection health counts.
 - [x] Tenant search, status filtering, pagination and CSV export with spreadsheet-formula injection protection.
 
-**Status:** Business and platform dashboards are implemented and CI-tested. The global console provides tenant search/status filtering, pagination, CSV export, per-tenant usage counts, queue health and recent admin mutation audit events. Access is restricted to verified emails in `PLATFORM_ADMIN_EMAILS`. Detailed token/permission health, retention controls and tenant-management actions remain pending.
+**Status:** Business and platform dashboards are implemented and CI-tested. The global console provides tenant search/status filtering, pagination, CSV export, per-tenant usage counts, queue health and recent admin mutation audit events. It also reports aggregate WhatsApp verification states and Google Calendar reauthorization, expired-token and missing-refresh-token counts without exposing credentials. Access is restricted to verified emails in `PLATFORM_ADMIN_EMAILS`. Live provider permission validation, usage controls, retention controls and tenant-management actions remain pending.
 
 
 ## Milestone 10 — Production hardening and deployment
@@ -452,3 +452,11 @@ This roadmap distinguishes planned work from implemented work.
 - PR #21 was squash-merged to `main` as `f9fad51ba2218b60c83bd4c1d2cd8387c95735b6`. `work` was force-with-lease synchronized to the same commit. Keep only `main` and `work` as active working branches.
 - Added a go-live checklist document to convert remaining external acceptance gates into explicit evidence and operator sign-off steps. Documentation does not claim that live Neon, Hostinger, Meta or Google checks have been performed.
 - Still external / access-dependent: real Neon TLS/connectivity and production-like migration rehearsal; Hostinger PHP extensions, cron cadence and bounded worker runtime; live Meta webhook/signature/send/template acceptance; live Google OAuth/Calendar acceptance; load and abuse testing; backup/restore and rollback drills; monitoring and incident handover. Production remains undeployed.
+
+
+## Integration credential-health visibility (2026-11-24)
+
+- Added read-only platform metrics for WhatsApp pending/non-active connection counts and Google Calendar reauthorization-required, expired-access-token and missing-refresh-token counts.
+- The dashboard exposes aggregate counts only; provider tokens, refresh tokens, scopes and account identifiers are not included in the new metrics.
+- Added a feature regression with pending WhatsApp and expired/missing-refresh-token Calendar records, asserting the health counts and confirming credential fields are not returned.
+- This is database-state visibility, not a live provider permission check or proof that refresh credentials are accepted by Meta/Google. Live authorization checks, usage controls, retention controls and external-account acceptance remain pending.
