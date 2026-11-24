@@ -1,3 +1,4 @@
+import FormErrorSummary from '../../../Components/FormErrorSummary';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 
@@ -28,6 +29,7 @@ export default function BusinessHolidays() {
                 <h1 className="mt-4 text-3xl font-bold text-slate-900">Holidays and special hours</h1>
                 <p className="mt-2 text-slate-600">Add a full-day closure or special opening hours for a specific business-local date.</p>
                 <form onSubmit={submit} className="mt-8 grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2">
+                    <FormErrorSummary errors={errors} />
                     <label className="text-sm font-medium text-slate-700">Date<input type="date" className={field} value={data.date} onChange={e => setData('date', e.target.value)} required />{errors.date && <span className="text-red-600">{errors.date}</span>}</label>
                     <label className="text-sm font-medium text-slate-700">Name<input className={field} value={data.name} onChange={e => setData('name', e.target.value)} maxLength={160} placeholder="Public holiday" required />{errors.name && <span className="text-red-600">{errors.name}</span>}</label>
                     <label className="flex items-center gap-2 text-sm text-slate-700 sm:col-span-2"><input type="checkbox" checked={data.is_closed} onChange={e => setData('is_closed', e.target.checked)} /> Closed all day</label>
