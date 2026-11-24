@@ -1,5 +1,5 @@
 import FormErrorSummary from '../../../Components/FormErrorSummary';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 
 type Preferences = {
@@ -8,10 +8,8 @@ type Preferences = {
 };
 
 export default function NotificationPreferences() {
-    const form = useForm<Preferences>({
-        email_conversation_assignments: true,
-        email_handover_requests: true,
-    });
+    const { preferences } = usePage<{ preferences: Preferences }>().props;
+    const form = useForm<Preferences>(preferences);
 
     function submit(event: FormEvent) {
         event.preventDefault();
