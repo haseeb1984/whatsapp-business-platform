@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Conversation;
+use App\Models\Customer;
 use App\Models\Staff;
 use App\Models\Tenant;
 use App\Models\User;
@@ -40,12 +42,14 @@ class TenantMembershipLifecycleTest extends TestCase
         $profile = TenantContext::runForTenant($tenant->id, fn () => Staff::query()->create([
             'name' => 'Linked Staff', 'email' => $member->email, 'user_id' => $member->id, 'active' => true,
         ]));
+        $conversation = $this->conversation($tenant, $member->id);
 
         $this->actingAs($admin)->withSession(['current_tenant_id' => $tenant->id])
             ->post('/business/members/'.$member->id.'/suspend')->assertRedirect();
 
         $this->assertDatabaseHas('tenant_user', ['tenant_id' => $tenant->id, 'user_id' => $member->id, 'status' => 'suspended']);
         $this->assertDatabaseHas('staff_members', ['id' => $profile->id, 'active' => false, 'user_id' => $member->id]);
+        $this->assertDatabaseHas('conversations', ['id' => $conversation->id, 'assigned_user_id' => null, 'automation_state' => 'WAITING_FOR_STAFF']);
 
         $this->post('/business/members/'.$member->id.'/reactivate')->assertRedirect();
 
@@ -60,12 +64,14 @@ class TenantMembershipLifecycleTest extends TestCase
         $profile = TenantContext::runForTenant($tenant->id, fn () => Staff::query()->create([
             'name' => 'Linked Staff', 'email' => $member->email, 'user_id' => $member->id, 'active' => true,
         ]));
+        $conversation = $this->conversation($tenant, $member->id);
 
         $this->actingAs($admin)->withSession(['current_tenant_id' => $tenant->id])
             ->delete('/business/members/'.$member->id)->assertRedirect();
 
         $this->assertDatabaseMissing('tenant_user', ['tenant_id' => $tenant->id, 'user_id' => $member->id]);
         $this->assertDatabaseHas('staff_members', ['id' => $profile->id, 'user_id' => null, 'active' => false]);
+        $this->assertDatabaseHas('conversations', ['id' => $conversation->id, 'assigned_user_id' => null, 'automation_state' => 'WAITING_FOR_STAFF']);
         $this->assertDatabaseHas('users', ['id' => $member->id, 'email' => $member->email]);
     }
 
@@ -114,6 +120,19 @@ class TenantMembershipLifecycleTest extends TestCase
         $this->delete('/business/members/'.$foreign->id)->assertNotFound();
 
         $this->assertDatabaseHas('tenant_user', ['tenant_id' => $tenantB->id, 'user_id' => $foreign->id, 'role' => 'staff', 'status' => 'active']);
+    }
+
+    private function conversation(Tenant $tenant, int $assignedUserId): Conversation
+    {
+        return TenantContext::runForTenant($tenant->id, function () use ($assignedUserId): Conversation {
+            $customer = Customer::query()->create(['whatsapp_wa_id' => '923001112233']);
+            return Conversation::query()->create([
+                'customer_id' => $customer->id,
+                'status' => 'open',
+                'automation_state' => 'HUMAN_ACTIVE',
+                'assigned_user_id' => $assignedUserId,
+            ]);
+        });
     }
 
     private function workspace(string $email): array
