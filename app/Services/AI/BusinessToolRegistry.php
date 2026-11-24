@@ -233,7 +233,7 @@ class BusinessToolRegistry
             };
         }
 
-        return new BusinessIntentResult('answered', implode("\\n", $lines), 'available_slots');
+        return new BusinessIntentResult('answered', implode("\n", $lines), 'available_slots');
     }
 
     private function notHandled(string $reason): BusinessIntentResult
