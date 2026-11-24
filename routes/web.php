@@ -75,7 +75,12 @@ Route::middleware('auth')->group(function (): void {
     });
 });
 
-Route::middleware(['auth', 'verified'])->group(function (): void {\n    Route::get('/invitations/{token}', [TenantInvitationController::class, 'show'])->middleware('throttle:20,1')->name('invitations.show');\n    Route::post('/invitations/{token}/accept', [TenantInvitationController::class, 'accept'])->middleware('throttle:10,1')->name('invitations.accept');\n});\n\nRoute::middleware(['auth', 'verified'])->group(function (): void {\n    Route::get('/invitations/{token}', [TenantInvitationController::class, 'show'])->middleware('throttle:20,1')->name('invitations.show');\n    Route::post('/invitations/{token}/accept', [TenantInvitationController::class, 'accept'])->middleware('throttle:10,1')->name('invitations.accept');\n});\n\nRoute::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
+Route::middleware(['auth', 'verified'])->group(function (): void {
+    Route::get('/invitations/{token}', [TenantInvitationController::class, 'show'])->middleware('throttle:20,1')->name('invitations.show');
+    Route::post('/invitations/{token}/accept', [TenantInvitationController::class, 'accept'])->middleware('throttle:10,1')->name('invitations.accept');
+});
+
+Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::middleware(['tenant.role:business_admin', 'audit'])->group(function (): void {
         Route::get('/business/profile', [BusinessProfileController::class, 'edit'])->name('business.profile.edit');
@@ -90,7 +95,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {\n    Route::g
         Route::post('/business/services', [ServiceController::class, 'store'])->name('business.services.store');
         Route::put('/business/services/{service}', [ServiceController::class, 'update'])->name('business.services.update');
         Route::delete('/business/services/{service}', [ServiceController::class, 'destroy'])->name('business.services.destroy');
-        Route::get('/business/staff', [StaffController::class, 'index'])->name('business.staff.index');\n        Route::post('/business/invitations', [TenantInvitationController::class, 'store'])->middleware('throttle:10,1')->name('business.invitations.store');\n        Route::delete('/business/invitations/{invitation}', [TenantInvitationController::class, 'destroy'])->name('business.invitations.destroy');\n        Route::post('/business/invitations', [TenantInvitationController::class, 'store'])->middleware('throttle:10,1')->name('business.invitations.store');\n        Route::delete('/business/invitations/{invitation}', [TenantInvitationController::class, 'destroy'])->name('business.invitations.destroy');
+        Route::get('/business/staff', [StaffController::class, 'index'])->name('business.staff.index');
+        Route::post('/business/invitations', [TenantInvitationController::class, 'store'])->middleware('throttle:10,1')->name('business.invitations.store');
+        Route::delete('/business/invitations/{invitation}', [TenantInvitationController::class, 'destroy'])->name('business.invitations.destroy');
+        Route::post('/business/invitations', [TenantInvitationController::class, 'store'])->middleware('throttle:10,1')->name('business.invitations.store');
+        Route::delete('/business/invitations/{invitation}', [TenantInvitationController::class, 'destroy'])->name('business.invitations.destroy');
         Route::post('/business/staff', [StaffController::class, 'store'])->name('business.staff.store');
         Route::put('/business/staff/{staff}', [StaffController::class, 'update'])->name('business.staff.update');
         Route::delete('/business/staff/{staff}', [StaffController::class, 'destroy'])->name('business.staff.destroy');
