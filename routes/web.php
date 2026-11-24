@@ -22,6 +22,7 @@ use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\ReadinessController;
 use App\Http\Controllers\NotificationPreferencesController;
+use App\Http\Controllers\NotificationInboxController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -130,6 +131,9 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
     Route::middleware(['tenant.role:business_admin,manager,staff', 'audit'])->group(function (): void {
         Route::get('/business/notifications', [NotificationPreferencesController::class, 'edit'])->name('business.notifications.edit');
         Route::put('/business/notifications', [NotificationPreferencesController::class, 'update'])->middleware('throttle:20,1')->name('business.notifications.update');
+        Route::get('/business/notifications/inbox', [NotificationInboxController::class, 'index'])->name('business.notifications.inbox');
+        Route::post('/business/notifications/read-all', [NotificationInboxController::class, 'markAllRead'])->middleware('throttle:20,1')->name('business.notifications.read-all');
+        Route::post('/business/notifications/{notification}/read', [NotificationInboxController::class, 'markRead'])->middleware('throttle:30,1')->name('business.notifications.read');
         Route::get('/conversations', [ConversationController::class, 'index'])->name('conversations.index');
         Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])->name('conversations.show');
         Route::post('/conversations/{conversation}/take', [ConversationController::class, 'take'])->middleware('throttle:30,1')->name('conversations.take');

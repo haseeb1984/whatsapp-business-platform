@@ -11,6 +11,16 @@ class ConversationHandoverNotification extends TenantConversationNotification
         return 'email_handover_requests';
     }
 
+    protected function databaseTitle(): string
+    {
+        return 'Staff handover requested';
+    }
+
+    protected function databaseMessage(): string
+    {
+        return 'A customer conversation in '.$this->tenantName.' is waiting for a team member.';
+    }
+
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)

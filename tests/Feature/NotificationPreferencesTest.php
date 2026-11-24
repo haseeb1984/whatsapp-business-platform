@@ -77,7 +77,7 @@ class NotificationPreferencesTest extends TestCase
         [$user, $tenant] = $this->workspace('notification-channel-preferences');
         $notification = new ConversationAssignedNotification($tenant->id, $tenant->name, 'conversation-id');
 
-        $this->assertSame(['mail'], $notification->via($user));
+        $this->assertSame(['database', 'mail'], $notification->via($user));
 
         DB::table('tenant_user')->where('tenant_id', $tenant->id)->where('user_id', $user->id)
             ->update(['notification_preferences' => json_encode([
@@ -85,9 +85,9 @@ class NotificationPreferencesTest extends TestCase
                 'email_handover_requests' => true,
             ], JSON_THROW_ON_ERROR)]);
 
-        $this->assertSame([], $notification->via($user));
+        $this->assertSame(['database'], $notification->via($user));
         $handover = new ConversationHandoverNotification($tenant->id, $tenant->name, 'conversation-id');
-        $this->assertSame(['mail'], $handover->via($user));
+        $this->assertSame(['database', 'mail'], $handover->via($user));
 
         DB::table('tenant_user')->where('tenant_id', $tenant->id)->where('user_id', $user->id)
             ->update(['status' => 'suspended']);

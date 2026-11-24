@@ -11,6 +11,16 @@ class ConversationAssignedNotification extends TenantConversationNotification
         return 'email_conversation_assignments';
     }
 
+    protected function databaseTitle(): string
+    {
+        return 'Conversation assigned';
+    }
+
+    protected function databaseMessage(): string
+    {
+        return 'A customer conversation in '.$this->tenantName.' needs your attention.';
+    }
+
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)

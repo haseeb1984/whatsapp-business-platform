@@ -108,7 +108,8 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Audit history: append-only tenant/platform mutation audit records and admin history views.
 - [x] Near-real-time conversation inbox refresh (15-second visible-tab polling) and conversation detail refresh (8-second visible-tab polling) for new messages, assignment/state changes, notes and delivery status.
 - [x] Per-workspace self-service email preferences for conversation assignments and staff handover requests; queued email notifications re-check active membership and the member's selected preference before selecting the mail channel.
-- [ ] Push/WebSocket delivery and persistent in-app notification center for lower-latency updates; current inbox refresh remains 8/15-second polling.
+- [x] Persistent in-app notification center: tenant-filtered database notifications, unread count, mark-one/read-all actions, and 15-second visible-tab refresh; email delivery remains independently configurable.
+- [ ] Push/WebSocket delivery for lower-latency updates; current in-app inbox and conversation screens use 8/15-second polling.
 - [x] Staff release and explicit automation resume are implemented; only future inbound messages may trigger a new automated reply.
 
 ## Milestone 6 — AI and grounded FAQ assistant
