@@ -16,9 +16,9 @@ abstract class TenantConversationNotification extends Notification implements Sh
     public int $timeout = 30;
 
     public function __construct(
-        public readonly string $tenantId,
-        public readonly string $tenantName,
-        public readonly string $conversationId,
+        public string $tenantId,
+        public string $tenantName,
+        public string $conversationId,
     ) {
     }
 
