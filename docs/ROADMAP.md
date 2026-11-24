@@ -427,3 +427,10 @@ This roadmap distinguishes planned work from implemented work.
 - Follow-up CI hardening changes the frontend dependency install from `npm install` to `npm ci`, ensuring CI uses the committed `package-lock.json` without silently resolving a different dependency tree. The README verification checkpoint now reflects the merged PR #17 and the locked install policy.
 - The frontend-install hardening is awaiting its own full CI verification before merge.
 - Production acceptance remains a separate release phase: live Neon TLS/connectivity and migration rehearsal, Hostinger PHP/cron/runtime checks, live Meta and Google acceptance, load/abuse testing, browser profiling, backup/restore and rollback rehearsal. No production deployment has been performed.
+
+
+## Tenant-role authorization matrix expansion — 2026-11-24
+
+- Expanded the staff-denial regression matrix to cover read and mutation attempts against weekly business hours, holiday CRUD, service CRUD, staff CRUD, staff working-hours routes, FAQ read/update/delete, WhatsApp connection update/verify/template-sync/delete, and Calendar disconnect.
+- These checks complement existing role-denial coverage for business profile, FAQ creation, WhatsApp connection creation, Calendar OAuth/list/default-calendar/staff-calendar operations, booking policy and lifecycle actions, staff exceptions, and conversation assignment/closure.
+- The new route matrix is awaiting full SQLite/PostgreSQL CI verification. Cross-tenant foreign-ID isolation remains a separate requirement and is not considered complete merely because staff role checks pass.
