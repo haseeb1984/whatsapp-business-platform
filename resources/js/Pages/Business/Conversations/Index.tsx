@@ -1,6 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type Conversation = {
     id: string;
@@ -24,6 +24,16 @@ export default function ConversationInbox() {
     const [state, setState] = useState(filters.state);
     const [status, setStatus] = useState(filters.status);
 
+    useEffect(() => {
+        const refresh = () => {
+            if (document.visibilityState === 'visible') {
+                router.reload({ only: ['conversations'], preserveState: true, preserveScroll: true });
+            }
+        };
+        const interval = window.setInterval(refresh, 15000);
+        return () => window.clearInterval(interval);
+    }, []);
+
     function applyFilters(event: FormEvent) {
         event.preventDefault();
         router.get('/conversations', { search, state, status }, { preserveState: true, replace: true });
@@ -36,7 +46,7 @@ export default function ConversationInbox() {
                 <a href="/dashboard" className="text-sm text-blue-700 hover:underline">← Dashboard</a>
                 <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
                     <div><h1 className="text-3xl font-bold text-slate-900">Conversation inbox</h1><p className="mt-2 text-slate-600">Review customer messages, take over conversations and control automation.</p></div>
-                    <span className="rounded-full bg-slate-200 px-3 py-1 text-sm text-slate-700">{conversations.length} conversations shown</span>
+                    <div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-slate-200 px-3 py-1 text-sm text-slate-700">{conversations.length} conversations shown</span><span className="text-xs text-slate-500">Auto-refresh · 15 sec</span></div>
                 </div>
                 <form onSubmit={applyFilters} className="mt-6 grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-4">
                     <input aria-label="Search customers" className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 sm:col-span-2" placeholder="Search name or WhatsApp number" value={search} onChange={event => setSearch(event.target.value)} />

@@ -104,7 +104,10 @@ This roadmap distinguishes planned work from implemented work.
 - [x] Initial automatic handover transition to `WAITING_FOR_STAFF` when approved FAQ evidence is insufficient.
 - [x] Staff reply UI and backend authorization require an assigned staff user and `HUMAN_ACTIVE` state.
 - [x] Explicit staff release returns an open conversation to `AUTO_ACTIVE`; reopening a closed conversation returns it to `WAITING_FOR_STAFF`.
-- [ ] Staff notifications, invitations, real-time updates and audit history.
+- [x] Staff invitations: tenant-scoped invitation creation/acceptance/revocation, membership lifecycle controls and queued email delivery with bounded retries.
+- [x] Audit history: append-only tenant/platform mutation audit records and admin history views.
+- [x] Near-real-time conversation inbox refresh (15-second visible-tab polling) and conversation detail refresh (8-second visible-tab polling) for new messages, assignment/state changes, notes and delivery status.
+- [ ] Dedicated staff notification preferences/delivery channels and push/WebSocket transport for lower-latency updates.
 - [x] Staff release and explicit automation resume are implemented; only future inbound messages may trigger a new automated reply.
 
 ## Milestone 6 — AI and grounded FAQ assistant

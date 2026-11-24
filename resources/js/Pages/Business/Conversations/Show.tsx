@@ -1,5 +1,6 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { useEffect } from 'react';
 
 type Message = { id: string; direction: string; message_type: string; body: string | null; delivery_status: string; sent_at: string | null };
 type Note = { id: string; body: string; author: string; created_at: string | null };
@@ -29,6 +30,17 @@ export default function ConversationShow() {
     const reply = useForm({ body: '' });
     const note = useForm({ body: '' });
     const assignment = useForm({ assigned_user_id: conversation.assigned_user_id ? String(conversation.assigned_user_id) : '' });
+
+    useEffect(() => {
+        const refresh = () => {
+            if (document.visibilityState === 'visible' && !reply.processing && !note.processing && !assignment.processing) {
+                router.reload({ only: ['conversation', 'messages', 'notes'], preserveState: true, preserveScroll: true });
+            }
+        };
+        const interval = window.setInterval(refresh, 8000);
+        return () => window.clearInterval(interval);
+    }, [reply.processing, note.processing, assignment.processing]);
+
     const isOwner = conversation.assigned_user_id === current_user_id;
     const isAdmin = current_user_role === 'business_admin';
     const humanActive = conversation.automation_state === 'HUMAN_ACTIVE' && isOwner;
@@ -71,7 +83,7 @@ export default function ConversationShow() {
                     {isAdmin && conversation.status === 'open' && <form onSubmit={assign} className="mt-5 flex flex-wrap items-end gap-2 border-t border-slate-100 pt-4"><label className="min-w-64 flex-1 text-sm font-medium text-slate-700">Assign to workspace user<select className={field} value={assignment.data.assigned_user_id} onChange={event => assignment.setData('assigned_user_id', event.target.value)} required><option value="">Choose team member</option>{team_members.map(member => <option key={member.id} value={member.id}>{member.name} · {member.email}</option>)}</select></label><button disabled={assignment.processing} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700">Assign</button></form>}
                 </div>
                 <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
-                    <h2 className="text-lg font-semibold text-slate-900">Message history</h2>
+                    <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-lg font-semibold text-slate-900">Message history</h2><span className="text-xs text-slate-500">Live refresh · 8 sec</span></div>
                     <div className="mt-4 space-y-3">
                         {messages.map(message => <div key={message.id} className={'max-w-3xl rounded-xl p-4 ' + (message.direction === 'outbound' ? 'ml-auto bg-blue-50' : 'bg-slate-100')}>
                             <div className="flex items-center justify-between gap-3 text-xs text-slate-500"><span>{message.direction === 'outbound' ? 'Business' : 'Customer'} · {message.message_type}</span><span>{deliveryLabels[message.delivery_status] || message.delivery_status}</span></div>
