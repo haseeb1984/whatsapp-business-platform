@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Notifications\ConversationAssignedNotification;
 use App\Notifications\ConversationHandoverNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
