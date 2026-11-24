@@ -1,3 +1,4 @@
+import FormErrorSummary from '../../../Components/FormErrorSummary';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent, ReactNode } from 'react';
 
@@ -40,6 +41,7 @@ export default function EditBusinessProfile() {
                 <h1 className="mt-4 text-3xl font-bold text-slate-900">Business profile</h1>
                 <p className="mt-2 text-slate-600">Configure the business identity and regional settings used by the virtual receptionist.</p>
                 <form onSubmit={submit} className="mt-8 space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <FormErrorSummary errors={errors} />
                     <Field label="Business display name" error={errors.display_name}><input className={fieldClass} value={data.display_name} onChange={e => setData('display_name', e.target.value)} required maxLength={160} /></Field>
                     <Field label="Description" error={errors.description}><textarea className={fieldClass} rows={4} value={data.description} onChange={e => setData('description', e.target.value)} maxLength={5000} /></Field>
                     <div className="grid gap-5 sm:grid-cols-2">
