@@ -6,6 +6,7 @@ use App\Enums\MessageActor;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Services\AI\BusinessIntentRouter;
+use App\Services\AI\BusinessToolAssistant;
 use App\Services\AI\FaqAssistantResult;
 use App\Services\AI\GroundedFaqAssistant;
 use App\Services\Messaging\WhatsAppMessageService;
@@ -38,9 +39,9 @@ class GenerateAutomatedFaqReply implements ShouldQueue
         return [10, 30];
     }
 
-    public function handle(GroundedFaqAssistant $assistant, BusinessIntentRouter $intents, WhatsAppMessageService $messenger): void
+    public function handle(GroundedFaqAssistant $assistant, BusinessIntentRouter $intents, WhatsAppMessageService $messenger, ?BusinessToolAssistant $tools = null): void
     {
-        TenantContext::runForTenant($this->tenantId, function () use ($assistant, $intents, $messenger): void {
+        TenantContext::runForTenant($this->tenantId, function () use ($assistant, $intents, $messenger, $tools): void {
             $context = DB::transaction(function (): ?array {
                 $conversation = Conversation::query()->lockForUpdate()->find($this->conversationId);
                 if (! $conversation || $conversation->status !== 'open' || $conversation->automation_state !== 'AUTO_ACTIVE') {
@@ -84,6 +85,22 @@ class GenerateAutomatedFaqReply implements ShouldQueue
                 'handoff' => new FaqAssistantResult('handoff', null, [], 'business_fact_unavailable:'.$intent->intent),
                 default => $assistant->answer($context['inbound']->body, $context['locale']),
             };
+
+            if ($result->status === 'handoff') {
+                $toolResult = ($tools ?? app(BusinessToolAssistant::class))->answer(
+                    $context['inbound']->body,
+                    $context['locale'],
+                );
+
+                if ($toolResult->status === 'answered' && is_string($toolResult->answer)) {
+                    $result = new FaqAssistantResult(
+                        'answered',
+                        $toolResult->answer,
+                        [],
+                        'business_tool:'.$toolResult->intent,
+                    );
+                }
+            }
 
             if ($result->status !== 'answered' || ! is_string($result->answer) || trim($result->answer) === '' || mb_strlen($result->answer) > 4096) {
                 DB::transaction(function () use ($result): void {
