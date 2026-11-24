@@ -15,6 +15,7 @@ class TenantMembershipController extends Controller
     public function updateRole(Request $request, int $user): RedirectResponse
     {
         $tenantId = app(TenantContext::class)->id();
+        abort_if((int) $request->user()->getKey() === $user, 409);
         $validated = $request->validate(['role' => ['required', Rule::in(['staff', 'manager'])]]);
         abort_if((int) $request->user()->getKey() === $user, 409);
 
