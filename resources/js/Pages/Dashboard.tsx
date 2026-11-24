@@ -69,6 +69,7 @@ export default function Dashboard() {
                             <p className="mt-2 text-sm text-slate-400">Operational overview · Business timezone: {tenant.timezone}</p>
                         </div>
                         <div className="flex gap-2">
+                            <a href="/business/notifications" className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">Notification preferences</a>
                             <button onClick={() => router.get('/workspaces')} className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">Switch workspace</button>
                             <button onClick={() => router.post('/logout')} className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">Sign out</button>
                         </div>
