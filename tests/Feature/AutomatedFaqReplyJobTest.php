@@ -67,7 +67,7 @@ class AutomatedFaqReplyJobTest extends TestCase
     {
         Http::fake();
         [$tenant, $conversation, $inbound] = $this->conversation('auto-faq-handoff', 'AUTO_ACTIVE', 'What are your opening hours?');
-        $admin = User::factory()->create();
+        $admin = User::query()->create(['name' => 'Workspace Admin', 'email' => 'auto-faq-admin@example.test', 'password' => 'test-password']);
         $tenant->users()->attach($admin->id, ['role' => 'business_admin', 'status' => 'active']);
         Notification::fake();
 
