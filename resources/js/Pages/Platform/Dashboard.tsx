@@ -7,7 +7,12 @@ type PageProps = {
         tenants_suspended: number;
         users_total: number;
         whatsapp_connections: number;
+        whatsapp_pending: number;
+        whatsapp_inactive: number;
         calendar_connections: number;
+        calendar_reauthorization_required: number;
+        calendar_expired_tokens: number;
+        calendar_missing_refresh_tokens: number;
         messages_total: number;
         outbound_pending: number;
         outbound_sending: number;
@@ -56,7 +61,12 @@ export default function PlatformDashboard() {
         ['Suspended tenants', metrics.tenants_suspended],
         ['Registered users', metrics.users_total],
         ['Active WhatsApp connections', metrics.whatsapp_connections],
+        ['WhatsApp pending verification', metrics.whatsapp_pending],
+        ['WhatsApp non-active connections', metrics.whatsapp_inactive],
         ['Connected calendars', metrics.calendar_connections],
+        ['Calendars needing reauthorization', metrics.calendar_reauthorization_required],
+        ['Connected calendars with expired tokens', metrics.calendar_expired_tokens],
+        ['Connected calendars missing refresh tokens', metrics.calendar_missing_refresh_tokens],
         ['Messages processed', metrics.messages_total],
         ['Outbound queued', metrics.outbound_pending],
         ['Outbound sending', metrics.outbound_sending],
