@@ -23,6 +23,7 @@ class StaffController extends Controller
         return Inertia::render('Business/Staff/Index', [
             'staff' => $staff->map(fn (Staff $member): array => [
                 'id' => $member->id,
+                'user_id' => $member->user_id,
                 'name' => $member->name,
                 'email' => $member->email,
                 'phone' => $member->phone,

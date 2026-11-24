@@ -148,7 +148,7 @@ class ConversationHandoverTest extends TestCase
             'password' => 'StrongPassword123',
         ]);
         $staff->forceFill(['email_verified_at' => now()])->save();
-        $tenant->users()->attach($staff->id, ['role' => 'staff', 'status' => 'active']);
+        $tenant->users()->attach($staff->id, ['role' => 'manager', 'status' => 'active']);
         $conversation = $this->conversation($tenant, 'AUTO_ACTIVE');
 
         $this->actingAs($admin)->withSession(['current_tenant_id' => $tenant->id])
@@ -160,6 +160,25 @@ class ConversationHandoverTest extends TestCase
             'assigned_user_id' => $staff->id,
             'automation_state' => 'WAITING_FOR_STAFF',
         ]);
+    }
+
+    public function test_manager_can_access_inbox_and_appears_as_an_assignable_team_member(): void
+    {
+        [$manager, $tenant] = $this->workspace('handover-manager@example.test', 'manager');
+        $conversation = $this->conversation($tenant, 'WAITING_FOR_STAFF');
+
+        $this->actingAs($manager)->withSession(['current_tenant_id' => $tenant->id]);
+
+        $this->get('/conversations')->assertOk();
+        $this->get('/conversations/'.$conversation->id)
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Business/Conversations/Show')
+                ->where('team_members.0.id', $manager->id)
+                ->where('current_user_role', 'manager')
+            );
+
+        $this->put('/conversations/'.$conversation->id.'/assign', ['assigned_user_id' => $manager->id])->assertForbidden();
     }
 
     public function test_staff_cannot_assign_or_close_conversations(): void

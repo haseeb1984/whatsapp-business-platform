@@ -75,7 +75,7 @@ class ConversationController extends Controller
 
         $teamMembers = app(TenantContext::class)->tenant()->users()
             ->wherePivot('status', 'active')
-            ->wherePivotIn('role', ['business_admin', 'staff'])
+            ->wherePivotIn('role', ['business_admin', 'manager', 'staff'])
             ->orderBy('users.name')
             ->get(['users.id', 'users.name', 'users.email'])
             ->map(fn ($user): array => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email])
@@ -166,7 +166,7 @@ class ConversationController extends Controller
                 Rule::exists('tenant_user', 'user_id')->where(fn ($query) => $query
                     ->where('tenant_id', $tenantId)
                     ->where('status', 'active')
-                    ->whereIn('role', ['business_admin', 'staff'])),
+                    ->whereIn('role', ['business_admin', 'manager', 'staff'])),
             ],
         ]);
 

@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Tenant;
+use App\Models\Staff;
 use App\Models\TenantInvitation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -63,8 +65,46 @@ class TenantInvitationTest extends TestCase
             'status' => 'active',
         ]);
         $this->assertNotNull($invitation->fresh()->accepted_at);
+        $this->assertDatabaseCount('staff_members', 0);
 
         $this->post('/invitations/'.$token.'/accept')->assertGone();
+    }
+
+    public function test_accepting_staff_invitation_links_existing_scheduling_profile_to_user_account(): void
+    {
+        [$admin, $tenant] = $this->workspace('invite-link-owner@example.test');
+        $member = User::query()->create([
+            'name' => 'Ayesha Khan',
+            'email' => 'ayesha.staff@example.test',
+            'password' => 'StrongPassword123',
+        ]);
+        $member->forceFill(['email_verified_at' => now()])->save();
+
+        $profile = TenantContext::runForTenant($tenant->id, fn () => Staff::query()->create([
+            'name' => 'Ayesha Khan',
+            'email' => $member->email,
+            'active' => true,
+        ]));
+        $token = 'staff-profile-link-token';
+
+        TenantInvitation::query()->create([
+            'tenant_id' => $tenant->id,
+            'invited_by' => $admin->id,
+            'email' => $member->email,
+            'role' => 'staff',
+            'token_hash' => hash('sha256', $token),
+            'expires_at' => now()->addDay(),
+        ]);
+
+        $this->actingAs($member)->post('/invitations/'.$token.'/accept')->assertRedirect(route('dashboard'));
+
+        $this->assertDatabaseHas('staff_members', [
+            'id' => $profile->id,
+            'tenant_id' => $tenant->id,
+            'user_id' => $member->id,
+            'email' => $member->email,
+        ]);
+        $this->assertDatabaseCount('staff_members', 1);
     }
 
     public function test_invitation_cannot_be_accepted_by_a_different_email_address(): void

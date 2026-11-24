@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Staff;
 use App\Models\TenantInvitation;
 use App\Notifications\TenantStaffInvitation;
 use App\Support\Tenancy\TenantContext;
@@ -96,6 +97,29 @@ class TenantInvitationController extends Controller
             $record->tenant()->firstOrFail()->users()->syncWithoutDetaching([
                 $request->user()->getKey() => ['role' => $record->role, 'status' => 'active'],
             ]);
+
+            if ($record->role === 'staff') {
+                TenantContext::runForTenant($record->tenant_id, function () use ($record, $request): void {
+                    $staffProfile = Staff::query()
+                        ->whereRaw('LOWER(email) = ?', [$record->email])
+                        ->first();
+
+                    if ($staffProfile) {
+                        abort_if($staffProfile->user_id !== null && (int) $staffProfile->user_id !== (int) $request->user()->getKey(), 409);
+                        $staffProfile->forceFill(['user_id' => $request->user()->getKey()])->save();
+
+                        return;
+                    }
+
+                    Staff::query()->create([
+                        'name' => $request->user()->name,
+                        'email' => $record->email,
+                        'user_id' => $request->user()->getKey(),
+                        'active' => true,
+                    ]);
+                });
+            }
+
             $record->forceFill(['accepted_at' => now()])->save();
 
             return $record;
