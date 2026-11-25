@@ -8,6 +8,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Carbon\CarbonImmutable;
 
 class GroqProvider implements AiProviderInterface
 {
@@ -75,7 +76,7 @@ class GroqProvider implements AiProviderInterface
             $status = $response->status();
             $retryable = $status === 429 || $status >= 500;
             if ($status === 429) {
-                $cooldownSeconds = max(0, min(3600, (int) config('services.groq.rate_limit_cooldown_seconds', 60)));
+                $cooldownSeconds = $this->rateLimitCooldownSeconds($response);
                 if ($cooldownSeconds > 0) {
                     Cache::put('groq:rate_limit_cooldown', true, now()->addSeconds($cooldownSeconds));
                 }
@@ -142,6 +143,29 @@ class GroqProvider implements AiProviderInterface
         ]);
 
         return trim($content);
+    }
+
+    private function rateLimitCooldownSeconds(\Illuminate\Http\Client\Response $response): int
+    {
+        $retryAfter = trim((string) $response->header('Retry-After'));
+        if ($retryAfter !== '') {
+            $seconds = null;
+            if (ctype_digit($retryAfter)) {
+                $seconds = (int) $retryAfter;
+            } else {
+                try {
+                    $seconds = CarbonImmutable::parse($retryAfter)->timestamp - now()->timestamp;
+                } catch (\Throwable) {
+                    $seconds = null;
+                }
+            }
+
+            if ($seconds !== null) {
+                return max(1, min(3600, $seconds));
+            }
+        }
+
+        return max(0, min(3600, (int) config('services.groq.rate_limit_cooldown_seconds', 60)));
     }
 
     private function durationMilliseconds(int $startedAt): int

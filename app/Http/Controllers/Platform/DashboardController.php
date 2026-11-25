@@ -174,6 +174,62 @@ class DashboardController extends Controller
                 ])->all()
             : [];
 
+        $alertConfig = config('services.groq.alerts', []);
+        $minimumProviderAttempts = max(1, (int) ($alertConfig['provider_min_attempts'] ?? 10));
+        $successRateThreshold = max(0, min(100, (float) ($alertConfig['provider_success_rate_percent'] ?? 90)));
+        $latencyThreshold = max(1, (int) ($alertConfig['provider_avg_latency_ms'] ?? 3000));
+        $rateLimitThreshold = max(1, (int) ($alertConfig['rate_limit_count'] ?? 5));
+        $queueAgeThreshold = max(1, (int) ($alertConfig['queue_oldest_age_minutes'] ?? 10));
+        $failedJobsThreshold = max(1, (int) ($alertConfig['failed_jobs_24h'] ?? 5));
+        $operationalAlerts = [];
+
+        if ($aiProviderAttempts7d !== null && $aiProviderAttempts7d >= $minimumProviderAttempts) {
+            if ($aiProviderSuccessRate7d !== null && $aiProviderSuccessRate7d < $successRateThreshold) {
+                $operationalAlerts[] = [
+                    'code' => 'ai_provider_success_rate_low',
+                    'severity' => 'warning',
+                    'title' => 'AI provider success rate is below threshold',
+                    'detail' => $aiProviderSuccessRate7d.'% over '.$aiProviderAttempts7d.' attempts; threshold '.$successRateThreshold.'%.',
+                ];
+            }
+
+            if ($aiProviderAvgLatency7d !== null && $aiProviderAvgLatency7d >= $latencyThreshold) {
+                $operationalAlerts[] = [
+                    'code' => 'ai_provider_latency_high',
+                    'severity' => 'warning',
+                    'title' => 'AI provider latency is elevated',
+                    'detail' => $aiProviderAvgLatency7d.' ms average over seven days; threshold '.$latencyThreshold.' ms.',
+                ];
+            }
+        }
+
+        if ($aiRateLimitsLast24Hours !== null && $aiRateLimitsLast24Hours >= $rateLimitThreshold) {
+            $operationalAlerts[] = [
+                'code' => 'ai_rate_limits_high',
+                'severity' => 'warning',
+                'title' => 'AI provider rate limits are elevated',
+                'detail' => $aiRateLimitsLast24Hours.' rate-limited requests in the last 24 hours; threshold '.$rateLimitThreshold.'.',
+            ];
+        }
+
+        if ($queueOldestAgeMinutes !== null && $queueOldestAgeMinutes >= $queueAgeThreshold) {
+            $operationalAlerts[] = [
+                'code' => 'queue_backlog_old',
+                'severity' => 'critical',
+                'title' => 'Old queued job backlog detected',
+                'detail' => 'Oldest queued job is '.$queueOldestAgeMinutes.' minutes old; threshold '.$queueAgeThreshold.' minutes.',
+            ];
+        }
+
+        if ($queueFailedLast24Hours !== null && $queueFailedLast24Hours >= $failedJobsThreshold) {
+            $operationalAlerts[] = [
+                'code' => 'failed_jobs_high',
+                'severity' => 'warning',
+                'title' => 'Recent failed jobs exceed threshold',
+                'detail' => $queueFailedLast24Hours.' failed jobs in the last 24 hours; threshold '.$failedJobsThreshold.'.',
+            ];
+        }
+
         return Inertia::render('Platform/Dashboard', [
             'metrics' => [
                 'tenants_total' => Tenant::query()->count(),
@@ -212,6 +268,7 @@ class DashboardController extends Controller
             ],
             'tenants' => $tenants,
             'filters' => ['q' => $filters['q'] ?? '', 'status' => $filters['status'] ?? ''],
+            'alerts' => $operationalAlerts,
             'recent_failures' => $recentFailures,
             'recent_audit_events' => $recentAuditEvents,
         ]);

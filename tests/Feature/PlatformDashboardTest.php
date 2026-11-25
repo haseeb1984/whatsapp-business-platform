@@ -299,6 +299,65 @@ class PlatformDashboardTest extends TestCase
                 ->where('tenants.data.1.ai_tokens_30d', 150)
                 ->missing('metrics.prompt')
                 ->missing('metrics.customer_message')
+                ->has('alerts', 0)
+            );
+    }
+
+    public function test_platform_dashboard_emits_threshold_alerts_only_after_configured_signal_levels(): void
+    {
+        config([
+            'platform.admin_emails' => ['platform-admin@example.test'],
+            'services.groq.alerts.provider_min_attempts' => 10,
+            'services.groq.alerts.provider_success_rate_percent' => 90,
+            'services.groq.alerts.provider_avg_latency_ms' => 3000,
+            'services.groq.alerts.rate_limit_count' => 5,
+            'services.groq.alerts.queue_oldest_age_minutes' => 10,
+            'services.groq.alerts.failed_jobs_24h' => 5,
+        ]);
+        $admin = $this->user('platform-admin@example.test');
+        $tenant = Tenant::query()->create([
+            'name' => 'Alert Workspace',
+            'slug' => 'alert-workspace',
+            'status' => 'active',
+        ]);
+
+        $events = [];
+        for ($i = 0; $i < 10; $i++) {
+            $events[] = [
+                'tenant_id' => $tenant->id,
+                'provider' => 'groq',
+                'model' => 'test-model',
+                'outcome' => $i < 5 ? 'succeeded' : 'rate_limited',
+                'http_status' => $i < 5 ? 200 : 429,
+                'duration_ms' => 4000,
+                'prompt_tokens' => $i < 5 ? 100 : null,
+                'completion_tokens' => $i < 5 ? 50 : null,
+                'created_at' => now()->subMinutes(5),
+            ];
+        }
+        DB::table('ai_usage_events')->insert($events);
+        DB::table('jobs')->insert([
+            'queue' => 'default',
+            'payload' => '{"displayName":"QueuedJob"}',
+            'attempts' => 0,
+            'reserved_at' => null,
+            'available_at' => now()->subMinutes(20)->timestamp,
+            'created_at' => now()->subMinutes(20)->timestamp,
+        ]);
+
+        $this->actingAs($admin)->get('/platform')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('metrics.ai_provider_attempts_7d', 10)
+                ->where('metrics.ai_provider_success_rate_7d', 50)
+                ->where('metrics.ai_provider_avg_latency_ms_7d', 4000)
+                ->where('metrics.ai_rate_limits_last_24_hours', 5)
+                ->has('alerts', 4)
+                ->where('alerts.0.code', 'ai_provider_success_rate_low')
+                ->where('alerts.1.code', 'ai_provider_latency_high')
+                ->where('alerts.2.code', 'ai_rate_limits_high')
+                ->where('alerts.3.code', 'queue_backlog_old')
+                ->where('alerts.3.severity', 'critical')
             );
     }
 
