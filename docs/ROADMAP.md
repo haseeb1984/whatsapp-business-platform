@@ -528,3 +528,11 @@ This roadmap distinguishes planned work from implemented work.
 - Expanded deterministic intent patterns for colloquial Roman Urdu pricing (including `kitnay ki` / `kitne ka`), service-catalog questions, opening-time phrases and public contact-number requests.
 - Added Urdu-script variants for service catalog, opening-time and contact-number questions. Answers continue to come only from configured tenant service, hours and business-profile records.
 - Added feature regressions for each phrase family. PR #48 full CI verification is pending.
+
+
+## Urdu and Roman Urdu deterministic intent coverage — 2026-11-25
+
+- Expanded pricing, service-catalog, business-hours and contact intent patterns for common Urdu and Roman Urdu phrasings, including inflected price questions, plural service questions, opening-time variants and WhatsApp/contact-number questions.
+- Responses continue to use only active tenant services and configured business facts; unsupported questions still fall through to grounded FAQ/handover rather than model-invented details.
+- Added regression coverage for Roman Urdu weekly hours, including localized weekday labels, closed days and the tenant timezone. Existing tests also cover Urdu pricing/contact, Roman Urdu pricing/service catalog, opening-time and tomorrow-hours variants.
+- Broader colloquial coverage, spelling variants and conversational booking workflows remain open; this change does not add booking mutations to the AI tool allowlist.
