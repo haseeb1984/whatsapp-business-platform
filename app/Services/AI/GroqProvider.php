@@ -6,6 +6,7 @@ use App\Contracts\AiProviderInterface;
 use App\Exceptions\AiProviderException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class GroqProvider implements AiProviderInterface
 {
@@ -19,6 +20,8 @@ class GroqProvider implements AiProviderInterface
             throw new AiProviderException('Groq is not configured.', false);
         }
 
+        $startedAt = hrtime(true);
+
         try {
             $response = Http::withToken($apiKey)
                 ->acceptJson()
@@ -30,22 +33,60 @@ class GroqProvider implements AiProviderInterface
                     'max_tokens' => $options['max_tokens'] ?? 256,
                 ]);
         } catch (ConnectionException) {
+            Log::warning('Groq request failed.', [
+                'provider' => 'groq',
+                'model' => $model,
+                'failure' => 'connection',
+                'duration_ms' => $this->durationMilliseconds($startedAt),
+            ]);
             throw new AiProviderException('Groq request timed out.', true);
         }
 
         if (! $response->successful()) {
             $status = $response->status();
+            $retryable = $status === 429 || $status >= 500;
+            Log::warning('Groq request failed.', [
+                'provider' => 'groq',
+                'model' => $model,
+                'status' => $status,
+                'retryable' => $retryable,
+                'duration_ms' => $this->durationMilliseconds($startedAt),
+            ]);
             throw new AiProviderException(
                 'Groq could not complete the request.',
-                $status === 429 || $status >= 500,
+                $retryable,
             );
         }
 
         $content = $response->json('choices.0.message.content');
         if (! is_string($content) || trim($content) === '') {
+            Log::warning('Groq response malformed.', [
+                'provider' => 'groq',
+                'model' => $model,
+                'status' => $response->status(),
+                'duration_ms' => $this->durationMilliseconds($startedAt),
+            ]);
             throw new AiProviderException('Groq returned an empty or malformed response.', false);
         }
 
+        $usage = $response->json('usage', []);
+        $tokenCount = static fn (mixed $value): ?int => is_numeric($value) ? max(0, (int) $value) : null;
+
+        Log::info('Groq completion completed.', [
+            'provider' => 'groq',
+            'model' => $model,
+            'status' => $response->status(),
+            'duration_ms' => $this->durationMilliseconds($startedAt),
+            'prompt_tokens' => $tokenCount(is_array($usage) ? ($usage['prompt_tokens'] ?? null) : null),
+            'completion_tokens' => $tokenCount(is_array($usage) ? ($usage['completion_tokens'] ?? null) : null),
+            'total_tokens' => $tokenCount(is_array($usage) ? ($usage['total_tokens'] ?? null) : null),
+        ]);
+
         return trim($content);
+    }
+
+    private function durationMilliseconds(int $startedAt): int
+    {
+        return max(0, (int) round((hrtime(true) - $startedAt) / 1_000_000));
     }
 }
