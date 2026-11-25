@@ -9,6 +9,14 @@ return [
         'rate_limit_cooldown_seconds' => (int) env('GROQ_RATE_LIMIT_COOLDOWN_SECONDS', 60),
         'usage_retention_days' => (int) env('AI_USAGE_RETENTION_DAYS', 90),
         'daily_request_limit' => (int) env('AI_TENANT_DAILY_REQUEST_LIMIT', 0),
+        'alerts' => [
+            'provider_min_attempts' => (int) env('AI_PROVIDER_ALERT_MIN_ATTEMPTS', 10),
+            'provider_success_rate_percent' => (float) env('AI_PROVIDER_SUCCESS_RATE_ALERT_PERCENT', 90),
+            'provider_avg_latency_ms' => (int) env('AI_PROVIDER_AVG_LATENCY_ALERT_MS', 3000),
+            'rate_limit_count' => (int) env('AI_RATE_LIMIT_ALERT_COUNT', 5),
+            'queue_oldest_age_minutes' => (int) env('QUEUE_OLDEST_AGE_ALERT_MINUTES', 10),
+            'failed_jobs_24h' => (int) env('FAILED_JOBS_ALERT_COUNT_24H', 5),
+        ],
     ],
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
