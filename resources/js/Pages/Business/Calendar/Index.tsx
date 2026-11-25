@@ -59,10 +59,10 @@ export default function GoogleCalendarSettings() {
                 if (!Array.isArray(items)) throw new Error('Google returned an invalid calendar list.');
                 setCalendars(items.filter((item): item is CalendarOption =>
                     typeof item === 'object' && item !== null
-                    && typeof item.id === 'string'
-                    && typeof item.summary === 'string'
-                    && typeof item.primary === 'boolean'
-                    && typeof item.access_role === 'string'
+                    && 'id' in item && typeof item.id === 'string'
+                    && 'summary' in item && typeof item.summary === 'string'
+                    && 'primary' in item && typeof item.primary === 'boolean'
+                    && 'access_role' in item && typeof item.access_role === 'string'
                 ));
             })
             .catch(error => {
