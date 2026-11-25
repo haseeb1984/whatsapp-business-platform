@@ -26,6 +26,7 @@ class AiUsageMeteringTest extends TestCase
             'services.groq.timeout' => 5,
             'services.groq.rate_limit_cooldown_seconds' => 60,
             'services.groq.daily_request_limit' => 0,
+            'services.groq.daily_token_limit' => 0,
             'cache.default' => 'array',
         ]);
         Cache::flush();
@@ -165,6 +166,87 @@ class AiUsageMeteringTest extends TestCase
             'outcome' => 'quota_exceeded',
         ]);
         Http::assertSentCount(2);
+    }
+
+    public function test_daily_token_budget_blocks_requests_before_they_exceed_the_workspace_allowance(): void
+    {
+        config(['services.groq.daily_token_limit' => 120]);
+        $tenant = $this->tenant('ai-meter-token-budget');
+        Http::fake([
+            'api.groq.com/openai/v1/chat/completions' => Http::response([
+                'choices' => [['message' => ['content' => 'Approved answer']]],
+                'usage' => ['prompt_tokens' => 80, 'completion_tokens' => 10],
+            ]),
+        ]);
+
+        TenantContext::runForTenant($tenant->id, function (): void {
+            app(GroqProvider::class)->generate([['role' => 'user', 'content' => 'short prompt']], ['max_tokens' => 50]);
+
+            try {
+                app(GroqProvider::class)->generate([['role' => 'user', 'content' => 'another prompt']], ['max_tokens' => 50]);
+                $this->fail('The next request must be blocked by the daily token budget.');
+            } catch (AiProviderException $exception) {
+                $this->assertFalse($exception->retryable);
+                $this->assertStringContainsString('token budget', $exception->getMessage());
+            }
+        });
+
+        $this->assertDatabaseHas('ai_usage_daily', [
+            'tenant_id' => $tenant->id,
+            'requests' => 1,
+            'tokens' => 90,
+            'reserved_tokens' => 0,
+        ]);
+        $this->assertDatabaseHas('ai_usage_events', [
+            'tenant_id' => $tenant->id,
+            'outcome' => 'quota_exceeded',
+        ]);
+        Http::assertSentCount(1);
+    }
+
+    public function test_failed_provider_attempt_releases_its_token_reservation(): void
+    {
+        config(['services.groq.daily_token_limit' => 1000]);
+        $tenant = $this->tenant('ai-meter-token-release');
+        Http::fake([
+            'api.groq.com/openai/v1/chat/completions' => Http::response(['error' => ['message' => 'provider failure']], 500),
+        ]);
+
+        try {
+            TenantContext::runForTenant($tenant->id, fn () => app(GroqProvider::class)->generate(
+                [['role' => 'user', 'content' => 'retry later']],
+                ['max_tokens' => 100],
+            ));
+            $this->fail('The provider error must be surfaced.');
+        } catch (AiProviderException $exception) {
+            $this->assertTrue($exception->retryable);
+        }
+
+        $usage = \Illuminate\Support\Facades\DB::table('ai_usage_daily')->where('tenant_id', $tenant->id)->first();
+        $this->assertNotNull($usage);
+        $this->assertSame(0, (int) $usage->reserved_tokens);
+        $this->assertSame(0, (int) $usage->tokens);
+        $this->assertSame(1, (int) $usage->requests);
+    }
+
+    public function test_success_without_provider_usage_metadata_charges_the_reserved_estimate(): void
+    {
+        $tenant = $this->tenant('ai-meter-token-fallback');
+        Http::fake([
+            'api.groq.com/openai/v1/chat/completions' => Http::response([
+                'choices' => [['message' => ['content' => 'Approved answer']]],
+            ]),
+        ]);
+
+        TenantContext::runForTenant($tenant->id, fn () => app(GroqProvider::class)->generate(
+            [['role' => 'user', 'content' => 'small prompt']],
+            ['max_tokens' => 40],
+        ));
+
+        $usage = \Illuminate\Support\Facades\DB::table('ai_usage_daily')->where('tenant_id', $tenant->id)->first();
+        $this->assertNotNull($usage);
+        $this->assertSame(0, (int) $usage->reserved_tokens);
+        $this->assertGreaterThan(40, (int) $usage->tokens);
     }
 
     private function tenant(string $slug): Tenant
