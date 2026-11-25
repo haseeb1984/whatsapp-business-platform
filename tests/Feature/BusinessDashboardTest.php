@@ -60,6 +60,25 @@ class BusinessDashboardTest extends TestCase
             ]);
         });
 
+        config(['services.groq.daily_request_limit' => 250]);
+        DB::table('ai_usage_daily')->insert([
+            [
+                'tenant_id' => $tenant->id,
+                'usage_date' => now()->toDateString(),
+                'requests' => 7,
+                'tokens' => 350,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'tenant_id' => $otherTenant->id,
+                'usage_date' => now()->toDateString(),
+                'requests' => 99,
+                'tokens' => 9999,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
         DB::table('ai_usage_events')->insert([
             [
                 'tenant_id' => $tenant->id,
@@ -96,6 +115,10 @@ class BusinessDashboardTest extends TestCase
                 ->where('metrics.active_services', 1)
                 ->where('metrics.active_staff', 1)
                 ->where('ai_usage.available', true)
+                ->where('ai_usage.today_available', true)
+                ->where('ai_usage.today_requests', 7)
+                ->where('ai_usage.today_tokens', 350)
+                ->where('ai_usage.daily_request_limit', 250)
                 ->where('ai_usage.attempts_30d', 1)
                 ->where('ai_usage.tokens_30d', 125)
                 ->where('integrations.whatsapp', false)
