@@ -25,124 +25,111 @@ class GroqProvider implements AiProviderInterface
         if (Cache::get('groq:rate_limit_cooldown', false) === true) {
             app(AiUsageRecorder::class)->record('groq', $model, 'rate_limited_cooldown');
             Log::warning('Groq request skipped during rate-limit cooldown.', [
-                'provider' => 'groq',
-                'model' => $model,
-                'failure' => 'rate_limit_cooldown',
-                'retryable' => true,
+                'provider' => 'groq', 'model' => $model,
+                'failure' => 'rate_limit_cooldown', 'retryable' => true,
             ]);
             throw new AiProviderException('Groq is temporarily rate-limited.', true);
         }
 
-        if (! app(AiUsageQuota::class)->reserveRequest()) {
+        $maxTokens = max(1, min(8192, (int) ($options['max_tokens'] ?? 256)));
+        $reservedTokens = $this->estimateTokenBudget($messages, $maxTokens);
+        if (! app(AiUsageQuota::class)->reserveRequest($reservedTokens)) {
             app(AiUsageRecorder::class)->record('groq', $model, 'quota_exceeded');
             Log::warning('Groq request blocked by tenant daily quota.', [
-                'provider' => 'groq',
-                'model' => $model,
-                'failure' => 'tenant_daily_quota',
+                'provider' => 'groq', 'model' => $model, 'failure' => 'tenant_daily_quota',
             ]);
-            throw new AiProviderException('The workspace AI daily request limit has been reached.', false);
+            throw new AiProviderException('The workspace AI daily request limit or token budget has been reached.', false);
         }
 
+        $reservationFinalized = false;
         $startedAt = hrtime(true);
 
         try {
-            $response = Http::withToken($apiKey)
-                ->acceptJson()
-                ->timeout((int) config('services.groq.timeout', 15))
-                ->post($baseUrl.'/chat/completions', [
-                    'model' => $model,
-                    'messages' => $messages,
-                    'temperature' => $options['temperature'] ?? 0,
-                    'max_tokens' => $options['max_tokens'] ?? 256,
+            try {
+                $response = Http::withToken($apiKey)->acceptJson()
+                    ->timeout((int) config('services.groq.timeout', 15))
+                    ->post($baseUrl.'/chat/completions', [
+                        'model' => $model, 'messages' => $messages,
+                        'temperature' => $options['temperature'] ?? 0, 'max_tokens' => $maxTokens,
+                    ]);
+            } catch (ConnectionException) {
+                app(AiUsageRecorder::class)->record('groq', $model, 'timeout', null, $this->durationMilliseconds($startedAt));
+                Log::warning('Groq request failed.', [
+                    'provider' => 'groq', 'model' => $model, 'failure' => 'connection',
+                    'duration_ms' => $this->durationMilliseconds($startedAt),
                 ]);
-        } catch (ConnectionException) {
-            app(AiUsageRecorder::class)->record(
-                'groq',
-                $model,
-                'timeout',
-                null,
-                $this->durationMilliseconds($startedAt),
-            );
-            Log::warning('Groq request failed.', [
-                'provider' => 'groq',
-                'model' => $model,
-                'failure' => 'connection',
-                'duration_ms' => $this->durationMilliseconds($startedAt),
-            ]);
-            throw new AiProviderException('Groq request timed out.', true);
-        }
-
-        if (! $response->successful()) {
-            $status = $response->status();
-            $retryable = $status === 429 || $status >= 500;
-            if ($status === 429) {
-                $cooldownSeconds = $this->rateLimitCooldownSeconds($response);
-                if ($cooldownSeconds > 0) {
-                    Cache::put('groq:rate_limit_cooldown', true, now()->addSeconds($cooldownSeconds));
-                }
+                throw new AiProviderException('Groq request timed out.', true);
             }
+
+            if (! $response->successful()) {
+                $status = $response->status();
+                $retryable = $status === 429 || $status >= 500;
+                if ($status === 429) {
+                    $cooldownSeconds = $this->rateLimitCooldownSeconds($response);
+                    if ($cooldownSeconds > 0) {
+                        Cache::put('groq:rate_limit_cooldown', true, now()->addSeconds($cooldownSeconds));
+                    }
+                }
+                app(AiUsageRecorder::class)->record(
+                    'groq', $model, $status === 429 ? 'rate_limited' : 'provider_error',
+                    $status, $this->durationMilliseconds($startedAt),
+                );
+                Log::warning('Groq request failed.', [
+                    'provider' => 'groq', 'model' => $model, 'status' => $status,
+                    'retryable' => $retryable, 'duration_ms' => $this->durationMilliseconds($startedAt),
+                ]);
+                throw new AiProviderException('Groq could not complete the request.', $retryable);
+            }
+
+            $content = $response->json('choices.0.message.content');
+            if (! is_string($content) || trim($content) === '') {
+                app(AiUsageRecorder::class)->record(
+                    'groq', $model, 'malformed_response', $response->status(),
+                    $this->durationMilliseconds($startedAt),
+                );
+                Log::warning('Groq response malformed.', [
+                    'provider' => 'groq', 'model' => $model, 'status' => $response->status(),
+                    'duration_ms' => $this->durationMilliseconds($startedAt),
+                ]);
+                throw new AiProviderException('Groq returned an empty or malformed response.', false);
+            }
+
+            $usage = $response->json('usage', []);
+            $tokenCount = static fn (mixed $value): ?int => is_numeric($value) ? max(0, (int) $value) : null;
+            $promptTokens = $tokenCount(is_array($usage) ? ($usage['prompt_tokens'] ?? null) : null);
+            $completionTokens = $tokenCount(is_array($usage) ? ($usage['completion_tokens'] ?? null) : null);
+            $usageReported = $promptTokens !== null || $completionTokens !== null;
+
             app(AiUsageRecorder::class)->record(
-                'groq',
-                $model,
-                $status === 429 ? 'rate_limited' : 'provider_error',
-                $status,
-                $this->durationMilliseconds($startedAt),
+                'groq', $model, 'succeeded', $response->status(),
+                $this->durationMilliseconds($startedAt), $promptTokens, $completionTokens,
             );
-            Log::warning('Groq request failed.', [
-                'provider' => 'groq',
-                'model' => $model,
-                'status' => $status,
-                'retryable' => $retryable,
+            app(AiUsageQuota::class)->finalizeTokenReservation(
+                $reservedTokens, $usageReported ? 0 : $reservedTokens,
+            );
+            $reservationFinalized = true;
+
+            Log::info('Groq completion completed.', [
+                'provider' => 'groq', 'model' => $model, 'status' => $response->status(),
                 'duration_ms' => $this->durationMilliseconds($startedAt),
+                'prompt_tokens' => $promptTokens, 'completion_tokens' => $completionTokens,
+                'total_tokens' => $tokenCount(is_array($usage) ? ($usage['total_tokens'] ?? null) : null),
             ]);
-            throw new AiProviderException(
-                'Groq could not complete the request.',
-                $retryable,
-            );
+
+            return trim($content);
+        } finally {
+            if (! $reservationFinalized) {
+                app(AiUsageQuota::class)->finalizeTokenReservation($reservedTokens);
+            }
         }
+    }
 
-        $content = $response->json('choices.0.message.content');
-        if (! is_string($content) || trim($content) === '') {
-            app(AiUsageRecorder::class)->record(
-                'groq',
-                $model,
-                'malformed_response',
-                $response->status(),
-                $this->durationMilliseconds($startedAt),
-            );
-            Log::warning('Groq response malformed.', [
-                'provider' => 'groq',
-                'model' => $model,
-                'status' => $response->status(),
-                'duration_ms' => $this->durationMilliseconds($startedAt),
-            ]);
-            throw new AiProviderException('Groq returned an empty or malformed response.', false);
-        }
+    private function estimateTokenBudget(array $messages, int $maxTokens): int
+    {
+        $serialized = json_encode($messages, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $promptEstimate = $serialized === false ? 0 : (int) ceil(strlen($serialized) / 4);
 
-        $usage = $response->json('usage', []);
-        $tokenCount = static fn (mixed $value): ?int => is_numeric($value) ? max(0, (int) $value) : null;
-
-        app(AiUsageRecorder::class)->record(
-            'groq',
-            $model,
-            'succeeded',
-            $response->status(),
-            $this->durationMilliseconds($startedAt),
-            $tokenCount(is_array($usage) ? ($usage['prompt_tokens'] ?? null) : null),
-            $tokenCount(is_array($usage) ? ($usage['completion_tokens'] ?? null) : null),
-        );
-
-        Log::info('Groq completion completed.', [
-            'provider' => 'groq',
-            'model' => $model,
-            'status' => $response->status(),
-            'duration_ms' => $this->durationMilliseconds($startedAt),
-            'prompt_tokens' => $tokenCount(is_array($usage) ? ($usage['prompt_tokens'] ?? null) : null),
-            'completion_tokens' => $tokenCount(is_array($usage) ? ($usage['completion_tokens'] ?? null) : null),
-            'total_tokens' => $tokenCount(is_array($usage) ? ($usage['total_tokens'] ?? null) : null),
-        ]);
-
-        return trim($content);
+        return min(1_000_000, max(0, $promptEstimate) + $maxTokens);
     }
 
     private function rateLimitCooldownSeconds(\Illuminate\Http\Client\Response $response): int
