@@ -498,3 +498,12 @@ This roadmap distinguishes planned work from implemented work.
 - Business admins see only their own workspace's last-30-day AI request/token totals and last-24-hour failed/limited request count. Platform operations sees global totals plus per-tenant 30-day request/token summaries and 24-hour failure/rate-limit counts.
 - `ai-usage:prune` deletes old records in batches of 1,000 and is scheduled daily at 02:15. `AI_USAGE_RETENTION_DAYS` defaults to 90 days and is clamped between 30 and 365 days.
 - These metrics are operational usage visibility, not billing or hard quotas. Per-tenant budget enforcement, rate limiting, alert thresholds and provider health trends remain future work. Full PR and post-merge CI verification is pending.
+
+
+## Per-workspace AI daily quota controls — 2026-11-25
+
+- Added an atomic `ai_usage_daily` counter keyed by tenant and date. `AI_TENANT_DAILY_REQUEST_LIMIT` configures a daily provider-request cap for each workspace; zero (default) disables enforcement until an operator selects a suitable plan limit.
+- Quota reservation occurs transactionally before the Groq HTTP request, with row locking and bounded deadlock retries. Provider attempts consume a request even if Groq later times out or rejects them; requests skipped during cooldown and quota-blocked attempts do not consume a provider request.
+- Provider-reported prompt/completion tokens accumulate in the daily counter. Workspace admins can see today's provider requests, configured cap, and token use; platform operations sees daily totals and quota-block events.
+- The daily retention job also prunes daily counters older than 400 days. Event retention remains configurable at 90 days by default.
+- Token-budget enforcement, alert thresholds, plan-specific quota configuration and abuse/load validation remain open. Full CI and merge verification for this batch is pending.
