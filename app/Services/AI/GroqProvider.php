@@ -22,6 +22,7 @@ class GroqProvider implements AiProviderInterface
         }
 
         if (Cache::get('groq:rate_limit_cooldown', false) === true) {
+            app(AiUsageRecorder::class)->record('groq', $model, 'rate_limited_cooldown');
             Log::warning('Groq request skipped during rate-limit cooldown.', [
                 'provider' => 'groq',
                 'model' => $model,
@@ -44,6 +45,13 @@ class GroqProvider implements AiProviderInterface
                     'max_tokens' => $options['max_tokens'] ?? 256,
                 ]);
         } catch (ConnectionException) {
+            app(AiUsageRecorder::class)->record(
+                'groq',
+                $model,
+                'timeout',
+                null,
+                $this->durationMilliseconds($startedAt),
+            );
             Log::warning('Groq request failed.', [
                 'provider' => 'groq',
                 'model' => $model,
@@ -62,6 +70,13 @@ class GroqProvider implements AiProviderInterface
                     Cache::put('groq:rate_limit_cooldown', true, now()->addSeconds($cooldownSeconds));
                 }
             }
+            app(AiUsageRecorder::class)->record(
+                'groq',
+                $model,
+                $status === 429 ? 'rate_limited' : 'provider_error',
+                $status,
+                $this->durationMilliseconds($startedAt),
+            );
             Log::warning('Groq request failed.', [
                 'provider' => 'groq',
                 'model' => $model,
@@ -77,6 +92,13 @@ class GroqProvider implements AiProviderInterface
 
         $content = $response->json('choices.0.message.content');
         if (! is_string($content) || trim($content) === '') {
+            app(AiUsageRecorder::class)->record(
+                'groq',
+                $model,
+                'malformed_response',
+                $response->status(),
+                $this->durationMilliseconds($startedAt),
+            );
             Log::warning('Groq response malformed.', [
                 'provider' => 'groq',
                 'model' => $model,
@@ -88,6 +110,16 @@ class GroqProvider implements AiProviderInterface
 
         $usage = $response->json('usage', []);
         $tokenCount = static fn (mixed $value): ?int => is_numeric($value) ? max(0, (int) $value) : null;
+
+        app(AiUsageRecorder::class)->record(
+            'groq',
+            $model,
+            'succeeded',
+            $response->status(),
+            $this->durationMilliseconds($startedAt),
+            $tokenCount(is_array($usage) ? ($usage['prompt_tokens'] ?? null) : null),
+            $tokenCount(is_array($usage) ? ($usage['completion_tokens'] ?? null) : null),
+        );
 
         Log::info('Groq completion completed.', [
             'provider' => 'groq',
