@@ -34,6 +34,23 @@ class AiUsageRecorder
                 'completion_tokens' => $completionTokens === null ? null : max(0, $completionTokens),
                 'created_at' => now(),
             ]);
+
+            $reportedTokens = max(0, $promptTokens ?? 0) + max(0, $completionTokens ?? 0);
+            if ($tenantId !== null && $outcome === 'succeeded' && $reportedTokens > 0) {
+                $usageDate = now()->toDateString();
+                DB::table('ai_usage_daily')->insertOrIgnore([
+                    'tenant_id' => $tenantId,
+                    'usage_date' => $usageDate,
+                    'requests' => 0,
+                    'tokens' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                DB::table('ai_usage_daily')
+                    ->where('tenant_id', $tenantId)
+                    ->where('usage_date', $usageDate)
+                    ->increment('tokens', $reportedTokens, ['updated_at' => now()]);
+            }
         } catch (Throwable $exception) {
             Log::warning('AI usage event could not be persisted.', [
                 'provider' => $provider,
