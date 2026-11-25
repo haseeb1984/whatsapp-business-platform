@@ -513,4 +513,11 @@ This roadmap distinguishes planned work from implemented work.
 
 - Platform operations now reports seven-day actual provider attempts, success percentage and average provider latency, excluding local cooldown skips and quota-blocked attempts from provider-health denominators.
 - The aggregate is based only on metadata-only usage events; it does not expose prompts, completions or customer records. Regression coverage checks the success-rate and latency calculations against mixed successful/rate-limited outcomes.
-- PR #46 verification is pending. No alerting or automatic provider failover is claimed; threshold-based alerts and token-budget enforcement remain open.
+- PR #46 merged as `9df87e5c5fcec7ea6b201e6d5b48c4a2cb3cb8fa`; PR-head CI [run 45667684378](https://github.com/actions/runs/45667684378) and post-merge CI [run 45667895475](https://github.com/actions/runs/45667895475) passed. No alerting or automatic provider failover is claimed; threshold-based alerts and token-budget enforcement remain open.
+
+
+## Concurrent AI quota reservation verification — 2026-11-25
+
+- Added a PostgreSQL-only multi-process regression that starts two independent PHP workers simultaneously against the same tenant/day quota of one request.
+- A test-only PostgreSQL trigger forces row-lock contention; expected result is exactly one reservation and one blocked attempt, with the durable counter remaining at one. This specifically validates the independent-worker race rather than relying on a single-process test.
+- PR #47 verification is pending. Broader production load/abuse testing and live deployment acceptance remain separate release gates.
