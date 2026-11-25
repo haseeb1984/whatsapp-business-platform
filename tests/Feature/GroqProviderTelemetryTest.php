@@ -133,6 +133,41 @@ class GroqProviderTelemetryTest extends TestCase
         }
     }
 
+    public function test_http_date_retry_after_header_is_respected(): void
+    {
+        $frozen = \\Illuminate\\Support\\Carbon::parse('2026-11-25 12:00:00 UTC');
+        \\Illuminate\\Support\\Carbon::setTestNow($frozen);
+        $retryAt = $frozen->copy()->addSeconds(120)->toRfc7231String();
+        Http::fake([
+            'api.groq.com/openai/v1/chat/completions' => Http::response([
+                'error' => ['message' => 'provider rate limit'],
+            ], 429, ['Retry-After' => $retryAt]),
+        ]);
+
+        $provider = app(GroqProvider::class);
+        try {
+            try {
+                $provider->generate([['role' => 'user', 'content' => 'private question']]);
+                $this->fail('The first request must be rate limited.');
+            } catch (AiProviderException $exception) {
+                $this->assertTrue($exception->retryable);
+            }
+
+            \\Illuminate\\Support\\Carbon::setTestNow($frozen->copy()->addSeconds(61));
+
+            try {
+                $provider->generate([['role' => 'user', 'content' => 'another private question']]);
+                $this->fail('The HTTP-date Retry-After value must keep the cooldown active.');
+            } catch (AiProviderException $exception) {
+                $this->assertTrue($exception->retryable);
+            }
+
+            Http::assertSentCount(1);
+        } finally {
+            \\Illuminate\\Support\\Carbon::setTestNow();
+        }
+    }
+
     public function test_rate_limit_cooldown_suppresses_repeated_groq_requests(): void
     {
         Http::fake([
