@@ -96,7 +96,7 @@ class BusinessDashboardTest extends TestCase
                 ->where('metrics.active_services', 1)
                 ->where('metrics.active_staff', 1)
                 ->where('ai_usage.available', true)
-                ->where('ai_usage.requests_30d', 1)
+                ->where('ai_usage.attempts_30d', 1)
                 ->where('ai_usage.tokens_30d', 125)
                 ->where('integrations.whatsapp', false)
                 ->where('integrations.google_calendar', false)
