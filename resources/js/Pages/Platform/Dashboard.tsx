@@ -24,6 +24,9 @@ type PageProps = {
         ai_tokens_last_30_days: number | null;
         ai_failures_last_24_hours: number | null;
         ai_rate_limits_last_24_hours: number | null;
+        ai_quota_blocks_last_24_hours: number | null;
+        ai_requests_today: number | null;
+        ai_tokens_today: number | null;
         audit_events_total: number | null;
         queue_pending: number | null;
         queue_failed: number | null;
@@ -84,6 +87,9 @@ export default function PlatformDashboard() {
         ['AI tokens · 30 days', metrics.ai_tokens_last_30_days ?? 'Not available'],
         ['AI failures · 24 hours', metrics.ai_failures_last_24_hours ?? 'Not available'],
         ['AI rate limits · 24 hours', metrics.ai_rate_limits_last_24_hours ?? 'Not available'],
+        ['AI quota blocks · 24 hours', metrics.ai_quota_blocks_last_24_hours ?? 'Not available'],
+        ['AI requests · today', metrics.ai_requests_today ?? 'Not available'],
+        ['AI tokens · today', metrics.ai_tokens_today ?? 'Not available'],
         ['Audit events', metrics.audit_events_total ?? 'Not available'],
         ['Queued jobs', metrics.queue_pending ?? 'Not available'],
         ['Failed jobs', metrics.queue_failed ?? 'Not available'],
