@@ -3,7 +3,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 type PageProps = {
     tenant: { id: string; name: string; timezone: string };
     current_user_role: 'business_admin' | 'staff';
-    ai_usage: { available: boolean; today_available: boolean; today_requests: number; today_tokens: number; daily_request_limit: number; requests_30d: number; tokens_30d: number; failures_24h: number } | null;
+    ai_usage: { available: boolean; today_available: boolean; today_requests: number; today_tokens: number; daily_request_limit: number; attempts_30d: number; tokens_30d: number; failures_24h: number } | null;
     metrics: {
         customers: number;
         open_conversations: number;
@@ -90,7 +90,7 @@ export default function Dashboard() {
                         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                             <div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><p className="text-sm text-slate-400">Requests today</p><p className="mt-2 text-2xl font-bold tabular-nums">{ai_usage.today_available ? ai_usage.today_requests.toLocaleString() : '—'}</p></div>
                             <div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><p className="text-sm text-slate-400">Daily request cap</p><p className="mt-2 text-2xl font-bold tabular-nums">{ai_usage.daily_request_limit > 0 ? ai_usage.daily_request_limit.toLocaleString() : 'Disabled'}</p></div>
-                            <div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><p className="text-sm text-slate-400">Provider requests · 30d</p><p className="mt-2 text-2xl font-bold tabular-nums">{ai_usage.requests_30d.toLocaleString()}</p></div>
+                            <div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><p className="text-sm text-slate-400">AI attempts · 30d</p><p className="mt-2 text-2xl font-bold tabular-nums">{ai_usage.attempts_30d.toLocaleString()}</p></div>
                             <div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><p className="text-sm text-slate-400">Tokens today</p><p className="mt-2 text-2xl font-bold tabular-nums">{ai_usage.today_available ? ai_usage.today_tokens.toLocaleString() : '—'}</p></div>
                             <div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><p className="text-sm text-slate-400">Tokens · 30d</p><p className="mt-2 text-2xl font-bold tabular-nums">{ai_usage.tokens_30d.toLocaleString()}</p></div>
                             <div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><p className="text-sm text-slate-400">Failed / limited · 24h</p><p className="mt-2 text-2xl font-bold tabular-nums">{ai_usage.failures_24h.toLocaleString()}</p></div>
