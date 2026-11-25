@@ -466,3 +466,11 @@ This roadmap distinguishes planned work from implemented work.
 - The dashboard exposes aggregate counts only; provider tokens, refresh tokens, scopes and account identifiers are not included in the new metrics.
 - Added a feature regression with pending WhatsApp and expired/missing-refresh-token Calendar records, asserting the health counts and confirming credential fields are not returned.
 - This is database-state visibility, not a live provider permission check or proof that refresh credentials are accepted by Meta/Google. Live authorization checks, usage controls, retention controls and external-account acceptance remain pending.
+
+
+## AI appointment lookup and reply-race verification — 2026-11-25
+
+- PR #37 added a strict, read-only `list_available_slots` AI tool. It requires an exact active service name and ISO local date, optionally resolves an exact staff name, and reuses the existing tenant-scoped availability service. It cannot create or modify bookings.
+- PR #37 passed full CI [run 45427314200](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45427314200), was squash-merged as `dfacfd1e77662430db081f6a01bd75f3352dac1a`, and post-merge CI [run 45538010605](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45538010605) passed. `main` and `work` were synchronized after merge.
+- The next verification batch adds deterministic regression tests for two AI response races: staff taking over while the model is generating, and a newer customer message arriving before the generated reply is persisted. The message service already re-locks and validates the conversation state and latest inbound reference at send time; these tests pin that protection.
+- Remaining application work includes deeper load/abuse and failure-recovery testing, additional locale/intent coverage, and final calendar/integration UX review. External release gates still require real Neon and Hostinger rehearsals, live Meta and Google acceptance, backup/restore and rollback drills, and production monitoring sign-off. No production deployment has been performed.
