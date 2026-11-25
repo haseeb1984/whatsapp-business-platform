@@ -88,3 +88,12 @@ Use concise, business-appropriate language and the tenant's configured locale. C
 ## 9. Reply race and human takeover safety
 
 Automated replies are generated outside the conversation lock so slow model calls do not hold database locks. Before an automated outbound message is persisted, the message service re-locks the conversation and revalidates that automation is still active and that the referenced inbound message is still the latest customer message. A staff takeover or newer customer message during model generation therefore blocks the stale AI reply. Regression tests simulate both race windows; the queue may retry the rejected job, but the next attempt exits because the conversation state or inbound-message ordering has changed.
+
+
+## 10. Per-workspace daily token budgets
+
+- `AI_TENANT_DAILY_TOKEN_LIMIT` configures a daily token ceiling per workspace; zero (the default) disables token-budget enforcement. The existing `AI_TENANT_DAILY_REQUEST_LIMIT` remains an independent request-count ceiling.
+- Before a Groq call, the application atomically reserves the request and a conservative token estimate (serialized message bytes divided by four, plus the requested maximum completion tokens). The reservation is checked against provider-reported tokens already used and other in-flight reservations under the same tenant/day row lock, so concurrent workers cannot each spend the same remaining budget.
+- After a successful response, provider-reported prompt/completion tokens are metered and the estimate is released. If a successful response omits usage metadata, the estimate is charged conservatively. Failed, timed-out, rate-limited and malformed attempts release their token reservation; provider attempts still count toward the separate request quota.
+- The estimate is a protective budget heuristic, not an exact model tokenizer. Actual provider usage remains the authoritative metered amount when Groq reports it. Configure a limit with headroom appropriate to the model and workload; a zero limit preserves the previous unbounded-token behavior.
+- The daily counter stores both actual `tokens` and transient `reserved_tokens`; no prompts, completions or customer content are stored for budgeting.

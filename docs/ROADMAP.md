@@ -572,3 +572,11 @@ This roadmap distinguishes planned work from implemented work.
 - PR #50 extended threshold-alert regression coverage to include repeated failed jobs as the fifth alert condition. It merged as `d632fae6ea5aecfbe53e86a77a00f5fb28cc32cd`; PR-head CI [run 45670902336](https://github.com/actions/runs/45670902336) and post-merge CI [run 45671143641](https://github.com/actions/runs/45671143641) passed.
 - PR #51 added coverage for HTTP-date-form `Retry-After` headers in addition to integer-second values. It merged as `0dd8538763e30c0c54a9108635df40ef7f9d8474`; PR-head CI [run 45671858084](https://github.com/actions/runs/45671858084) and post-merge CI [run 45672102011](https://github.com/actions/runs/45672102011) passed.
 - `main` and `work` are synchronized at `0dd8538763e30c0c54a9108635df40ef7f9d8474`. No open pull requests. The remaining engineering work is token-budget enforcement, broader abuse/load/recovery validation and alert delivery/escalation; external live-account and deployment rehearsals remain release gates.
+
+
+## Per-workspace AI daily token budgets — 2026-11-26
+
+- Added `AI_TENANT_DAILY_TOKEN_LIMIT` as an independent per-workspace daily token ceiling; zero remains disabled by default for backward compatibility.
+- Groq requests reserve an estimated prompt-plus-maximum-completion token budget atomically with the daily request counter. In-flight reservations are included in the limit check, preventing concurrent workers from spending the same remaining token allowance.
+- Successful responses reconcile the reservation against provider-reported token usage. Missing usage metadata is charged at the conservative estimate; failed provider attempts release the token reservation while still counting against the request quota.
+- The estimate uses serialized message size divided by four plus requested `max_tokens`; it is intentionally conservative and is not an exact model tokenizer. Automated tests and CI verification are pending.
