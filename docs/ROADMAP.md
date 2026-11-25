@@ -497,4 +497,13 @@ This roadmap distinguishes planned work from implemented work.
 - Added regression coverage for tenant attribution, cross-tenant isolation, success/rate-limit/cooldown outcomes, platform aggregates and bounded retention cleanup.
 - Business admins see only their own workspace's last-30-day AI request/token totals and last-24-hour failed/limited request count. Platform operations sees global totals plus per-tenant 30-day request/token summaries and 24-hour failure/rate-limit counts.
 - `ai-usage:prune` deletes old records in batches of 1,000 and is scheduled daily at 02:15. `AI_USAGE_RETENTION_DAYS` defaults to 90 days and is clamped between 30 and 365 days.
-- These metrics are operational usage visibility, not billing or hard quotas. Per-tenant budget enforcement, rate limiting, alert thresholds and provider health trends remain future work. Full PR and post-merge CI verification is pending.
+- PR #44 merged as `b171c7b7e9b2fcbc418a93e45ad497acd7cc2fa0`; PR-head CI [run 45665338126](https://github.com/actions/runs/45665338126) and post-merge CI [run 45665614271](https://github.com/actions/runs/45665614271) passed. Usage metadata is operational visibility, not a billing record.
+
+
+## Per-workspace AI daily quota controls — 2026-11-25
+
+- Added an atomic `ai_usage_daily` counter keyed by tenant and date. `AI_TENANT_DAILY_REQUEST_LIMIT` configures a daily provider-request cap for each workspace; zero (default) disables enforcement until an operator selects a suitable plan limit.
+- Quota reservation occurs transactionally before the Groq HTTP request, with row locking and bounded deadlock retries. Provider attempts consume a request even if Groq later times out or rejects them; requests skipped during cooldown and quota-blocked attempts do not consume a provider request.
+- Provider-reported prompt/completion tokens accumulate in the daily counter. Workspace admins can see today's provider requests, configured cap, and token use; platform operations sees daily totals and quota-block events.
+- The daily retention job also prunes daily counters older than 400 days. Event retention remains configurable at 90 days by default.
+- Token-budget enforcement, alert thresholds, plan-specific quota configuration and abuse/load validation remain open. PR #45 is the next verification batch; full CI and merge verification are pending.

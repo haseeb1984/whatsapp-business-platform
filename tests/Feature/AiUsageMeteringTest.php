@@ -25,6 +25,7 @@ class AiUsageMeteringTest extends TestCase
             'services.groq.base_url' => 'https://api.groq.com/openai/v1',
             'services.groq.timeout' => 5,
             'services.groq.rate_limit_cooldown_seconds' => 60,
+            'services.groq.daily_request_limit' => 0,
             'cache.default' => 'array',
         ]);
         Cache::flush();
@@ -58,6 +59,12 @@ class AiUsageMeteringTest extends TestCase
         $this->assertNotContains('prompt', $columns);
         $this->assertNotContains('completion', $columns);
         $this->assertNotContains('customer_message', $columns);
+        $this->assertDatabaseHas('ai_usage_daily', [
+            'tenant_id' => $tenant->id,
+            'usage_date' => now()->toDateString(),
+            'requests' => 1,
+            'tokens' => 100,
+        ]);
     }
 
     public function test_rate_limited_provider_attempt_is_metered_and_cooldown_attempts_are_counted(): void
@@ -89,12 +96,18 @@ class AiUsageMeteringTest extends TestCase
             'tenant_id' => $tenant->id,
             'outcome' => 'rate_limited_cooldown',
         ]);
+        $this->assertDatabaseHas('ai_usage_daily', [
+            'tenant_id' => $tenant->id,
+            'requests' => 1,
+            'tokens' => 0,
+        ]);
         $this->assertSame(2, \Illuminate\Support\Facades\DB::table('ai_usage_events')->where('tenant_id', $tenant->id)->count());
         Http::assertSentCount(1);
     }
 
     public function test_usage_events_are_isolated_between_tenants(): void
     {
+        config(['services.groq.daily_request_limit' => 1]);
         $tenantA = $this->tenant('ai-meter-tenant-a');
         $tenantB = $this->tenant('ai-meter-tenant-b');
         Http::fake([
@@ -113,6 +126,45 @@ class AiUsageMeteringTest extends TestCase
         $this->assertDatabaseCount('ai_usage_events', 2);
         $this->assertDatabaseHas('ai_usage_events', ['tenant_id' => $tenantA->id, 'prompt_tokens' => 10]);
         $this->assertDatabaseHas('ai_usage_events', ['tenant_id' => $tenantB->id, 'prompt_tokens' => 10]);
+        $this->assertDatabaseHas('ai_usage_daily', ['tenant_id' => $tenantA->id, 'requests' => 1, 'tokens' => 15]);
+        $this->assertDatabaseHas('ai_usage_daily', ['tenant_id' => $tenantB->id, 'requests' => 1, 'tokens' => 15]);
+    }
+
+    public function test_configured_daily_quota_blocks_provider_calls_after_the_tenant_limit(): void
+    {
+        config(['services.groq.daily_request_limit' => 2]);
+        $tenant = $this->tenant('ai-meter-quota');
+        Http::fake([
+            'api.groq.com/openai/v1/chat/completions' => Http::response([
+                'choices' => [['message' => ['content' => 'Approved answer']]],
+                'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 5],
+            ]),
+        ]);
+
+        TenantContext::runForTenant($tenant->id, function (): void {
+            app(GroqProvider::class)->generate([['role' => 'user', 'content' => 'first']]);
+            app(GroqProvider::class)->generate([['role' => 'user', 'content' => 'second']]);
+
+            try {
+                app(GroqProvider::class)->generate([['role' => 'user', 'content' => 'third']]);
+                $this->fail('The third request must be blocked by the daily tenant quota.');
+            } catch (AiProviderException $exception) {
+                $this->assertFalse($exception->retryable);
+                $this->assertStringContainsString('daily request limit', $exception->getMessage());
+            }
+        });
+
+        $this->assertDatabaseHas('ai_usage_daily', [
+            'tenant_id' => $tenant->id,
+            'usage_date' => now()->toDateString(),
+            'requests' => 2,
+            'tokens' => 30,
+        ]);
+        $this->assertDatabaseHas('ai_usage_events', [
+            'tenant_id' => $tenant->id,
+            'outcome' => 'quota_exceeded',
+        ]);
+        Http::assertSentCount(2);
     }
 
     private function tenant(string $slug): Tenant

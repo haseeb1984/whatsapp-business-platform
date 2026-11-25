@@ -360,7 +360,23 @@ Artisan::command('ai-usage:prune {--days=}', function (): int {
         $deleted += DB::table('ai_usage_events')->whereIn('id', $ids)->delete();
     } while (true);
 
-    $this->info("Pruned {$deleted} AI usage event(s) older than {$retentionDays} day(s).");
+    $dailyDeleted = 0;
+    $dailyCutoff = now()->subDays(400)->toDateString();
+    do {
+        $dailyIds = DB::table('ai_usage_daily')
+            ->where('usage_date', '<', $dailyCutoff)
+            ->orderBy('id')
+            ->limit(1000)
+            ->pluck('id');
+
+        if ($dailyIds->isEmpty()) {
+            break;
+        }
+
+        $dailyDeleted += DB::table('ai_usage_daily')->whereIn('id', $dailyIds)->delete();
+    } while (true);
+
+    $this->info("Pruned {$deleted} AI usage event(s) older than {$retentionDays} day(s) and {$dailyDeleted} daily counter(s) older than 400 days.");
 
     return self::SUCCESS;
 })->purpose('Prune old metadata-only AI usage events in bounded batches');
