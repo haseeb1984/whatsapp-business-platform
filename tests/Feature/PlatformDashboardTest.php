@@ -347,7 +347,7 @@ class PlatformDashboardTest extends TestCase
         $failedJobs = [];
         for ($i = 0; $i < 5; $i++) {
             $failedJobs[] = [
-                'uuid' => (string) \\Illuminate\\Support\\Str::uuid(),
+                'uuid' => (string) \Illuminate\Support\Str::uuid(),
                 'connection' => 'database',
                 'queue' => 'default',
                 'payload' => '{"displayName":"FailedJob"}',
