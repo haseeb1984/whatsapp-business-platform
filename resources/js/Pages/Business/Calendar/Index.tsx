@@ -39,6 +39,7 @@ export default function GoogleCalendarSettings() {
         const controller = new AbortController();
         setLoading(true);
         setCalendarError('');
+        setCalendars([]);
         fetch('/business/calendar/calendars', {
             headers: { Accept: 'application/json' },
             credentials: 'same-origin',
@@ -73,7 +74,7 @@ export default function GoogleCalendarSettings() {
                 if (!controller.signal.aborted) setLoading(false);
             });
         return () => controller.abort();
-    }, [connection?.connected]);
+    }, [connection?.connected, connection?.account_email, connection?.connected_at]);
 
     return (
         <main className="min-h-screen bg-slate-50 px-5 py-8 sm:px-8">
