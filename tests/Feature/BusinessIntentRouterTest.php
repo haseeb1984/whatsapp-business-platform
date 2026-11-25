@@ -233,7 +233,7 @@ class BusinessIntentRouterTest extends TestCase
 
         $this->assertSame('answered', $roman->status);
         $this->assertSame('today_hours', $roman->intent);
-        $this->assertStringContainsString('09:30–18:30', $roman->answer);
+        $this->assertStringContainsString('09:30 se 18:30 tak', $roman->answer);
         $this->assertSame('answered', $urdu->status);
         $this->assertSame('today_hours', $urdu->intent);
     }
