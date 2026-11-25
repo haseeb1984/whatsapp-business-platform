@@ -277,7 +277,7 @@ class AutomatedFaqReplyJobTest extends TestCase
                 app(BusinessToolAssistant::class),
             );
             $this->fail('The send transaction must reject an AI reply after staff takeover.');
-        } catch (\Illuminate\\Validation\\ValidationException $exception) {
+        } catch (\Illuminate\Validation\ValidationException $exception) {
             $this->assertArrayHasKey('conversation', $exception->errors());
         }
 
@@ -332,7 +332,7 @@ class AutomatedFaqReplyJobTest extends TestCase
                 app(BusinessToolAssistant::class),
             );
             $this->fail('The send transaction must reject a reply for an outdated inbound message.');
-        } catch (\Illuminate\\Validation\\ValidationException $exception) {
+        } catch (\Illuminate\Validation\ValidationException $exception) {
             $this->assertArrayHasKey('message', $exception->errors());
         }
 
