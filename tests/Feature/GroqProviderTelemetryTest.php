@@ -6,6 +6,7 @@ use App\Exceptions\AiProviderException;
 use App\Services\AI\GroqProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Mockery;
 use Tests\TestCase;
@@ -23,7 +24,10 @@ class GroqProviderTelemetryTest extends TestCase
             'services.groq.model' => 'test-model',
             'services.groq.base_url' => 'https://api.groq.com/openai/v1',
             'services.groq.timeout' => 5,
+            'services.groq.rate_limit_cooldown_seconds' => 60,
+            'cache.default' => 'array',
         ]);
+        Cache::flush();
     }
 
     public function test_success_logs_latency_and_token_counts_without_customer_content(): void
@@ -95,4 +99,28 @@ class GroqProviderTelemetryTest extends TestCase
             }),
         );
     }
+    public function test_rate_limit_cooldown_suppresses_repeated_groq_requests(): void
+    {
+        Http::fake([
+            'api.groq.com/openai/v1/chat/completions' => Http::response([
+                'error' => ['message' => 'provider rate limit'],
+            ], 429),
+        ]);
+
+        $provider = app(GroqProvider::class);
+        foreach ([1, 2] as $attempt) {
+            try {
+                $provider->generate([
+                    ['role' => 'user', 'content' => 'customer question '.$attempt],
+                ]);
+                $this->fail('Groq must report a retryable rate-limit condition.');
+            } catch (AiProviderException $exception) {
+                $this->assertTrue($exception->retryable);
+            }
+        }
+
+        Http::assertSentCount(1);
+        $this->assertTrue(Cache::get('groq:rate_limit_cooldown'));
+    }
+
 }
