@@ -6,6 +6,7 @@ use App\Contracts\AiProviderInterface;
 use App\Exceptions\AiProviderException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class GroqProvider implements AiProviderInterface
 {
