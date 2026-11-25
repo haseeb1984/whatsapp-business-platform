@@ -527,7 +527,7 @@ This roadmap distinguishes planned work from implemented work.
 
 - Expanded deterministic intent patterns for colloquial Roman Urdu pricing (including `kitnay ki` / `kitne ka`), service-catalog questions, opening-time phrases and public contact-number requests.
 - Added Urdu-script variants for service catalog, opening-time and contact-number questions. Answers continue to come only from configured tenant service, hours and business-profile records.
-- Added feature regressions for each phrase family. PR #48 full CI verification is pending.
+- Added feature regressions for each phrase family. PR #48 merged as `b85a4e3e9a827fb6be2aea3ef501b0237ae26060`; PR-head CI [run 45669090637](https://github.com/actions/runs/45669090637) and post-merge CI [run 45669349263](https://github.com/actions/runs/45669349263) passed.
 
 
 ## Urdu and Roman Urdu deterministic intent coverage — 2026-11-25
