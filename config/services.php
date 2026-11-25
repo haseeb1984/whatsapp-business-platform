@@ -7,6 +7,7 @@ return [
         'base_url' => env('GROQ_BASE_URL', 'https://api.groq.com/openai/v1'),
         'timeout' => (int) env('GROQ_TIMEOUT', 15),
         'rate_limit_cooldown_seconds' => (int) env('GROQ_RATE_LIMIT_COOLDOWN_SECONDS', 60),
+        'usage_retention_days' => (int) env('AI_USAGE_RETENTION_DAYS', 90),
     ],
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
