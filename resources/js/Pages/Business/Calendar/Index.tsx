@@ -8,6 +8,7 @@ type Props = {
     connection: null | { connected: boolean; status: string; account_email: string | null; default_calendar_id: string; connected_at: string | null };
     oauth_configured: boolean;
     staff: StaffOption[];
+    errors?: Record<string, string>;
 };
 
 function StaffCalendarRow({ member, calendars }: { member: StaffOption; calendars: CalendarOption[] }) {
@@ -27,7 +28,7 @@ function StaffCalendarRow({ member, calendars }: { member: StaffOption; calendar
 }
 
 export default function GoogleCalendarSettings() {
-    const { connection, oauth_configured, staff } = usePage<Props>().props;
+    const { connection, oauth_configured, staff, errors = {} } = usePage<Props>().props;
     const [calendars, setCalendars] = useState<CalendarOption[]>([]);
     const [calendarError, setCalendarError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -35,16 +36,45 @@ export default function GoogleCalendarSettings() {
 
     useEffect(() => {
         if (!connection?.connected) return;
+        const controller = new AbortController();
         setLoading(true);
-        fetch('/business/calendar/calendars', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+        setCalendarError('');
+        setCalendars([]);
+        fetch('/business/calendar/calendars', {
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
+            signal: controller.signal,
+        })
             .then(async response => {
-                const payload = await response.json();
-                if (!response.ok) throw new Error(payload.message || 'Could not load calendars.');
-                setCalendars(payload.calendars || []);
+                const payload: unknown = await response.json();
+                if (!response.ok) {
+                    const message = typeof payload === 'object' && payload !== null && 'message' in payload
+                        && typeof payload.message === 'string'
+                        ? payload.message
+                        : 'Could not load calendars.';
+                    throw new Error(message);
+                }
+                const items = typeof payload === 'object' && payload !== null && 'calendars' in payload
+                    ? payload.calendars
+                    : null;
+                if (!Array.isArray(items)) throw new Error('Google returned an invalid calendar list.');
+                setCalendars(items.filter((item): item is CalendarOption =>
+                    typeof item === 'object' && item !== null
+                    && 'id' in item && typeof item.id === 'string'
+                    && 'summary' in item && typeof item.summary === 'string'
+                    && 'primary' in item && typeof item.primary === 'boolean'
+                    && 'access_role' in item && typeof item.access_role === 'string'
+                ));
             })
-            .catch(error => setCalendarError(error instanceof Error ? error.message : 'Could not load calendars.'))
-            .finally(() => setLoading(false));
-    }, [connection?.connected]);
+            .catch(error => {
+                if (error instanceof Error && error.name === 'AbortError') return;
+                setCalendarError(error instanceof Error ? error.message : 'Could not load calendars.');
+            })
+            .finally(() => {
+                if (!controller.signal.aborted) setLoading(false);
+            });
+        return () => controller.abort();
+    }, [connection?.connected, connection?.account_email, connection?.connected_at]);
 
     return (
         <main className="min-h-screen bg-slate-50 px-5 py-8 sm:px-8">
@@ -53,6 +83,7 @@ export default function GoogleCalendarSettings() {
                 <a href="/dashboard" className="text-sm text-blue-700 hover:underline">← Dashboard</a>
                 <h1 className="mt-4 text-3xl font-bold text-slate-900">Google Calendar</h1>
                 <p className="mt-2 text-slate-600">Connect a Google account to check staff calendar availability and synchronize appointments. OAuth tokens are encrypted at rest and never sent to the browser.</p>
+                {errors.calendar && <div className="mt-4"><FormErrorSummary errors={{ calendar: errors.calendar }} /></div>}
                 <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
                     <h2 className="text-lg font-semibold text-slate-900">Connection status</h2>
                     {connection?.connected ? <>
