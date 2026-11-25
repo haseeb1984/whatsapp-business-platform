@@ -337,12 +337,30 @@ class PlatformDashboardTest extends TestCase
         }
         DB::table('ai_usage_events')->insert($events);
         DB::table('jobs')->insert([
-            'queue' => 'default',
-            'payload' => '{"displayName":"QueuedJob"}',
-            'attempts' => 0,
-            'reserved_at' => null,
-            'available_at' => now()->subMinutes(20)->timestamp,
-            'created_at' => now()->subMinutes(20)->timestamp,
+            [
+                'queue' => 'default',
+                'payload' => '{"displayName":"QueuedJob"}',
+                'attempts' => 0,
+                'reserved_at' => null,
+                'available_at' => now()->subMinutes(20)->timestamp,
+                'created_at' => now()->subMinutes(20)->timestamp,
+            ],
+            [
+                'queue' => 'default',
+                'payload' => '{"displayName":"DelayedJob"}',
+                'attempts' => 0,
+                'reserved_at' => null,
+                'available_at' => now()->addHour()->timestamp,
+                'created_at' => now()->subHours(2)->timestamp,
+            ],
+            [
+                'queue' => 'default',
+                'payload' => '{"displayName":"ReservedJob"}',
+                'attempts' => 1,
+                'reserved_at' => now()->subMinutes(30)->timestamp,
+                'available_at' => now()->subMinutes(30)->timestamp,
+                'created_at' => now()->subHours(3)->timestamp,
+            ],
         ]);
         $failedJobs = [];
         for ($i = 0; $i < 5; $i++) {
@@ -370,6 +388,7 @@ class PlatformDashboardTest extends TestCase
                 ->where('alerts.2.code', 'ai_rate_limits_high')
                 ->where('alerts.3.code', 'queue_backlog_old')
                 ->where('alerts.3.severity', 'critical')
+                ->where('alerts.3.detail', 'Oldest queued job is 20 minutes old; threshold 10 minutes.')
                 ->where('alerts.4.code', 'failed_jobs_high')
             );
     }

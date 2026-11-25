@@ -6,6 +6,7 @@ use App\Exceptions\AiProviderException;
 use App\Services\AI\GroqProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Mockery;
@@ -101,8 +102,8 @@ class GroqProviderTelemetryTest extends TestCase
     }
     public function test_retry_after_header_extends_groq_cooldown_beyond_the_configured_default(): void
     {
-        $frozen = \Illuminate\Support\Carbon::parse('2026-11-25 12:00:00');
-        \Illuminate\Support\Carbon::setTestNow($frozen);
+        $frozen = Carbon::parse('2026-11-25 12:00:00');
+        Carbon::setTestNow($frozen);
         Http::fake([
             'api.groq.com/openai/v1/chat/completions' => Http::response([
                 'error' => ['message' => 'provider rate limit'],
@@ -118,7 +119,7 @@ class GroqProviderTelemetryTest extends TestCase
                 $this->assertTrue($exception->retryable);
             }
 
-            \Illuminate\Support\Carbon::setTestNow($frozen->copy()->addSeconds(61));
+            Carbon::setTestNow($frozen->copy()->addSeconds(61));
 
             try {
                 $provider->generate([['role' => 'user', 'content' => 'another private question']]);
@@ -129,7 +130,42 @@ class GroqProviderTelemetryTest extends TestCase
 
             Http::assertSentCount(1);
         } finally {
-            \Illuminate\Support\Carbon::setTestNow();
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_http_date_retry_after_header_is_respected(): void
+    {
+        $frozen = Carbon::parse('2026-11-25 12:00:00 UTC');
+        Carbon::setTestNow($frozen);
+        $retryAt = $frozen->copy()->addSeconds(120)->toRfc7231String();
+        Http::fake([
+            'api.groq.com/openai/v1/chat/completions' => Http::response([
+                'error' => ['message' => 'provider rate limit'],
+            ], 429, ['Retry-After' => $retryAt]),
+        ]);
+
+        $provider = app(GroqProvider::class);
+        try {
+            try {
+                $provider->generate([['role' => 'user', 'content' => 'private question']]);
+                $this->fail('The first request must be rate limited.');
+            } catch (AiProviderException $exception) {
+                $this->assertTrue($exception->retryable);
+            }
+
+            Carbon::setTestNow($frozen->copy()->addSeconds(61));
+
+            try {
+                $provider->generate([['role' => 'user', 'content' => 'another private question']]);
+                $this->fail('The HTTP-date Retry-After value must keep the cooldown active.');
+            } catch (AiProviderException $exception) {
+                $this->assertTrue($exception->retryable);
+            }
+
+            Http::assertSentCount(1);
+        } finally {
+            Carbon::setTestNow();
         }
     }
 

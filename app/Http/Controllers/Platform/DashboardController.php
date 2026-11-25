@@ -141,7 +141,11 @@ class DashboardController extends Controller
         ]);
 
         $queuePending = Schema::hasTable('jobs') ? DB::table('jobs')->count() : null;
-        $queueOldestCreatedAt = Schema::hasTable('jobs') ? DB::table('jobs')->min('created_at') : null;
+        $queueOldestCreatedAt = Schema::hasTable('jobs')
+            ? DB::table('jobs')->whereNull('reserved_at')
+                ->where('available_at', '<=', now()->timestamp)
+                ->min('created_at')
+            : null;
         $queueOldestAgeMinutes = is_numeric($queueOldestCreatedAt)
             ? max(0, (int) floor((now()->timestamp - (int) $queueOldestCreatedAt) / 60))
             : null;

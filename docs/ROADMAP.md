@@ -552,3 +552,9 @@ This roadmap distinguishes planned work from implemented work.
 - The Groq adapter now honors a valid provider `Retry-After` header (seconds or HTTP date) when applying the shared 429 cooldown, bounded to 1–3,600 seconds. Invalid/missing headers fall back to `GROQ_RATE_LIMIT_COOLDOWN_SECONDS`.
 - Added a regression that freezes time, verifies a 120-second provider cooldown remains active after 61 seconds, and confirms no second HTTP request is sent.
 - PR #49 passed PR-head and post-merge CI as recorded in the platform operations threshold alerts checkpoint above.
+
+
+## Operational alert coverage — 2026-11-25
+
+- PR #50 merged as `d632fae6ea5aecfbe53e86a77a00f5fb28cc32cd`; PR-head CI [run 45670878240](https://github.com/actions/runs/45670878240), updated-head CI [run 45670902336](https://github.com/actions/runs/45670902336) and post-merge CI [run 45671143641](https://github.com/actions/runs/45671143641) passed. All five dashboard alert conditions now have regression coverage, including failed-job volume.
+- The next hardening change narrows queue-backlog age to currently available, unreserved jobs so delayed future jobs and active reservations do not create false backlog alerts. PR #51 verification is pending.
