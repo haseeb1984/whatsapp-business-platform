@@ -133,10 +133,12 @@ Use a Meta test app/number first. Production onboarding is a separate approval g
 - [ ] Confirm backup completion after release and record final release SHA.
 - [ ] If any critical check fails, stop onboarding and follow the rollback/incident plan.
 
-## Current known state (2026-11-24)
+## Current known state (2026-11-25)
 
-- Repository-level CI and SQLite/PostgreSQL migration verification are implemented.
+- Repository-level CI and SQLite/PostgreSQL 16 migration rollback/replay verification are implemented; latest merged main commit `b73d3c1da70834d33c4b7f7546cec68d77dc20d6` passed post-merge CI [run 45540477079](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45540477079).
 - Cross-tenant authorization and foreign-ID mutation regression coverage has passed CI.
 - Production readiness endpoint and strict configuration preflight command exist.
-- Actual Neon connectivity/TLS, Hostinger plan/runtime/cron, live Meta and Google acceptance, load/abuse testing, browser profiling, backup/restore drill and production deployment have **not** been verified by this checklist.
+- AI supports a strict read-only business-tool allowlist including appointment availability; outbound reply race guards are regression-tested. Groq telemetry excludes prompts/completions and a shared cooldown is activated after HTTP 429 responses.
+- Calendar OAuth errors and calendar-list loading failures are surfaced safely in the settings UI. Staff notification preferences cover database notifications and configurable email channels.
+- Actual Neon connectivity/TLS, Hostinger plan/runtime/cron, live Meta and Google acceptance, production-like load/abuse testing, browser profiling, backup/restore drill and production deployment have **not** been verified by this checklist.
 - No production deployment is authorized by this document.
