@@ -23,7 +23,8 @@ class BusinessIntentRouter
 
         if ($this->matches($message, [
             '/\b(price|pricing|cost|fee|fees|how much|rate|charges)\b/u',
-            '/\b(kitna|kitni|qeemat|keemat|daam|paisay|paise|charges|rate)\b/u',
+            '/\b(kitna|kitni|kitne|kitnay|qeemat|keemat|daam|paisay|paise|charges|rate)\b/u',
+            '/\b(kitnay ka|kitnay ki|kitne ka|kitne ki|qeemat kya|price kya|rate kya|charges kitne)\b/u',
             '/(قیمت|کتنے|کتنی|فیس|چارجز|دام)/u',
         ])) {
             return $this->services(true, $language);
@@ -31,7 +32,7 @@ class BusinessIntentRouter
 
         if ($this->matches($message, [
             '/\b(service|services|offer|provide|menu|treatment|what do you do)\b/u',
-            '/\b(kya services|konsi service|kaun si service|kya kya|services hain|kya offer)\b/u',
+            '/\b(kya services|konsi service|kaun si service|konsi services|kon kon si|kya kya|services hain|kya offer)\b/u',
             '/(سروس|سروسز|خدمات|کون سی سہولت|کیا کیا کرتے)/u',
         ])) {
             return $this->services(false, $language);
@@ -39,7 +40,7 @@ class BusinessIntentRouter
 
         if ($this->matches($message, [
             '/\b(open|opening|hours|timing|timings|close|closing|working hours)\b/u',
-            '/\b(kab khult|kab band|khulay|khule|band hot|timing|auqat|waqt)\b/u',
+            '/\b(kab khult|kab band|khulay|khule|band hot|timing|timings kya|kis waqt|kab open|kab close|auqat|waqt)\b/u',
             '/(اوقات|ٹائمنگ|کھلے|کھلتے|بند|وقت|کاروباری اوقات)/u',
         ])) {
             return $this->hours($message, $language);
@@ -47,8 +48,8 @@ class BusinessIntentRouter
 
         if ($this->matches($message, [
             '/\b(address|location|where are you|directions|contact|phone|email|website)\b/u',
-            '/\b(pata|kahan|kidhar|rabta|raabta|phone number|address|location)\b/u',
-            '/(پتہ|کہاں|رابطہ|فون|ای میل|ویب سائٹ|لوکیشن)/u',
+            '/\b(pata|kahan|kidhar|rabta|raabta|phone number|phone no|number kya|contact number|whatsapp number|address|location)\b/u',
+            '/(پتہ|کہاں|رابطہ|رابطہ نمبر|نمبر کیا|واٹس ایپ نمبر|فون|ای میل|ویب سائٹ|لوکیشن)/u',
         ])) {
             return $this->contact($language);
         }
