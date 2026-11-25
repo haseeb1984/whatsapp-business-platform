@@ -24,18 +24,18 @@ GroundedFaqAssistant:
 
 If Groq is unavailable or rate-limited, only a high-confidence deterministic FAQ match can be returned. Otherwise the result is handoff. The model is a selector, not a source of business facts.
 
-## 3. Remaining processing pipeline
+## 3. Automated inbound processing
 
-The FAQ service is now connected to a queued inbound-text workflow. Newly persisted inbound text messages enqueue one tenant-scoped reply job after the webhook transaction commits. The job checks that the conversation is still open, `AUTO_ACTIVE`, and that the triggering message is still the latest inbound message before invoking the assistant. If no approved FAQ evidence is available, it moves the conversation to `WAITING_FOR_STAFF` without inventing a response. If a grounded answer is available, it sends the exact approved answer through the official WhatsApp adapter.
+Inbound text messages enqueue one tenant-scoped reply job after the webhook transaction commits. The job checks that the conversation is open, automation is `AUTO_ACTIVE`, and the triggering message is still the latest inbound message before invoking the assistants.
 
-Automated outbound messages store a same-tenant `reply_to_message_id` with a unique constraint. Reprocessing the same job returns the existing outbound attempt instead of sending another message. Human takeover and a newer inbound message suppress stale queued replies.
+The response order is:
+1. Deterministic business-intent routing for configured service catalog/pricing, weekly/today/tomorrow hours, and public contact details in English, Urdu and Roman Urdu.
+2. Grounded FAQ retrieval and approved-answer selection from the current tenant's published FAQs.
+3. A bounded Groq tool selector, invoked only when the earlier paths cannot answer.
 
-Remaining steps:
-1. detect intent (FAQ, booking, handover, greeting, unsupported);
-2. combine published FAQs with structured business facts such as hours, services and prices; the deterministic business-intent router supports English, Urdu and Roman Urdu for service catalog/pricing, weekly/today/tomorrow hours, and configured contact details;
-3. expand staff handover workflow and notifications; the initial `AUTO_ACTIVE` gate and `WAITING_FOR_STAFF` fallback are implemented;
-4. execute only allowlisted application tools with schema-validated arguments and tenant authorization;
-5. add bounded usage metrics, provider latency and safe operational telemetry.
+If no approved evidence or supported tool result is available, the conversation moves to `WAITING_FOR_STAFF` without inventing a response. If a grounded answer or read-only tool result is available, it is sent through the official WhatsApp adapter.
+
+Automated outbound messages store a same-tenant `reply_to_message_id` with a unique constraint. Reprocessing the same job returns the existing outbound attempt instead of sending another message. At send time, the message service locks the conversation again and verifies that automation is still active and the triggering inbound message remains the latest. This blocks replies made stale by staff takeover or a newer customer message while Groq is generating.
 
 ## 4. Grounding and refusal behavior
 
@@ -49,17 +49,20 @@ The assistant may answer only from approved tenant knowledge and live system res
 
 When required information is missing or conflicting, return handoff. A model confidence score alone is not proof that a fact is correct.
 
-## 5. Tool execution
+## 5. Current tool allowlist
 
-The model does not receive unrestricted SQL, filesystem, network, or administrative access. Future tools are explicit application actions, such as:
-- get_business_hours
-- list_services
-- get_service_price
-- find_available_slots
-- create_booking
-- request_human_handover
+The model can select at most one tool from this explicit read-only allowlist:
 
-Each tool must validate arguments, check tenant ownership, apply rate/abuse limits, and return a typed result. Booking tools must follow the booking state machine and cannot report success prematurely.
+- `list_services` — list active services with configured prices and durations.
+- `search_services` — find active services using a bounded text query.
+- `get_business_hours` — return configured hours for today, tomorrow, or the regular week.
+- `get_business_contact` — return configured public contact details only.
+- `get_booking_policy` — return the configured booking notice, horizon and slot interval.
+- `list_available_slots` — read appointment availability for an exact active service name and ISO local date, optionally restricted to an exact staff name.
+
+The application validates the decision envelope, tool name, exact argument keys, value types and bounds. Execution uses tenant-scoped models and the existing appointment availability service. Availability checks account for business/staff schedules, booking policy, active local holds and connected Google FreeBusy; calendar verification failures fail closed to staff handoff. The tool returns at most six local times and does not create a hold, appointment or Google event.
+
+There are deliberately no model-invoked write tools. Booking creation, confirmation, cancellation and rescheduling remain in the deterministic booking workflow and its state machine. Never add a write tool without explicit authorization checks, idempotency, transactional state transitions, provider-outcome recovery and dedicated regression coverage.
 
 ## 6. Failure and fallback
 
