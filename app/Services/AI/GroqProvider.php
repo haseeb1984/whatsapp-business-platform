@@ -6,6 +6,7 @@ use App\Contracts\AiProviderInterface;
 use App\Exceptions\AiProviderException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class GroqProvider implements AiProviderInterface
@@ -18,6 +19,16 @@ class GroqProvider implements AiProviderInterface
 
         if (! is_string($apiKey) || $apiKey === '' || ! is_string($model) || $model === '' || $baseUrl === '') {
             throw new AiProviderException('Groq is not configured.', false);
+        }
+
+        if (Cache::get('groq:rate_limit_cooldown', false) === true) {
+            Log::warning('Groq request skipped during rate-limit cooldown.', [
+                'provider' => 'groq',
+                'model' => $model,
+                'failure' => 'rate_limit_cooldown',
+                'retryable' => true,
+            ]);
+            throw new AiProviderException('Groq is temporarily rate-limited.', true);
         }
 
         $startedAt = hrtime(true);
@@ -45,6 +56,12 @@ class GroqProvider implements AiProviderInterface
         if (! $response->successful()) {
             $status = $response->status();
             $retryable = $status === 429 || $status >= 500;
+            if ($status === 429) {
+                $cooldownSeconds = max(0, min(3600, (int) config('services.groq.rate_limit_cooldown_seconds', 60)));
+                if ($cooldownSeconds > 0) {
+                    Cache::put('groq:rate_limit_cooldown', true, now()->addSeconds($cooldownSeconds));
+                }
+            }
             Log::warning('Groq request failed.', [
                 'provider' => 'groq',
                 'model' => $model,
