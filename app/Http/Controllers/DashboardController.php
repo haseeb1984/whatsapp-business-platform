@@ -41,7 +41,7 @@ class DashboardController extends Controller
                 'today_requests' => (int) ($todayUsage->requests ?? 0),
                 'today_tokens' => (int) ($todayUsage->tokens ?? 0),
                 'daily_request_limit' => max(0, (int) config('services.groq.daily_request_limit', 0)),
-                'requests_30d' => $aiUsageQuery?->count() ?? 0,
+                'attempts_30d' => $aiUsageQuery?->count() ?? 0,
                 'tokens_30d' => $aiUsageQuery
                     ? (int) (clone $aiUsageQuery)->selectRaw('COALESCE(SUM(COALESCE(prompt_tokens, 0) + COALESCE(completion_tokens, 0)), 0) as total')->value('total')
                     : 0,
