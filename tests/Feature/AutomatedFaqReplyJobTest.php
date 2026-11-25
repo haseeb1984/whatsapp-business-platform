@@ -311,6 +311,8 @@ class AutomatedFaqReplyJobTest extends TestCase
                     'provider_message_id' => 'wamid.newer-inbound-race',
                     'delivery_status' => 'received',
                     'sent_at' => now()->addSecond(),
+                    'created_at' => now()->addSecond(),
+                    'updated_at' => now()->addSecond(),
                 ]);
             });
 
