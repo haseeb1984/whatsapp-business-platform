@@ -60,6 +60,32 @@ class DashboardController extends Controller
         $conversationCounts = DB::table('conversations')->select('tenant_id', DB::raw('COUNT(*) as total'))->groupBy('tenant_id')->pluck('total', 'tenant_id');
         $appointmentCounts = DB::table('appointments')->select('tenant_id', DB::raw('COUNT(*) as total'))->groupBy('tenant_id')->pluck('total', 'tenant_id');
 
+        $aiUsageAvailable = Schema::hasTable('ai_usage_events');
+        $aiUsageStart = now()->subDays(30);
+        $aiUsageByTenant = $aiUsageAvailable
+            ? DB::table('ai_usage_events')->select('tenant_id', DB::raw('COUNT(*) as total'))
+                ->where('created_at', '>=', $aiUsageStart)->groupBy('tenant_id')->pluck('total', 'tenant_id')
+            : collect();
+        $aiTokensByTenant = $aiUsageAvailable
+            ? DB::table('ai_usage_events')->select('tenant_id', DB::raw('SUM(COALESCE(prompt_tokens, 0) + COALESCE(completion_tokens, 0)) as total'))
+                ->where('created_at', '>=', $aiUsageStart)->groupBy('tenant_id')->pluck('total', 'tenant_id')
+            : collect();
+        $aiRequestsLast30Days = $aiUsageAvailable
+            ? DB::table('ai_usage_events')->where('created_at', '>=', $aiUsageStart)->count()
+            : null;
+        $aiTokensLast30Days = $aiUsageAvailable
+            ? (int) DB::table('ai_usage_events')->where('created_at', '>=', $aiUsageStart)
+                ->selectRaw('COALESCE(SUM(COALESCE(prompt_tokens, 0) + COALESCE(completion_tokens, 0)), 0) as total')->value('total')
+            : null;
+        $aiFailuresLast24Hours = $aiUsageAvailable
+            ? DB::table('ai_usage_events')->where('created_at', '>=', now()->subDay())
+                ->whereNotIn('outcome', ['succeeded'])->count()
+            : null;
+        $aiRateLimitsLast24Hours = $aiUsageAvailable
+            ? DB::table('ai_usage_events')->where('created_at', '>=', now()->subDay())
+                ->whereIn('outcome', ['rate_limited', 'rate_limited_cooldown'])->count()
+            : null;
+
         $tenantQuery = Tenant::query()
             ->withCount('users')
             ->when($filters['q'] ?? null, fn ($query, $term) => $query->where(function ($search) use ($term): void {
@@ -82,6 +108,8 @@ class DashboardController extends Controller
             'messages' => (int) ($messageCounts[$tenant->id] ?? 0),
             'conversations' => (int) ($conversationCounts[$tenant->id] ?? 0),
             'appointments' => (int) ($appointmentCounts[$tenant->id] ?? 0),
+            'ai_requests_30d' => (int) ($aiUsageByTenant[$tenant->id] ?? 0),
+            'ai_tokens_30d' => (int) ($aiTokensByTenant[$tenant->id] ?? 0),
             'created_at' => $tenant->created_at?->toDateTimeString(),
         ]);
 
@@ -139,6 +167,10 @@ class DashboardController extends Controller
                 'outbound_failed' => (int) ($outboundDeliveryCounts['failed'] ?? 0),
                 'conversations_total' => DB::table('conversations')->count(),
                 'appointments_total' => DB::table('appointments')->count(),
+                'ai_requests_last_30_days' => $aiRequestsLast30Days,
+                'ai_tokens_last_30_days' => $aiTokensLast30Days,
+                'ai_failures_last_24_hours' => $aiFailuresLast24Hours,
+                'ai_rate_limits_last_24_hours' => $aiRateLimitsLast24Hours,
                 'audit_events_total' => Schema::hasTable('audit_events') ? DB::table('audit_events')->count() : null,
                 'queue_pending' => $queuePending,
                 'queue_oldest_age_minutes' => $queueOldestAgeMinutes,
