@@ -22,7 +22,7 @@ class AiUsagePruningCommandTest extends TestCase
         $this->assertDatabaseCount('ai_usage_events', 1);
         $remaining = DB::table('ai_usage_events')->where('tenant_id', $tenant->id)->first();
         $this->assertNotNull($remaining);
-        $this->assertTrue(\\Illuminate\\Support\\Carbon::parse($remaining->created_at)->greaterThan(now()->subDays(90)));
+        $this->assertTrue(\Illuminate\Support\Carbon::parse($remaining->created_at)->greaterThan(now()->subDays(90)));
     }
 
     public function test_prune_command_enforces_a_minimum_thirty_day_retention(): void
