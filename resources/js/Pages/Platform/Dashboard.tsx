@@ -57,12 +57,13 @@ type PageProps = {
         last_page: number;
     };
     filters: { q: string; status: string };
+    alerts: { code: string; severity: 'warning' | 'critical'; title: string; detail: string }[];
     recent_failures: { id: string; queue: string; failed_at: string }[];
     recent_audit_events: { id: string; event: string; subject: string | null; tenant: string; actor: string; ip_address: string | null; created_at: string }[];
 };
 
 export default function PlatformDashboard() {
-    const { metrics, tenants, filters, recent_failures, recent_audit_events } = usePage<PageProps>().props;
+    const { metrics, tenants, filters, alerts, recent_failures, recent_audit_events } = usePage<PageProps>().props;
     const exportQuery = new URLSearchParams();
     if (filters.q) exportQuery.set('q', filters.q);
     if (filters.status) exportQuery.set('status', filters.status);
@@ -126,6 +127,28 @@ export default function PlatformDashboard() {
                                 <p className={hasUnknownDeliveries ? 'mt-2 text-3xl font-bold tabular-nums text-amber-200' : 'mt-2 text-3xl font-bold tabular-nums'}>{typeof value === 'number' ? value.toLocaleString() : value}</p>
                             </div>;
                         })}
+                    </section>
+
+                    <section className="mt-6 rounded-2xl border border-slate-800 bg-slate-900 p-5" aria-labelledby="operational-alerts-heading">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <h2 id="operational-alerts-heading" className="font-semibold">Operational alerts</h2>
+                                <p className="mt-1 text-xs text-slate-500">Threshold-based indicators · metadata only · no automatic recovery actions</p>
+                            </div>
+                            <span className="text-xs text-slate-500">{alerts.length} active</span>
+                        </div>
+                        {alerts.length === 0 ? (
+                            <p className="mt-4 text-sm text-slate-500">No configured operational thresholds are currently breached.</p>
+                        ) : (
+                            <ul className="mt-4 space-y-2">
+                                {alerts.map(alert => (
+                                    <li key={alert.code} className={alert.severity === 'critical' ? 'rounded-xl border border-rose-800 bg-rose-950/30 p-4' : 'rounded-xl border border-amber-800 bg-amber-950/30 p-4'}>
+                                        <p className={alert.severity === 'critical' ? 'text-sm font-semibold text-rose-200' : 'text-sm font-semibold text-amber-200'}>{alert.title}</p>
+                                        <p className="mt-1 text-xs text-slate-300">{alert.detail}</p>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </section>
 
                     <section className="mt-6 rounded-2xl border border-slate-800 bg-slate-900 p-5">
