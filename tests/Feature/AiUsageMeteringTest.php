@@ -25,6 +25,7 @@ class AiUsageMeteringTest extends TestCase
             'services.groq.base_url' => 'https://api.groq.com/openai/v1',
             'services.groq.timeout' => 5,
             'services.groq.rate_limit_cooldown_seconds' => 60,
+            'services.groq.daily_request_limit' => 0,
             'cache.default' => 'array',
         ]);
         Cache::flush();
@@ -94,6 +95,11 @@ class AiUsageMeteringTest extends TestCase
         $this->assertDatabaseHas('ai_usage_events', [
             'tenant_id' => $tenant->id,
             'outcome' => 'rate_limited_cooldown',
+        ]);
+        $this->assertDatabaseHas('ai_usage_daily', [
+            'tenant_id' => $tenant->id,
+            'requests' => 1,
+            'tokens' => 0,
         ]);
         $this->assertSame(2, \Illuminate\Support\Facades\DB::table('ai_usage_events')->where('tenant_id', $tenant->id)->count());
         Http::assertSentCount(1);
