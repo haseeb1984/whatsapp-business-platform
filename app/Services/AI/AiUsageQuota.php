@@ -56,7 +56,7 @@ class AiUsageQuota
      * Release the estimate. When usage metadata is absent after a successful
      * completion, charge the estimate conservatively instead of failing open.
      */
-    public function finalizeTokenReservation(int $reservedTokens, int $fallbackCharge = 0): void
+    public function finalizeTokenReservation(int $reservedTokens, ?int $actualTokens = 0): void
     {
         if (! app()->bound(TenantContext::class) || $reservedTokens <= 0) {
             return;
@@ -65,7 +65,7 @@ class AiUsageQuota
         $tenantId = app(TenantContext::class)->id();
         $date = now()->toDateString();
 
-        DB::transaction(function () use ($tenantId, $date, $reservedTokens, $fallbackCharge): void {
+        DB::transaction(function () use ($tenantId, $date, $reservedTokens, $actualTokens): void {
             $usage = DB::table('ai_usage_daily')->where('tenant_id', $tenantId)
                 ->where('usage_date', $date)->lockForUpdate()->first();
             if (! $usage) {
@@ -74,7 +74,7 @@ class AiUsageQuota
 
             DB::table('ai_usage_daily')->where('id', $usage->id)->update([
                 'reserved_tokens' => max(0, (int) ($usage->reserved_tokens ?? 0) - $reservedTokens),
-                'tokens' => (int) $usage->tokens + max(0, $fallbackCharge),
+                'tokens' => (int) $usage->tokens + ($actualTokens === null ? $reservedTokens : max(0, $actualTokens)),
                 'updated_at' => now(),
             ]);
         }, 3);
