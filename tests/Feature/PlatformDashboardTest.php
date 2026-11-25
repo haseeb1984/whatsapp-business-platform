@@ -199,6 +199,77 @@ class PlatformDashboardTest extends TestCase
             );
     }
 
+    public function test_platform_dashboard_aggregates_ai_usage_without_exposing_customer_content(): void
+    {
+        config(['platform.admin_emails' => ['platform-admin@example.test']]);
+        $admin = $this->user('platform-admin@example.test');
+        $tenantA = Tenant::query()->create([
+            'name' => 'AI Tenant A',
+            'slug' => 'ai-tenant-a',
+            'created_at' => now()->subMinutes(2),
+            'updated_at' => now()->subMinutes(2),
+        ]);
+        $tenantB = Tenant::query()->create([
+            'name' => 'AI Tenant B',
+            'slug' => 'ai-tenant-b',
+            'created_at' => now()->subMinute(),
+            'updated_at' => now()->subMinute(),
+        ]);
+
+        DB::table('ai_usage_events')->insert([
+            [
+                'tenant_id' => $tenantA->id,
+                'provider' => 'groq',
+                'model' => 'test-model',
+                'outcome' => 'succeeded',
+                'http_status' => 200,
+                'duration_ms' => 120,
+                'prompt_tokens' => 100,
+                'completion_tokens' => 50,
+                'created_at' => now()->subMinutes(5),
+            ],
+            [
+                'tenant_id' => $tenantB->id,
+                'provider' => 'groq',
+                'model' => 'test-model',
+                'outcome' => 'rate_limited',
+                'http_status' => 429,
+                'duration_ms' => 20,
+                'prompt_tokens' => null,
+                'completion_tokens' => null,
+                'created_at' => now()->subMinutes(4),
+            ],
+            [
+                'tenant_id' => $tenantA->id,
+                'provider' => 'groq',
+                'model' => 'test-model',
+                'outcome' => 'succeeded',
+                'http_status' => 200,
+                'duration_ms' => 100,
+                'prompt_tokens' => 999,
+                'completion_tokens' => 999,
+                'created_at' => now()->subDays(31),
+            ],
+        ]);
+
+        $this->actingAs($admin)->get('/platform')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('metrics.ai_requests_last_30_days', 2)
+                ->where('metrics.ai_tokens_last_30_days', 150)
+                ->where('metrics.ai_failures_last_24_hours', 1)
+                ->where('metrics.ai_rate_limits_last_24_hours', 1)
+                ->where('tenants.data.0.name', 'AI Tenant B')
+                ->where('tenants.data.0.ai_requests_30d', 1)
+                ->where('tenants.data.0.ai_tokens_30d', 0)
+                ->where('tenants.data.1.name', 'AI Tenant A')
+                ->where('tenants.data.1.ai_requests_30d', 1)
+                ->where('tenants.data.1.ai_tokens_30d', 150)
+                ->missing('metrics.prompt')
+                ->missing('metrics.customer_message')
+            );
+    }
+
     private function user(string $email): User
     {
         $user = User::query()->create([
