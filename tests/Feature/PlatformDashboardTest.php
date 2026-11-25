@@ -344,6 +344,18 @@ class PlatformDashboardTest extends TestCase
             'available_at' => now()->subMinutes(20)->timestamp,
             'created_at' => now()->subMinutes(20)->timestamp,
         ]);
+        $failedJobs = [];
+        for ($i = 0; $i < 5; $i++) {
+            $failedJobs[] = [
+                'uuid' => (string) \\Illuminate\\Support\\Str::uuid(),
+                'connection' => 'database',
+                'queue' => 'default',
+                'payload' => '{"displayName":"FailedJob"}',
+                'exception' => 'Sanitized test exception',
+                'failed_at' => now()->subHours(1),
+            ];
+        }
+        DB::table('failed_jobs')->insert($failedJobs);
 
         $this->actingAs($admin)->get('/platform')
             ->assertOk()
@@ -352,12 +364,13 @@ class PlatformDashboardTest extends TestCase
                 ->where('metrics.ai_provider_success_rate_7d', 50)
                 ->where('metrics.ai_provider_avg_latency_ms_7d', 4000)
                 ->where('metrics.ai_rate_limits_last_24_hours', 5)
-                ->has('alerts', 4)
+                ->has('alerts', 5)
                 ->where('alerts.0.code', 'ai_provider_success_rate_low')
                 ->where('alerts.1.code', 'ai_provider_latency_high')
                 ->where('alerts.2.code', 'ai_rate_limits_high')
                 ->where('alerts.3.code', 'queue_backlog_old')
                 ->where('alerts.3.severity', 'critical')
+                ->where('alerts.4.code', 'failed_jobs_high')
             );
     }
 
