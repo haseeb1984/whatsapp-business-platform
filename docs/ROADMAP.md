@@ -558,3 +558,10 @@ This roadmap distinguishes planned work from implemented work.
 
 - PR #50 merged as `d632fae6ea5aecfbe53e86a77a00f5fb28cc32cd`; PR-head CI [run 45670878240](https://github.com/actions/runs/45670878240), updated-head CI [run 45670902336](https://github.com/actions/runs/45670902336) and post-merge CI [run 45671143641](https://github.com/actions/runs/45671143641) passed. All five dashboard alert conditions now have regression coverage, including failed-job volume.
 - The next hardening change narrows queue-backlog age to currently available, unreserved jobs so delayed future jobs and active reservations do not create false backlog alerts. PR #51 verification is pending.
+
+
+## Queue backlog alert accuracy — 2026-11-25
+
+- The platform dashboard now measures oldest queue backlog age only among jobs that are available now and not reserved by a worker. Delayed future jobs and active reservations no longer produce false backlog alerts.
+- Regression coverage includes an eligible 20-minute queued job, a two-hour delayed job and a three-hour reserved job; the alert correctly reports 20 minutes.
+- PR #51 merged as `0dd8538763e30c0c54a9108635df40ef7f9d8474`; final PR-head CI [run 45671858084](https://github.com/actions/runs/45671858084) and post-merge CI [run 45672102011](https://github.com/actions/runs/45672102011) passed.
