@@ -6,7 +6,7 @@ Groq is the configured initial provider. Application services depend on AiProvid
 
 Configuration is server-side through GROQ_API_KEY, GROQ_MODEL, GROQ_BASE_URL and GROQ_TIMEOUT. Do not store provider credentials in tenant records, return them to the browser, or log them. No secondary paid provider is enabled.
 
-The current interface exposes bounded generate(messages, options). Groq requests emit structured operational logs with provider/model, HTTP status, elapsed milliseconds and provider-reported token counts when available. Logs intentionally exclude prompts, completions, customer identifiers, raw provider error bodies and credentials. Aggregated usage budgets/quotas, health checks, provider selection and a secondary provider remain future work.
+The current interface exposes bounded generate(messages, options). Groq requests emit structured operational logs with provider/model, HTTP status, elapsed milliseconds and provider-reported token counts when available. A tenant-attributed `ai_usage_events` ledger stores provider/model, outcome, HTTP status, latency and token counts only; it never stores prompts, completions, customer identifiers, raw provider error bodies or credentials. Business admins see their own workspace's 30-day request/token totals and 24-hour failure counts; the platform operations dashboard shows global and per-tenant aggregates. Events are pruned daily in bounded batches with a configurable 90-day default retention (clamped to 30–365 days). These are usage/health measurements, not enforced quotas or billing records. Hard budgets, request throttling by tenant, provider selection and a secondary provider remain future work.
 
 ## 2. Implemented grounded FAQ path
 
