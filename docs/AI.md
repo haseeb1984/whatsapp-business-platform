@@ -80,3 +80,8 @@ No secondary paid provider is enabled by default. Do not repeatedly retry a rate
 ## 8. Human-readable responses
 
 Use concise, business-appropriate language and the tenant's configured locale. Clearly distinguish suggestions from confirmed actions. If an operation is pending or failed, say so accurately and offer a staff handover.
+
+
+## 9. Reply race and human takeover safety
+
+Automated replies are generated outside the conversation lock so slow model calls do not hold database locks. Before an automated outbound message is persisted, the message service re-locks the conversation and revalidates that automation is still active and that the referenced inbound message is still the latest customer message. A staff takeover or newer customer message during model generation therefore blocks the stale AI reply. Regression tests simulate both race windows; the queue may retry the rejected job, but the next attempt exits because the conversation state or inbound-message ordering has changed.
