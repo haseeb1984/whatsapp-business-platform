@@ -20,6 +20,10 @@ type PageProps = {
         outbound_failed: number;
         conversations_total: number;
         appointments_total: number;
+        ai_requests_last_30_days: number | null;
+        ai_tokens_last_30_days: number | null;
+        ai_failures_last_24_hours: number | null;
+        ai_rate_limits_last_24_hours: number | null;
         audit_events_total: number | null;
         queue_pending: number | null;
         queue_failed: number | null;
@@ -37,6 +41,8 @@ type PageProps = {
         messages: number;
         conversations: number;
         appointments: number;
+        ai_requests_30d: number;
+        ai_tokens_30d: number;
         created_at: string | null;
         }[];
         links: { url: string | null; label: string; active: boolean }[];
@@ -74,6 +80,10 @@ export default function PlatformDashboard() {
         ['Outbound failed', metrics.outbound_failed],
         ['Conversations', metrics.conversations_total],
         ['Appointments', metrics.appointments_total],
+        ['AI requests · 30 days', metrics.ai_requests_last_30_days ?? 'Not available'],
+        ['AI tokens · 30 days', metrics.ai_tokens_last_30_days ?? 'Not available'],
+        ['AI failures · 24 hours', metrics.ai_failures_last_24_hours ?? 'Not available'],
+        ['AI rate limits · 24 hours', metrics.ai_rate_limits_last_24_hours ?? 'Not available'],
         ['Audit events', metrics.audit_events_total ?? 'Not available'],
         ['Queued jobs', metrics.queue_pending ?? 'Not available'],
         ['Failed jobs', metrics.queue_failed ?? 'Not available'],
@@ -110,8 +120,8 @@ export default function PlatformDashboard() {
                         <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">Business tenants</h2><p className="mt-1 text-xs text-slate-500">{tenants.total.toLocaleString()} total workspaces</p></div><a href={exportHref} className="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800">Export CSV</a></div>
                         <form method="get" action="/platform" className="mt-4 flex flex-wrap gap-2"><input name="q" defaultValue={filters.q} placeholder="Search workspace name or slug" className="min-w-56 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600"/><select name="status" defaultValue={filters.status} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"><option value="">All statuses</option><option value="active">Active</option><option value="suspended">Suspended</option></select><button type="submit" className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-500">Filter</button><a href="/platform" className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">Reset</a></form>
                         <div className="mt-4 overflow-x-auto">
-                            <table className="w-full min-w-[1040px] text-left text-sm">
-                                <thead className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-500"><tr><th className="py-3 pr-4">Workspace</th><th className="py-3 pr-4">Status</th><th className="py-3 pr-4">Users</th><th className="py-3 pr-4">WhatsApp</th><th className="py-3 pr-4">Calendar</th><th className="py-3 pr-4">Messages</th><th className="py-3 pr-4">Conversations</th><th className="py-3 pr-4">Appointments</th><th className="py-3">Timezone</th></tr></thead>
+                            <table className="w-full min-w-[1280px] text-left text-sm">
+                                <thead className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-500"><tr><th className="py-3 pr-4">Workspace</th><th className="py-3 pr-4">Status</th><th className="py-3 pr-4">Users</th><th className="py-3 pr-4">WhatsApp</th><th className="py-3 pr-4">Calendar</th><th className="py-3 pr-4">Messages</th><th className="py-3 pr-4">Conversations</th><th className="py-3 pr-4">Appointments</th><th className="py-3 pr-4">AI requests · 30d</th><th className="py-3 pr-4">AI tokens · 30d</th><th className="py-3">Timezone</th></tr></thead>
                                 <tbody className="divide-y divide-slate-800">
                                     {tenants.data.map(tenant => <tr key={tenant.id}>
                                         <td className="py-3 pr-4"><p className="font-semibold text-slate-200">{tenant.name}</p><p className="mt-1 text-xs text-slate-500">{tenant.slug}</p></td>
@@ -122,9 +132,11 @@ export default function PlatformDashboard() {
                                         <td className="py-3 pr-4 tabular-nums">{tenant.messages.toLocaleString()}</td>
                                         <td className="py-3 pr-4 tabular-nums">{tenant.conversations.toLocaleString()}</td>
                                         <td className="py-3 pr-4 tabular-nums">{tenant.appointments.toLocaleString()}</td>
+                                        <td className="py-3 pr-4 tabular-nums">{tenant.ai_requests_30d.toLocaleString()}</td>
+                                        <td className="py-3 pr-4 tabular-nums">{tenant.ai_tokens_30d.toLocaleString()}</td>
                                         <td className="py-3 text-slate-400">{tenant.timezone}</td>
                                     </tr>)}
-                                    {tenants.data.length === 0 && <tr><td colSpan={9} className="py-8 text-center text-slate-500">No business tenants have been created.</td></tr>}
+                                    {tenants.data.length === 0 && <tr><td colSpan={11} className="py-8 text-center text-slate-500">No business tenants have been created.</td></tr>}
                                 </tbody>
                             </table>
                         </div>

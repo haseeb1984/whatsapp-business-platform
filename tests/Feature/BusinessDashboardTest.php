@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -59,6 +60,29 @@ class BusinessDashboardTest extends TestCase
             ]);
         });
 
+        DB::table('ai_usage_events')->insert([
+            [
+                'tenant_id' => $tenant->id,
+                'provider' => 'groq',
+                'model' => 'test-model',
+                'outcome' => 'succeeded',
+                'http_status' => 200,
+                'prompt_tokens' => 100,
+                'completion_tokens' => 25,
+                'created_at' => now(),
+            ],
+            [
+                'tenant_id' => $otherTenant->id,
+                'provider' => 'groq',
+                'model' => 'test-model',
+                'outcome' => 'succeeded',
+                'http_status' => 200,
+                'prompt_tokens' => 900,
+                'completion_tokens' => 900,
+                'created_at' => now(),
+            ],
+        ]);
+
         $this->actingAs($user)->withSession(['current_tenant_id' => $tenant->id])
             ->get('/dashboard')
             ->assertOk()
@@ -71,6 +95,9 @@ class BusinessDashboardTest extends TestCase
                 ->where('metrics.waiting_for_staff', 1)
                 ->where('metrics.active_services', 1)
                 ->where('metrics.active_staff', 1)
+                ->where('ai_usage.available', true)
+                ->where('ai_usage.requests_30d', 1)
+                ->where('ai_usage.tokens_30d', 125)
                 ->where('integrations.whatsapp', false)
                 ->where('integrations.google_calendar', false)
                 ->has('recent_conversations', 1)

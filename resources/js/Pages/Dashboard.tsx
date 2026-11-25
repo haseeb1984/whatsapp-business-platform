@@ -3,6 +3,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 type PageProps = {
     tenant: { id: string; name: string; timezone: string };
     current_user_role: 'business_admin' | 'staff';
+    ai_usage: { available: boolean; requests_30d: number; tokens_30d: number; failures_24h: number } | null;
     metrics: {
         customers: number;
         open_conversations: number;
@@ -43,7 +44,7 @@ const adminActions = [
 ];
 
 export default function Dashboard() {
-    const { tenant, current_user_role, metrics, integrations, recent_conversations, upcoming_appointments } = usePage<PageProps>().props;
+    const { tenant, current_user_role, ai_usage, metrics, integrations, recent_conversations, upcoming_appointments } = usePage<PageProps>().props;
     const isAdmin = current_user_role === 'business_admin';
     const cards = [
         { label: 'Open conversations', value: metrics.open_conversations, detail: metrics.waiting_for_staff + ' waiting for staff', href: '/conversations' },
@@ -83,6 +84,15 @@ export default function Dashboard() {
                             <p className="mt-1 text-xs text-slate-500">{card.detail}</p>
                         </a>)}
                     </section>
+
+                    {isAdmin && ai_usage?.available && <section className="mt-6 rounded-2xl border border-slate-800 bg-slate-900 p-5">
+                        <div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">AI usage · Last 30 days</h2><p className="mt-1 text-xs text-slate-500">Groq request metadata for this workspace only</p></div><span className="text-xs text-slate-500">Privacy-safe totals</span></div>
+                        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                            <div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><p className="text-sm text-slate-400">Provider requests</p><p className="mt-2 text-2xl font-bold tabular-nums">{ai_usage.requests_30d.toLocaleString()}</p></div>
+                            <div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><p className="text-sm text-slate-400">Reported tokens</p><p className="mt-2 text-2xl font-bold tabular-nums">{ai_usage.tokens_30d.toLocaleString()}</p></div>
+                            <div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><p className="text-sm text-slate-400">Failed / limited · 24h</p><p className="mt-2 text-2xl font-bold tabular-nums">{ai_usage.failures_24h.toLocaleString()}</p></div>
+                        </div>
+                    </section>}
 
                     {isAdmin && <section className="mt-6 grid gap-4 md:grid-cols-2">
                         <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">

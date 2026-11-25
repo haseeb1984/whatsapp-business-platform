@@ -12,6 +12,8 @@ use App\Models\Staff;
 use App\Models\WhatsAppConnection;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,6 +24,24 @@ class DashboardController extends Controller
         $context = app(TenantContext::class);
         $tenant = $context->tenant();
         $timezone = $tenant->timezone ?: 'UTC';
+        $aiUsage = null;
+        if ($context->hasAnyRole(['business_admin'])) {
+            $aiUsageAvailable = Schema::hasTable('ai_usage_events');
+            $aiUsageQuery = $aiUsageAvailable
+                ? DB::table('ai_usage_events')->where('tenant_id', $context->id())->where('created_at', '>=', now()->subDays(30))
+                : null;
+            $aiUsage = [
+                'available' => $aiUsageAvailable,
+                'requests_30d' => $aiUsageQuery?->count() ?? 0,
+                'tokens_30d' => $aiUsageQuery
+                    ? (int) (clone $aiUsageQuery)->selectRaw('COALESCE(SUM(COALESCE(prompt_tokens, 0) + COALESCE(completion_tokens, 0)), 0) as total')->value('total')
+                    : 0,
+                'failures_24h' => $aiUsageAvailable
+                    ? DB::table('ai_usage_events')->where('tenant_id', $context->id())
+                        ->where('created_at', '>=', now()->subDay())->whereNotIn('outcome', ['succeeded'])->count()
+                    : 0,
+            ];
+        }
 
         $upcomingAppointments = Appointment::query()
             ->with(['customer', 'staff'])
@@ -59,6 +79,7 @@ class DashboardController extends Controller
         return Inertia::render('Dashboard', [
             'tenant' => ['id' => $tenant->id, 'name' => $tenant->name, 'timezone' => $timezone],
             'current_user_role' => $context->role(),
+            'ai_usage' => $aiUsage,
             'metrics' => [
                 'customers' => Customer::query()->count(),
                 'open_conversations' => Conversation::query()->where('status', 'open')->count(),
