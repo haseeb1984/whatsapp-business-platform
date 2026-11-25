@@ -545,3 +545,10 @@ This roadmap distinguishes planned work from implemented work.
 - These are dashboard indicators only: no email/SMS paging, automatic retries, provider failover or queue recovery action is performed.
 - Regression coverage verifies all four core AI/queue warning conditions and confirms that a small provider sample does not produce a misleading success-rate alert.
 - PR #49 verification is pending. Token-budget enforcement, alert delivery/escalation, load/abuse testing and external live-account rehearsals remain open.
+
+
+## Groq Retry-After cooldown handling — 2026-11-25
+
+- The Groq adapter now honors a valid provider `Retry-After` header (seconds or HTTP date) when applying the shared 429 cooldown, bounded to 1–3,600 seconds. Invalid/missing headers fall back to `GROQ_RATE_LIMIT_COOLDOWN_SECONDS`.
+- Added a regression that freezes time, verifies a 120-second provider cooldown remains active after 61 seconds, and confirms no second HTTP request is sent.
+- PR #49 verification is pending.
