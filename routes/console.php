@@ -339,6 +339,32 @@ Artisan::command('appointments:reconcile-calendar-pending {--tenant=}', function
     return self::SUCCESS;
 })->purpose('Recover stale calendar-pending appointments through deterministic provider reconciliation');
 
+Artisan::command('ai-usage:prune {--days=}', function (): int {
+    $configuredDays = (int) config('services.groq.usage_retention_days', 90);
+    $requestedDays = $this->option('days');
+    $retentionDays = max(30, min(365, is_numeric($requestedDays) ? (int) $requestedDays : $configuredDays));
+    $cutoff = now()->subDays($retentionDays);
+    $deleted = 0;
+
+    do {
+        $ids = DB::table('ai_usage_events')
+            ->where('created_at', '<', $cutoff)
+            ->orderBy('id')
+            ->limit(1000)
+            ->pluck('id');
+
+        if ($ids->isEmpty()) {
+            break;
+        }
+
+        $deleted += DB::table('ai_usage_events')->whereIn('id', $ids)->delete();
+    } while (true);
+
+    $this->info("Pruned {$deleted} AI usage event(s) older than {$retentionDays} day(s).");
+
+    return self::SUCCESS;
+})->purpose('Prune old metadata-only AI usage events in bounded batches');
+
 Schedule::command('appointments:reconcile-calendar-pending')
     ->everyMinute()
     ->withoutOverlapping();
@@ -457,4 +483,8 @@ Artisan::command('webhooks:replay-failed {event}', function (string $event): int
 
 Schedule::command('webhooks:reconcile-stale-processing')
     ->everyMinute()
+    ->withoutOverlapping();
+
+Schedule::command('ai-usage:prune')
+    ->dailyAt('02:15')
     ->withoutOverlapping();
