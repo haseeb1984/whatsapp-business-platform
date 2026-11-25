@@ -33,6 +33,15 @@ class BusinessToolAssistant
             'description' => 'Read the configured minimum booking notice, booking horizon and appointment slot interval.',
             'arguments' => [],
         ],
+        [
+            'name' => 'list_available_slots',
+            'description' => 'Read-only appointment availability lookup for an exact active service name and local ISO date; optional exact staff name. Use only when a customer explicitly asks for available appointment times and gives a date.',
+            'arguments' => [
+                'service_name' => ['type' => 'string', 'min_length' => 2, 'max_length' => 100],
+                'date' => ['type' => 'string', 'format' => 'YYYY-MM-DD'],
+                'staff_name' => ['type' => 'string', 'optional' => true, 'min_length' => 2, 'max_length' => 100],
+            ],
+        ],
     ];
 
     public function __construct(

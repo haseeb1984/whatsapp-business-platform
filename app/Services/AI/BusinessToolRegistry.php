@@ -4,10 +4,16 @@ namespace App\Services\AI;
 
 use App\Models\BookingPolicy;
 use App\Models\Service;
+use App\Models\Staff;
+use App\Services\Booking\AppointmentAvailabilityService;
+use Throwable;
 
 class BusinessToolRegistry
 {
-    public function __construct(private readonly BusinessIntentRouter $intents)
+    public function __construct(
+        private readonly BusinessIntentRouter $intents,
+        private readonly AppointmentAvailabilityService $availability,
+    )
     {
     }
 
@@ -34,6 +40,7 @@ class BusinessToolRegistry
             'get_booking_policy' => $arguments === []
                 ? $this->bookingPolicy($locale)
                 : $this->notHandled('invalid_tool_arguments'),
+            'list_available_slots' => $this->availableSlots($arguments, $locale),
             default => $this->notHandled('unknown_tool'),
         };
     }
@@ -125,6 +132,108 @@ class BusinessToolRegistry
         };
 
         return new BusinessIntentResult('answered', $answer, 'booking_policy');
+    }
+
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     */
+    private function availableSlots(array $arguments, string $locale): BusinessIntentResult
+    {
+        $keys = array_keys($arguments);
+        sort($keys);
+        if (! in_array($keys, [['date', 'service_name'], ['date', 'service_name', 'staff_name']], true)
+            || ! is_string($arguments['service_name'] ?? null)
+            || mb_strlen(trim($arguments['service_name'])) < 2
+            || mb_strlen(trim($arguments['service_name'])) > 100
+            || ! is_string($arguments['date'] ?? null)
+            || preg_match('/^\\d{4}-\\d{2}-\\d{2}$/D', $arguments['date']) !== 1
+            || (array_key_exists('staff_name', $arguments)
+                && (! is_string($arguments['staff_name'])
+                    || mb_strlen(trim($arguments['staff_name'])) < 2
+                    || mb_strlen(trim($arguments['staff_name'])) > 100))) {
+            return $this->notHandled('invalid_tool_arguments');
+        }
+
+        $services = Service::query()
+            ->where('active', true)
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower(trim($arguments['service_name']))])
+            ->limit(2)
+            ->get();
+
+        if ($services->count() !== 1) {
+            return $this->notHandled('service_not_found_or_ambiguous');
+        }
+
+        $staffId = null;
+        if (isset($arguments['staff_name'])) {
+            $staff = Staff::query()
+                ->where('active', true)
+                ->whereRaw('LOWER(name) = ?', [mb_strtolower(trim($arguments['staff_name']))])
+                ->limit(2)
+                ->get();
+
+            if ($staff->count() !== 1) {
+                return $this->notHandled('staff_not_found_or_ambiguous');
+            }
+
+            $staffId = $staff->first()->id;
+        }
+
+        try {
+            $slots = $this->availability->availableSlots(
+                $services->first()->id,
+                $arguments['date'],
+                $staffId,
+            );
+        } catch (Throwable) {
+            return $this->notHandled('availability_unavailable');
+        }
+
+        $language = str_starts_with(mb_strtolower(str_replace('_', '-', $locale)), 'ur-latn')
+            ? 'roman'
+            : (str_starts_with(mb_strtolower($locale), 'ur') ? 'ur' : 'en');
+
+        if ($slots === []) {
+            $answer = match ($language) {
+                'ur' => $arguments['date'].' کے لیے کوئی دستیاب وقت نہیں ملا۔ براہِ کرم کوئی اور تاریخ منتخب کریں۔',
+                'roman' => $arguments['date'].' ke liye koi available time nahi mila. Barah-e-karam doosri tareekh dein.',
+                default => 'No appointment times are available for '.$arguments['date'].'. Please choose another date.',
+            };
+
+            return new BusinessIntentResult('answered', $answer, 'available_slots');
+        }
+
+        $slots = array_slice($slots, 0, 6);
+        $heading = match ($language) {
+            'ur' => $arguments['date'].' کے لیے دستیاب اوقات:',
+            'roman' => $arguments['date'].' ke liye available times:',
+            default => 'Available appointment times for '.$arguments['date'].':',
+        };
+        $lines = [$heading];
+
+        foreach ($slots as $slot) {
+            $lines[] = $slot['local_start'].' — '.$slot['staff_name'];
+        }
+
+        if (! ($slots[0]['calendar_checked'] ?? false)) {
+            $lines[] = match ($language) {
+                'ur' => 'نوٹ: Google Calendar منسلک نہیں ہے؛ اوقات کاروبار اور عملے کے مقررہ شیڈول کے مطابق ہیں۔',
+                'roman' => 'Note: Google Calendar connected nahi; times workspace aur staff schedules ke mutabiq hain.',
+                default => 'Note: Google Calendar is not connected; times reflect configured business and staff schedules only.',
+            };
+        }
+
+        $timezone = $slots[0]['timezone'] ?? null;
+        if (is_string($timezone) && $timezone !== '') {
+            $lines[] = match ($language) {
+                'ur' => 'ٹائم زون: '.$timezone,
+                'roman' => 'Time zone: '.$timezone,
+                default => 'Time zone: '.$timezone,
+            };
+        }
+
+        return new BusinessIntentResult('answered', implode("\n", $lines), 'available_slots');
     }
 
     private function notHandled(string $reason): BusinessIntentResult
