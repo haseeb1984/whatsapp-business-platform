@@ -256,6 +256,36 @@ class BusinessIntentRouterTest extends TestCase
         $this->assertStringNotContainsString('Email:', $result->answer);
     }
 
+    public function test_roman_urdu_weekly_hours_question_returns_localized_configured_schedule(): void
+    {
+        $tenant = $this->tenant('intent-roman-urdu-weekly-hours');
+        TenantContext::runForTenant($tenant->id, function (): void {
+            BusinessHour::query()->create([
+                'weekday' => 0,
+                'is_closed' => false,
+                'opens_at' => '10:00',
+                'closes_at' => '18:00',
+            ]);
+            BusinessHour::query()->create([
+                'weekday' => 1,
+                'is_closed' => true,
+                'opens_at' => null,
+                'closes_at' => null,
+            ]);
+        });
+
+        $result = TenantContext::runForTenant($tenant->id, fn () => app(BusinessIntentRouter::class)->route(
+            'Haftay ke auqat kya hain?',
+            'ur-Latn-PK',
+        ));
+
+        $this->assertSame('answered', $result->status);
+        $this->assertSame('weekly_hours', $result->intent);
+        $this->assertStringContainsString('Peer: 10:00–18:00', $result->answer);
+        $this->assertStringContainsString('Mangal: Band', $result->answer);
+        $this->assertStringContainsString('Timezone: Asia/Karachi.', $result->answer);
+    }
+
     private function tenant(string $slug): Tenant
     {
         return Tenant::query()->create([
