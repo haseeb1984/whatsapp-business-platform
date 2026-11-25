@@ -135,8 +135,8 @@ class GroqProviderTelemetryTest extends TestCase
 
     public function test_http_date_retry_after_header_is_respected(): void
     {
-        $frozen = \\Illuminate\\Support\\Carbon::parse('2026-11-25 12:00:00 UTC');
-        \\Illuminate\\Support\\Carbon::setTestNow($frozen);
+        $frozen = \Illuminate\Support\Carbon::parse('2026-11-25 12:00:00 UTC');
+        \Illuminate\Support\Carbon::setTestNow($frozen);
         $retryAt = $frozen->copy()->addSeconds(120)->toRfc7231String();
         Http::fake([
             'api.groq.com/openai/v1/chat/completions' => Http::response([
@@ -153,7 +153,7 @@ class GroqProviderTelemetryTest extends TestCase
                 $this->assertTrue($exception->retryable);
             }
 
-            \\Illuminate\\Support\\Carbon::setTestNow($frozen->copy()->addSeconds(61));
+            \Illuminate\Support\Carbon::setTestNow($frozen->copy()->addSeconds(61));
 
             try {
                 $provider->generate([['role' => 'user', 'content' => 'another private question']]);
@@ -164,7 +164,7 @@ class GroqProviderTelemetryTest extends TestCase
 
             Http::assertSentCount(1);
         } finally {
-            \\Illuminate\\Support\\Carbon::setTestNow();
+            \Illuminate\Support\Carbon::setTestNow();
         }
     }
 
