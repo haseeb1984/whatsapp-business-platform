@@ -8,6 +8,7 @@ return [
         'timeout' => (int) env('GROQ_TIMEOUT', 15),
         'rate_limit_cooldown_seconds' => (int) env('GROQ_RATE_LIMIT_COOLDOWN_SECONDS', 60),
         'usage_retention_days' => (int) env('AI_USAGE_RETENTION_DAYS', 90),
+        'daily_request_limit' => (int) env('AI_TENANT_DAILY_REQUEST_LIMIT', 0),
     ],
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
