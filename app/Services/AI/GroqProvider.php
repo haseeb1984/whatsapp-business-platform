@@ -8,6 +8,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Carbon\CarbonImmutable;
 
 class GroqProvider implements AiProviderInterface
 {
@@ -144,7 +145,7 @@ class GroqProvider implements AiProviderInterface
         return trim($content);
     }
 
-    private function rateLimitCooldownSeconds(\\Illuminate\\Http\\Client\\Response $response): int
+    private function rateLimitCooldownSeconds(\Illuminate\Http\Client\Response $response): int
     {
         $retryAfter = trim((string) $response->header('Retry-After'));
         if ($retryAfter !== '') {
@@ -154,7 +155,7 @@ class GroqProvider implements AiProviderInterface
             } else {
                 try {
                     $seconds = CarbonImmutable::parse($retryAfter)->timestamp - now()->timestamp;
-                } catch (\\Throwable) {
+                } catch (\Throwable) {
                     $seconds = null;
                 }
             }
