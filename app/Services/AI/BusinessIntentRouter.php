@@ -33,7 +33,7 @@ class BusinessIntentRouter
         if ($this->matches($message, [
             '/\b(service|services|offer|provide|menu|treatment|what do you do)\b/u',
             '/\b(kya services|konsi service|kaun si service|konsi services|kon kon si|kya kya|services hain|kya offer)\b/u',
-            '/(سروس|سروسز|خدمات|کون سی سہولت|کیا کیا کرتے)/u',
+            '/(سروس|سروسز|خدمات|کون سی سہولت|کون سی سروسز|کون کون سی سروسز|کیا سروسز ہیں|کیا کیا کرتے)/u',
         ])) {
             return $this->services(false, $language);
         }
@@ -41,7 +41,7 @@ class BusinessIntentRouter
         if ($this->matches($message, [
             '/\b(open|opening|hours|timing|timings|close|closing|working hours)\b/u',
             '/\b(kab khult|kab band|khulay|khule|band hot|timing|timings kya|kis waqt|kab open|kab close|auqat|waqt)\b/u',
-            '/(اوقات|ٹائمنگ|کھلے|کھلتے|بند|وقت|کاروباری اوقات)/u',
+            '/(اوقات|ٹائمنگ|کھلے|کھلتے|کب کھلتے|کب بند ہوتے|کس وقت|بند|وقت|کاروباری اوقات)/u',
         ])) {
             return $this->hours($message, $language);
         }
