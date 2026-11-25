@@ -28,4 +28,14 @@ class SchedulerConfigurationTest extends TestCase
             $this->assertTrue($event->withoutOverlapping, "{$command} must prevent overlapping scheduler invocations.");
         }
     }
+    public function test_ai_usage_retention_cleanup_runs_daily_without_overlap(): void
+    {
+        $event = collect(app(Schedule::class)->events())->first(
+            fn ($scheduled): bool => str_contains((string) $scheduled->command, 'ai-usage:prune')
+        );
+
+        $this->assertNotNull($event);
+        $this->assertSame('15 2 * * *', $event->expression);
+        $this->assertTrue($event->withoutOverlapping);
+    }
 }
