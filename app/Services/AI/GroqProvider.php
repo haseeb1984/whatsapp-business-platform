@@ -32,6 +32,16 @@ class GroqProvider implements AiProviderInterface
             throw new AiProviderException('Groq is temporarily rate-limited.', true);
         }
 
+        if (! app(AiUsageQuota::class)->reserveRequest()) {
+            app(AiUsageRecorder::class)->record('groq', $model, 'quota_exceeded');
+            Log::warning('Groq request blocked by tenant daily quota.', [
+                'provider' => 'groq',
+                'model' => $model,
+                'failure' => 'tenant_daily_quota',
+            ]);
+            throw new AiProviderException('The workspace AI daily request limit has been reached.', false);
+        }
+
         $startedAt = hrtime(true);
 
         try {
