@@ -241,6 +241,109 @@ class AutomatedFaqReplyJobTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_ai_reply_is_blocked_if_staff_takes_over_while_the_model_is_generating(): void
+    {
+        Http::fake();
+        [$tenant, $conversation, $inbound] = $this->conversation('auto-faq-takeover-race', 'AUTO_ACTIVE', 'Do you have balayage?');
+        TenantContext::runForTenant($tenant->id, fn () => Service::query()->create([
+            'name' => 'Balayage',
+            'price_amount' => '4500.00',
+            'currency' => 'PKR',
+            'duration_minutes' => 120,
+            'active' => true,
+        ]));
+
+        $provider = Mockery::mock(AiProviderInterface::class);
+        $provider->shouldReceive('generate')->once()->andReturnUsing(function () use ($tenant, $conversation): string {
+            TenantContext::runForTenant($tenant->id, function () use ($conversation): void {
+                Conversation::query()->findOrFail($conversation->id)->forceFill([
+                    'automation_state' => 'HUMAN_ACTIVE',
+                ])->save();
+            });
+
+            return json_encode([
+                'decision' => 'tool',
+                'tool' => 'search_services',
+                'arguments' => ['query' => 'balayage'],
+            ], JSON_THROW_ON_ERROR);
+        });
+        app()->instance(AiProviderInterface::class, $provider);
+
+        try {
+            (new GenerateAutomatedFaqReply($tenant->id, $conversation->id, $inbound->id))->handle(
+                app(GroundedFaqAssistant::class),
+                app(BusinessIntentRouter::class),
+                app(WhatsAppMessageService::class),
+                app(BusinessToolAssistant::class),
+            );
+            $this->fail('The send transaction must reject an AI reply after staff takeover.');
+        } catch (\\Illuminate\\Validation\\ValidationException $exception) {
+            $this->assertArrayHasKey('conversation', $exception->errors());
+        }
+
+        TenantContext::runForTenant($tenant->id, function () use ($conversation): void {
+            $this->assertSame('HUMAN_ACTIVE', Conversation::query()->findOrFail($conversation->id)->automation_state);
+            $this->assertDatabaseCount('messages', 1);
+        });
+        Http::assertNothingSent();
+    }
+
+    public function test_ai_reply_is_blocked_if_a_newer_customer_message_arrives_during_generation(): void
+    {
+        Http::fake();
+        [$tenant, $conversation, $inbound] = $this->conversation('auto-faq-newer-message-race', 'AUTO_ACTIVE', 'Do you have balayage?');
+        TenantContext::runForTenant($tenant->id, fn () => Service::query()->create([
+            'name' => 'Balayage',
+            'price_amount' => '4500.00',
+            'currency' => 'PKR',
+            'duration_minutes' => 120,
+            'active' => true,
+        ]));
+
+        $provider = Mockery::mock(AiProviderInterface::class);
+        $provider->shouldReceive('generate')->once()->andReturnUsing(function () use ($tenant, $conversation): string {
+            TenantContext::runForTenant($tenant->id, function () use ($conversation): void {
+                Message::query()->create([
+                    'conversation_id' => $conversation->id,
+                    'direction' => 'inbound',
+                    'message_type' => 'text',
+                    'body' => 'Actually, do you have an appointment tomorrow?',
+                    'provider_message_id' => 'wamid.newer-inbound-race',
+                    'delivery_status' => 'received',
+                    'sent_at' => now()->addSecond(),
+                ]);
+            });
+
+            return json_encode([
+                'decision' => 'tool',
+                'tool' => 'search_services',
+                'arguments' => ['query' => 'balayage'],
+            ], JSON_THROW_ON_ERROR);
+        });
+        app()->instance(AiProviderInterface::class, $provider);
+
+        try {
+            (new GenerateAutomatedFaqReply($tenant->id, $conversation->id, $inbound->id))->handle(
+                app(GroundedFaqAssistant::class),
+                app(BusinessIntentRouter::class),
+                app(WhatsAppMessageService::class),
+                app(BusinessToolAssistant::class),
+            );
+            $this->fail('The send transaction must reject a reply for an outdated inbound message.');
+        } catch (\\Illuminate\\Validation\\ValidationException $exception) {
+            $this->assertArrayHasKey('message', $exception->errors());
+        }
+
+        TenantContext::runForTenant($tenant->id, function () use ($inbound): void {
+            $this->assertDatabaseCount('messages', 2);
+            $this->assertDatabaseMissing('messages', [
+                'direction' => 'outbound',
+                'reply_to_message_id' => $inbound->id,
+            ]);
+        });
+        Http::assertNothingSent();
+    }
+
     private function conversation(string $slug, string $state, string $body): array
     {
         $tenant = Tenant::query()->create(['name' => 'Automated FAQ Workspace', 'slug' => $slug]);
