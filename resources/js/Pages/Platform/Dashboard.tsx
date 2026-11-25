@@ -27,6 +27,9 @@ type PageProps = {
         ai_quota_blocks_last_24_hours: number | null;
         ai_requests_today: number | null;
         ai_tokens_today: number | null;
+        ai_provider_attempts_7d: number | null;
+        ai_provider_success_rate_7d: number | null;
+        ai_provider_avg_latency_ms_7d: number | null;
         audit_events_total: number | null;
         queue_pending: number | null;
         queue_failed: number | null;
@@ -90,6 +93,9 @@ export default function PlatformDashboard() {
         ['AI quota blocks · 24 hours', metrics.ai_quota_blocks_last_24_hours ?? 'Not available'],
         ['Provider requests · today', metrics.ai_requests_today ?? 'Not available'],
         ['AI tokens · today', metrics.ai_tokens_today ?? 'Not available'],
+        ['AI provider attempts · 7d', metrics.ai_provider_attempts_7d ?? 'Not available'],
+        ['AI success rate · 7d', metrics.ai_provider_success_rate_7d === null ? 'Not available' : metrics.ai_provider_success_rate_7d.toFixed(1) + '%'],
+        ['AI avg latency · 7d', metrics.ai_provider_avg_latency_ms_7d === null ? 'Not available' : metrics.ai_provider_avg_latency_ms_7d.toFixed(0) + ' ms'],
         ['Audit events', metrics.audit_events_total ?? 'Not available'],
         ['Queued jobs', metrics.queue_pending ?? 'Not available'],
         ['Failed jobs', metrics.queue_failed ?? 'Not available'],

@@ -506,4 +506,11 @@ This roadmap distinguishes planned work from implemented work.
 - Quota reservation occurs transactionally before the Groq HTTP request, with row locking and bounded deadlock retries. Provider attempts consume a request even if Groq later times out or rejects them; requests skipped during cooldown and quota-blocked attempts do not consume a provider request.
 - Provider-reported prompt/completion tokens accumulate in the daily counter. Workspace admins can see today's provider requests, configured cap, and token use; platform operations sees daily totals and quota-block events.
 - The daily retention job also prunes daily counters older than 400 days. Event retention remains configurable at 90 days by default.
-- Token-budget enforcement, alert thresholds, plan-specific quota configuration and abuse/load validation remain open. PR #45 is the next verification batch; full CI and merge verification are pending.
+- PR #45 merged as `a888e8f566fa8f4c48630d6a661d9647d8932ed1`; PR-head CI [run 45667016388](https://github.com/actions/runs/45667016388) and post-merge CI [run 45667272611](https://github.com/actions/runs/45667272611) passed. Token-budget enforcement, alert thresholds, plan-specific quota configuration and abuse/load validation remain open.
+
+
+## AI provider health indicators — 2026-11-25
+
+- Platform operations now reports seven-day actual provider attempts, success percentage and average provider latency, excluding local cooldown skips and quota-blocked attempts from provider-health denominators.
+- The aggregate is based only on metadata-only usage events; it does not expose prompts, completions or customer records. Regression coverage checks the success-rate and latency calculations against mixed successful/rate-limited outcomes.
+- PR #46 verification is pending. No alerting or automatic provider failover is claimed; threshold-based alerts and token-budget enforcement remain open.

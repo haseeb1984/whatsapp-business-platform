@@ -96,6 +96,22 @@ class DashboardController extends Controller
         $aiTokensToday = $aiDailyAvailable
             ? (int) DB::table('ai_usage_daily')->where('usage_date', now()->toDateString())->sum('tokens')
             : null;
+        $aiProviderHealth = $aiUsageAvailable
+            ? DB::table('ai_usage_events')
+                ->where('created_at', '>=', now()->subDays(7))
+                ->whereIn('outcome', ['succeeded', 'rate_limited', 'provider_error', 'timeout', 'malformed_response'])
+                ->selectRaw('COUNT(*) as attempts')
+                ->selectRaw('SUM(CASE WHEN outcome = ? THEN 1 ELSE 0 END) as successes', ['succeeded'])
+                ->selectRaw('AVG(duration_ms) as avg_latency_ms')
+                ->first()
+            : null;
+        $aiProviderAttempts7d = $aiProviderHealth ? (int) $aiProviderHealth->attempts : null;
+        $aiProviderSuccessRate7d = $aiProviderAttempts7d > 0
+            ? round(((int) $aiProviderHealth->successes / $aiProviderAttempts7d) * 100, 1)
+            : null;
+        $aiProviderAvgLatency7d = $aiProviderHealth?->avg_latency_ms === null
+            ? null
+            : round((float) $aiProviderHealth->avg_latency_ms, 1);
 
         $tenantQuery = Tenant::query()
             ->withCount('users')
@@ -185,6 +201,9 @@ class DashboardController extends Controller
                 'ai_quota_blocks_last_24_hours' => $aiQuotaBlocksLast24Hours,
                 'ai_requests_today' => $aiRequestsToday,
                 'ai_tokens_today' => $aiTokensToday,
+                'ai_provider_attempts_7d' => $aiProviderAttempts7d,
+                'ai_provider_success_rate_7d' => $aiProviderSuccessRate7d,
+                'ai_provider_avg_latency_ms_7d' => $aiProviderAvgLatency7d,
                 'audit_events_total' => Schema::hasTable('audit_events') ? DB::table('audit_events')->count() : null,
                 'queue_pending' => $queuePending,
                 'queue_oldest_age_minutes' => $queueOldestAgeMinutes,
