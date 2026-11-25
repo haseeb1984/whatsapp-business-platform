@@ -252,13 +252,42 @@ class PlatformDashboardTest extends TestCase
             ],
         ]);
 
+        DB::table('ai_usage_events')->insert([
+            'tenant_id' => $tenantA->id,
+            'provider' => 'groq',
+            'model' => 'test-model',
+            'outcome' => 'quota_exceeded',
+            'created_at' => now()->subMinutes(3),
+        ]);
+        DB::table('ai_usage_daily')->insert([
+            [
+                'tenant_id' => $tenantA->id,
+                'usage_date' => now()->toDateString(),
+                'requests' => 2,
+                'tokens' => 150,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'tenant_id' => $tenantB->id,
+                'usage_date' => now()->toDateString(),
+                'requests' => 3,
+                'tokens' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
         $this->actingAs($admin)->get('/platform')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('metrics.ai_requests_last_30_days', 2)
+                ->where('metrics.ai_requests_last_30_days', 3)
                 ->where('metrics.ai_tokens_last_30_days', 150)
-                ->where('metrics.ai_failures_last_24_hours', 1)
+                ->where('metrics.ai_failures_last_24_hours', 2)
                 ->where('metrics.ai_rate_limits_last_24_hours', 1)
+                ->where('metrics.ai_quota_blocks_last_24_hours', 1)
+                ->where('metrics.ai_requests_today', 5)
+                ->where('metrics.ai_tokens_today', 150)
                 ->where('tenants.data.0.name', 'AI Tenant B')
                 ->where('tenants.data.0.ai_requests_30d', 1)
                 ->where('tenants.data.0.ai_tokens_30d', 0)
