@@ -85,6 +85,17 @@ class DashboardController extends Controller
             ? DB::table('ai_usage_events')->where('created_at', '>=', now()->subDay())
                 ->whereIn('outcome', ['rate_limited', 'rate_limited_cooldown'])->count()
             : null;
+        $aiQuotaBlocksLast24Hours = $aiUsageAvailable
+            ? DB::table('ai_usage_events')->where('created_at', '>=', now()->subDay())
+                ->where('outcome', 'quota_exceeded')->count()
+            : null;
+        $aiDailyAvailable = Schema::hasTable('ai_usage_daily');
+        $aiRequestsToday = $aiDailyAvailable
+            ? (int) DB::table('ai_usage_daily')->where('usage_date', now()->toDateString())->sum('requests')
+            : null;
+        $aiTokensToday = $aiDailyAvailable
+            ? (int) DB::table('ai_usage_daily')->where('usage_date', now()->toDateString())->sum('tokens')
+            : null;
 
         $tenantQuery = Tenant::query()
             ->withCount('users')
@@ -171,6 +182,9 @@ class DashboardController extends Controller
                 'ai_tokens_last_30_days' => $aiTokensLast30Days,
                 'ai_failures_last_24_hours' => $aiFailuresLast24Hours,
                 'ai_rate_limits_last_24_hours' => $aiRateLimitsLast24Hours,
+                'ai_quota_blocks_last_24_hours' => $aiQuotaBlocksLast24Hours,
+                'ai_requests_today' => $aiRequestsToday,
+                'ai_tokens_today' => $aiTokensToday,
                 'audit_events_total' => Schema::hasTable('audit_events') ? DB::table('audit_events')->count() : null,
                 'queue_pending' => $queuePending,
                 'queue_oldest_age_minutes' => $queueOldestAgeMinutes,
