@@ -54,7 +54,7 @@ class AiUsageMeteringTest extends TestCase
             'completion_tokens' => 20,
         ]);
 
-        $columns = array_column(\Illuminate\Support\Facades\Schema::getColumnListing('ai_usage_events'), null);
+        $columns = \Illuminate\Support\Facades\Schema::getColumnListing('ai_usage_events');
         $this->assertNotContains('prompt', $columns);
         $this->assertNotContains('completion', $columns);
         $this->assertNotContains('customer_message', $columns);
