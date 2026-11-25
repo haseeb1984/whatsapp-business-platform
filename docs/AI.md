@@ -29,7 +29,7 @@ If Groq is unavailable or rate-limited, only a high-confidence deterministic FAQ
 Inbound text messages enqueue one tenant-scoped reply job after the webhook transaction commits. The job checks that the conversation is open, automation is `AUTO_ACTIVE`, and the triggering message is still the latest inbound message before invoking the assistants.
 
 The response order is:
-1. Deterministic business-intent routing for configured service catalog/pricing, weekly/today/tomorrow hours, and public contact details in English, Urdu and Roman Urdu.
+1. Deterministic business-intent routing for configured service catalog/pricing, weekly/today/tomorrow hours, and public contact details in English, Urdu and Roman Urdu. The phrase matcher includes common colloquial Roman Urdu variants such as `kitnay ki`, `konsi services`, `kis waqt`, and `contact number`, plus Urdu-script equivalents.
 2. Grounded FAQ retrieval and approved-answer selection from the current tenant's published FAQs.
 3. A bounded Groq tool selector, invoked only when the earlier paths cannot answer.
 
