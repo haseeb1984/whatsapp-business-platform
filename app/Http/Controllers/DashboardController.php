@@ -30,8 +30,17 @@ class DashboardController extends Controller
             $aiUsageQuery = $aiUsageAvailable
                 ? DB::table('ai_usage_events')->where('tenant_id', $context->id())->where('created_at', '>=', now()->subDays(30))
                 : null;
+            $dailyUsageAvailable = Schema::hasTable('ai_usage_daily');
+            $todayUsage = $dailyUsageAvailable
+                ? DB::table('ai_usage_daily')->where('tenant_id', $context->id())
+                    ->where('usage_date', now()->toDateString())->first()
+                : null;
             $aiUsage = [
                 'available' => $aiUsageAvailable,
+                'today_available' => $dailyUsageAvailable,
+                'today_requests' => (int) ($todayUsage->requests ?? 0),
+                'today_tokens' => (int) ($todayUsage->tokens ?? 0),
+                'daily_request_limit' => max(0, (int) config('services.groq.daily_request_limit', 0)),
                 'requests_30d' => $aiUsageQuery?->count() ?? 0,
                 'tokens_30d' => $aiUsageQuery
                     ? (int) (clone $aiUsageQuery)->selectRaw('COALESCE(SUM(COALESCE(prompt_tokens, 0) + COALESCE(completion_tokens, 0)), 0) as total')->value('total')
