@@ -212,9 +212,9 @@ class PlatformDashboardTest extends TestCase
         $tenantB = Tenant::query()->create([
             'name' => 'AI Tenant B',
             'slug' => 'ai-tenant-b',
-            'created_at' => now()->subMinute(),
-            'updated_at' => now()->subMinute(),
         ]);
+        DB::table('tenants')->where('id', $tenantA->id)->update(['created_at' => now()->subMinutes(2)]);
+        DB::table('tenants')->where('id', $tenantB->id)->update(['created_at' => now()->subMinute()]);
 
         DB::table('ai_usage_events')->insert([
             [
