@@ -543,7 +543,7 @@ This roadmap distinguishes planned work from implemented work.
 - Added configurable, read-only dashboard alerts for low seven-day AI provider success rate (with a minimum sample size), elevated average provider latency, repeated rate limits, old queue backlog and repeated failed jobs.
 - Thresholds are environment-configurable and clamped to safe ranges when evaluated. The dashboard reports severity, measured value and configured threshold; it does not expose queue payloads, provider prompts, completions or credentials.
 - These are dashboard indicators only: no email/SMS paging, automatic retries, provider failover or queue recovery action is performed.
-- Regression coverage verifies all four core AI/queue warning conditions and confirms that a small provider sample does not produce a misleading success-rate alert.
+- Regression coverage verifies all five AI/queue warning conditions and confirms that a small provider sample does not produce a misleading success-rate alert.
 - PR #49 merged as `042719c96f67acf91d2605c2ea74d425f80eda31`; PR-head CI [run 45670099175](https://github.com/actions/runs/45670099175) and post-merge CI [run 45670316541](https://github.com/actions/runs/45670316541) passed. Token-budget enforcement, alert delivery/escalation, load/abuse testing and external live-account rehearsals remain open.
 
 
