@@ -105,7 +105,8 @@ class GroqProvider implements AiProviderInterface
                 $this->durationMilliseconds($startedAt), $promptTokens, $completionTokens,
             );
             app(AiUsageQuota::class)->finalizeTokenReservation(
-                $reservedTokens, $usageReported ? 0 : $reservedTokens,
+                $reservedTokens,
+                $usageReported ? max(0, ($promptTokens ?? 0) + ($completionTokens ?? 0)) : null,
             );
             $reservationFinalized = true;
 
