@@ -68,7 +68,7 @@ There are deliberately no model-invoked write tools. Booking creation, confirmat
 
 The Groq adapter classifies missing configuration, authentication/provider errors, rate limits, timeouts and malformed responses without exposing raw provider errors. The FAQ assistant falls back to a high-confidence exact/keyword FAQ answer or handoff. No automatic retry loop is used for every customer message.
 
-No secondary paid provider is enabled by default. A provider HTTP 429 activates a configurable, shared cooldown (default 60 seconds) so every tenant using the same Groq credential avoids repeatedly hitting the rate-limited endpoint. Deterministic answers remain available during cooldown; requests needing model selection fall back to staff handover. The cooldown is bounded to one hour and can be disabled with a zero-second setting.
+No secondary paid provider is enabled by default. A provider HTTP 429 activates a configurable, shared cooldown (default 60 seconds) so every tenant using the same Groq credential avoids repeatedly hitting the rate-limited endpoint. A valid provider `Retry-After` header (seconds or HTTP date) takes precedence, clamped to 1–3,600 seconds; invalid/missing headers use the configured default. Deterministic answers remain available during cooldown; requests needing model selection fall back to staff handover. The cooldown is bounded to one hour and can be disabled with a zero-second setting.
 
 ## 7. Prompt-injection controls
 
