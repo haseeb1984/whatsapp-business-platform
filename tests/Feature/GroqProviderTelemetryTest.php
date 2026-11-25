@@ -101,8 +101,8 @@ class GroqProviderTelemetryTest extends TestCase
     }
     public function test_retry_after_header_extends_groq_cooldown_beyond_the_configured_default(): void
     {
-        $frozen = \\Illuminate\\Support\\Carbon::parse('2026-11-25 12:00:00');
-        \\Illuminate\\Support\\Carbon::setTestNow($frozen);
+        $frozen = \Illuminate\Support\Carbon::parse('2026-11-25 12:00:00');
+        \Illuminate\Support\Carbon::setTestNow($frozen);
         Http::fake([
             'api.groq.com/openai/v1/chat/completions' => Http::response([
                 'error' => ['message' => 'provider rate limit'],
@@ -118,7 +118,7 @@ class GroqProviderTelemetryTest extends TestCase
                 $this->assertTrue($exception->retryable);
             }
 
-            \\Illuminate\\Support\\Carbon::setTestNow($frozen->copy()->addSeconds(61));
+            \Illuminate\Support\Carbon::setTestNow($frozen->copy()->addSeconds(61));
 
             try {
                 $provider->generate([['role' => 'user', 'content' => 'another private question']]);
@@ -129,7 +129,7 @@ class GroqProviderTelemetryTest extends TestCase
 
             Http::assertSentCount(1);
         } finally {
-            \\Illuminate\\Support\\Carbon::setTestNow();
+            \Illuminate\Support\Carbon::setTestNow();
         }
     }
 
