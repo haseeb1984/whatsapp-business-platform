@@ -6,7 +6,7 @@ Groq is the configured initial provider. Application services depend on AiProvid
 
 Configuration is server-side through GROQ_API_KEY, GROQ_MODEL, GROQ_BASE_URL and GROQ_TIMEOUT. Do not store provider credentials in tenant records, return them to the browser, or log them. No secondary paid provider is enabled.
 
-The current interface exposes bounded generate(messages, options). Health checks, usage metering, provider selection and a secondary provider remain future work.
+The current interface exposes bounded generate(messages, options). Groq requests emit structured operational logs with provider/model, HTTP status, elapsed milliseconds and provider-reported token counts when available. Logs intentionally exclude prompts, completions, customer identifiers, raw provider error bodies and credentials. Aggregated usage budgets/quotas, health checks, provider selection and a secondary provider remain future work.
 
 ## 2. Implemented grounded FAQ path
 
