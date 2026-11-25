@@ -107,6 +107,7 @@ class AiUsageMeteringTest extends TestCase
 
     public function test_usage_events_are_isolated_between_tenants(): void
     {
+        config(['services.groq.daily_request_limit' => 1]);
         $tenantA = $this->tenant('ai-meter-tenant-a');
         $tenantB = $this->tenant('ai-meter-tenant-b');
         Http::fake([
@@ -125,6 +126,8 @@ class AiUsageMeteringTest extends TestCase
         $this->assertDatabaseCount('ai_usage_events', 2);
         $this->assertDatabaseHas('ai_usage_events', ['tenant_id' => $tenantA->id, 'prompt_tokens' => 10]);
         $this->assertDatabaseHas('ai_usage_events', ['tenant_id' => $tenantB->id, 'prompt_tokens' => 10]);
+        $this->assertDatabaseHas('ai_usage_daily', ['tenant_id' => $tenantA->id, 'requests' => 1, 'tokens' => 15]);
+        $this->assertDatabaseHas('ai_usage_daily', ['tenant_id' => $tenantB->id, 'requests' => 1, 'tokens' => 15]);
     }
 
     public function test_configured_daily_quota_blocks_provider_calls_after_the_tenant_limit(): void
