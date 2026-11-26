@@ -234,6 +234,36 @@ class DashboardController extends Controller
             ];
         }
 
+        $alertRecipients = config('services.groq.alerts.emails', []);
+        $cooldownMinutes = max(1, min(1440, (int) config('services.groq.alerts.email_cooldown_minutes', 30)));
+        foreach ($operationalAlerts as $alert) {
+            foreach ($alertRecipients as $recipient) {
+                if (! is_string($recipient) || filter_var($recipient, FILTER_VALIDATE_EMAIL) === false) {
+                    continue;
+                }
+
+                $dedupeKey = 'platform-alert-email:'.hash('sha256', strtolower($recipient).'|'.$alert['code']);
+                if (Cache::has($dedupeKey)) {
+                    continue;
+                }
+
+                try {
+                    Notification::route('mail', $recipient)->notify(new PlatformOperationalAlertNotification(
+                        $alert['code'],
+                        $alert['severity'],
+                        $alert['title'],
+                        $alert['detail'],
+                    ));
+                    Cache::put($dedupeKey, true, now()->addMinutes($cooldownMinutes));
+                } catch (\\Throwable $exception) {
+                    Log::warning('Unable to queue platform operational alert email.', [
+                        'alert_code' => $alert['code'],
+                        'exception' => get_class($exception),
+                    ]);
+                }
+            }
+        }
+
         return Inertia::render('Platform/Dashboard', [
             'metrics' => [
                 'tenants_total' => Tenant::query()->count(),
