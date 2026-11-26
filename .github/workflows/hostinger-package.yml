@@ -66,7 +66,7 @@ jobs:
           - Extract the package contents directly into public_html/.
           - Set the domain document root to public_html/public.
           - All application files remain inside public_html; no parent-directory access is required.
-          - Do not set the document root to public_html/whatsapp-app itself.
+          - Do not set the document root to public_html itself; it must be public_html/public.
 
           IMPORTANT
           1. Back up the existing website before replacing files.
