@@ -43,8 +43,8 @@ jobs:
       - name: Assemble Hostinger directory layout
         run: |
           set -euo pipefail
-          mkdir -p hostinger-package/public_html
-          rsync -a ./ hostinger-package/public_html/ \
+          mkdir -p hostinger-package
+          rsync -a ./ hostinger-package/ \
             --exclude='.git/' \
             --exclude='.github/' \
             --exclude='node_modules/' \
@@ -58,7 +58,7 @@ jobs:
             --exclude='hostinger-package/' \
             --exclude='*.sqlite' \
             --exclude='*.sqlite-*'
-          cp .env.hostinger.example hostinger-package/public_html/.env
+          cp .env.hostinger.example hostinger-package/.env
           cat > hostinger-package/DEPLOYMENT-README.txt <<'TXT'
           WhatsApp Business Platform - Hostinger package
 
