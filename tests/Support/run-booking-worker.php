@@ -1,16 +1,16 @@
 <?php
 
-use App\\Services\\Booking\\AppointmentBookingService;
-use App\\Support\\Tenancy\\TenantContext;
-use Carbon\\CarbonImmutable;
-use Illuminate\\Contracts\\Console\\Kernel;
-use Illuminate\\Validation\\ValidationException;
+use App\Services\Booking\AppointmentBookingService;
+use App\Support\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Validation\ValidationException;
 
 [$script, $tenantId, $customerId, $serviceId, $staffId, $startsAt, $readyPath, $startPath] = $argv + array_fill(0, 8, null);
 
 if (! is_string($tenantId) || ! is_string($customerId) || ! is_string($serviceId)
     || ! is_string($staffId) || ! is_string($startsAt) || ! is_string($readyPath) || ! is_string($startPath)) {
-    fwrite(STDERR, "Usage: php run-booking-worker.php <tenant> <customer> <service> <staff> <UTC-start> <ready-file> <start-file>\\n");
+    fwrite(STDERR, "Usage: php run-booking-worker.php <tenant> <customer> <service> <staff> <UTC-start> <ready-file> <start-file>\n");
     exit(2);
 }
 
@@ -27,7 +27,7 @@ file_put_contents($readyPath, (string) getmypid());
 $deadline = microtime(true) + 10;
 while (! is_file($startPath)) {
     if (microtime(true) >= $deadline) {
-        fwrite(STDERR, "Timed out waiting for booking barrier.\\n");
+        fwrite(STDERR, "Timed out waiting for booking barrier.\n");
         exit(3);
     }
     usleep(10_000);
@@ -42,15 +42,15 @@ try {
         'concurrent-booking-'.$customerId,
         'api',
     ));
-    fwrite(STDOUT, "BOOKING_CREATED\\n");
+    fwrite(STDOUT, "BOOKING_CREATED\n");
     $app['db']->disconnect();
     exit(0);
 } catch (ValidationException $exception) {
-    fwrite(STDOUT, "SLOT_REJECTED\\n");
+    fwrite(STDOUT, "SLOT_REJECTED\n");
     $app['db']->disconnect();
     exit(20);
 } catch (Throwable $exception) {
-    fwrite(STDERR, $exception::class.': '.$exception->getMessage()."\\n");
+    fwrite(STDERR, $exception::class.': '.$exception->getMessage()."\n");
     $app['db']->disconnect();
     exit(1);
 }
