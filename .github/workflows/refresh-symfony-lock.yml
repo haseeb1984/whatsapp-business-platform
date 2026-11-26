@@ -1,0 +1,30 @@
+name: Refresh patched Symfony lockfile
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  refresh-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: '8.3'
+          coverage: none
+      - name: Update patched Symfony components
+        run: composer update symfony/http-kernel symfony/mailer symfony/routing --with-all-dependencies --no-interaction --prefer-dist
+      - name: Audit updated dependencies
+        run: composer audit --locked
+      - name: Upload refreshed lockfile
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: refreshed-composer-lock
+          path: composer.lock
+          if-no-files-found: error
+          retention-days: 3
