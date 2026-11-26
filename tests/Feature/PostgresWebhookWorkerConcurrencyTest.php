@@ -203,7 +203,7 @@ class PostgresWebhookWorkerConcurrencyTest extends TestCase
             CREATE OR REPLACE FUNCTION test_pause_customer_creation()
             RETURNS trigger
             LANGUAGE plpgsql
-            AS $
+            AS $$
             BEGIN
                 PERFORM pg_sleep(1.0);
                 RETURN NEW;
