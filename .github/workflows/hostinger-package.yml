@@ -56,6 +56,7 @@ jobs:
             --exclude='hostinger-package/' \
             --exclude='*.sqlite' \
             --exclude='*.sqlite-*'
+          cp .env.hostinger.example hostinger-package/public_html/whatsapp-app/.env
           cat > hostinger-package/DEPLOYMENT-README.txt <<'TXT'
           WhatsApp Business Platform - Hostinger package
 
@@ -69,14 +70,15 @@ jobs:
           1. Back up the existing website before replacing files.
           2. Upload whatsapp-app/ into public_html/.
           3. Set the domain/subdomain document root to public_html/whatsapp-app/public in Hostinger.
-          4. Create the production .env at public_html/whatsapp-app/.env (not inside public/).
-          5. Set APP_ENV=production, APP_DEBUG=false, APP_URL, APP_KEY and the database settings.
-          6. Use PHP 8.3 or newer with pdo_pgsql, mbstring, bcmath, ctype, curl, dom, fileinfo, filter, hash, intl, json, openssl, pcre, PDO, session, tokenizer, xml and zip enabled.
-          7. Ensure whatsapp-app/storage and whatsapp-app/bootstrap/cache are writable by the PHP process.
-          8. Run from public_html/whatsapp-app: php artisan migrate --force
-          9. Configure a scheduled task to run php artisan schedule:run every minute from the whatsapp-app directory.
-          10. Configure a persistent queue worker for the database queue. If the hosting plan cannot run a persistent worker, arrange a supported cron-based queue strategy before enabling production traffic.
-          11. Verify /health/ready and run php artisan platform:preflight --strict before opening traffic.
+          4. A starter .env is included at public_html/whatsapp-app/.env. Edit it before first use; it contains placeholders, not credentials.
+          5. Set APP_URL to your real HTTPS domain, DB_USERNAME to your Neon role, and DB_PASSWORD privately. Keep APP_DEBUG=false and SESSION_SECURE_COOKIE=true.
+          6. Generate APP_KEY from the whatsapp-app directory with: php artisan key:generate --force
+          7. Use PHP 8.3 or newer with pdo_pgsql, mbstring, bcmath, ctype, curl, dom, fileinfo, filter, hash, intl, json, openssl, pcre, PDO, session, tokenizer, xml and zip enabled.
+          8. Ensure whatsapp-app/storage and whatsapp-app/bootstrap/cache are writable by the PHP process.
+          9. Run from public_html/whatsapp-app: php artisan migrate --force
+          10. Configure a scheduled task to run php artisan schedule:run every minute from the whatsapp-app directory.
+          11. Configure a persistent queue worker for the database queue. If the hosting plan cannot run a persistent worker, arrange a supported cron-based queue strategy before enabling production traffic.
+          12. Verify /health/ready and run php artisan platform:preflight --strict before opening traffic.
 
           DATABASE
           PostgreSQL via Neon: DB_CONNECTION=pgsql, DB_HOST=ep-silent-fire-bda4y7ca-pooler.c-8.us-east-2.aws.neon.tech,
