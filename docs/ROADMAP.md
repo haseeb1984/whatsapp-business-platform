@@ -588,3 +588,10 @@ This roadmap distinguishes planned work from implemented work.
 - Invalid recipient values are ignored. If queue dispatch throws, the cooldown claim is released and a privacy-safe warning is logged. Email content contains alert metadata only, not queue payloads, exception bodies, provider prompts/completions, credentials or customer data.
 - Added regression coverage for recipient routing, cooldown deduplication and the no-recipient default. Detailed setup and delivery limitations are documented in `docs/PLATFORM-ALERTS.md`.
 - Email dispatch currently occurs when an authorized operator opens the platform dashboard while an alert is active. It is not a continuously running alert poller; SMTP configuration and a functioning queue worker are required for actual delivery. Production SMTP and live email delivery remain external acceptance gates.
+
+## Concurrent outbound outbox recovery verification — 2026-11-26
+
+- PR #56 adds a PostgreSQL-only race regression for two independent messages:dispatch-pending scheduler workers targeting the same tenant/message.
+- A test-only PostgreSQL trigger forces row-lock contention while the first worker refreshes the five-minute dispatch lease. The second worker must re-read the locked row and skip it, resulting in exactly one durable database-queue job.
+- SQLite and PostgreSQL 16 feature suites, migration rollback/replay, dependency audits, frontend build and route-chunk verification passed in CI run [45726870076](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45726870076). PR #56 merged as `c8397de3b7e34aed496ca21308ae99b47743ec54`.
+- This validates the scheduler lease race under PostgreSQL; it is not a production load test or live Meta delivery test. Production-like throughput, abuse limits, queue-worker termination drills, and external backup/restore rehearsals remain release gates.
