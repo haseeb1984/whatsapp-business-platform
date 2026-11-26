@@ -1,4 +1,5 @@
 name: Hostinger deployment package
+# The committed composer.lock is kept patched and audited by the main CI workflow.
 
 on:
   push:
