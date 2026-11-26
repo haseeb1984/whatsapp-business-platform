@@ -622,3 +622,10 @@ This roadmap distinguishes planned work from implemented work.
 - PR #61 refreshed README verification references to PR #60 and removed obsolete CI references. PR-head CI run [45755432584](https://github.com/actions/runs/45755432584) passed all pipeline steps; it was squash-merged as `bbc0e34238fde760b7aea1458e149021d507136c`.
 - `main` and `work` are synchronized at `bbc0e34238fde760b7aea1458e149021d507136c`. The exact merge commit has not yet been confirmed by a post-merge workflow run; retain this distinction in release evidence.
 - These documentation checkpoints do not satisfy live Neon/Hostinger/Meta/Google/SMTP, staging load, backup/restore, security review or deployment acceptance gates.
+
+## PR #63 release-evidence synchronization — 2026-11-26
+
+- PR #63 updated the go-live checklist to identify PR #62 merge commit `1265d8ca1ec0caf7a6aec660124a692e8d8470e5` and its successful exact post-merge CI run [45758560413](https://github.com/actions/runs/45758560413).
+- PR #63 documentation changes passed full PR-head CI [run 45759112244](https://github.com/actions/runs/45759112244) and were squash-merged as `cf1b0ef5e2619aebc2cb1cd13051584ffee0a8a5`. A separate workflow run on the squash-merge commit has not been confirmed; do not label the PR-head run as post-merge CI.
+- `main` and `work` were fast-forward synchronized at `cf1b0ef5e2619aebc2cb1cd13051584ffee0a8a5` and verified identical.
+- This is documentation/release-evidence maintenance only. Live Neon/Hostinger/Meta/Google/SMTP, staging load/recovery, backup/restore and deployment acceptance remain outstanding.
