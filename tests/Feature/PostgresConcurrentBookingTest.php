@@ -1,18 +1,18 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Models\\BusinessHour;
-use App\\Models\\Customer;
-use App\\Models\\Service;
-use App\\Models\\Staff;
-use App\\Models\\StaffService;
-use App\\Models\\StaffWorkingHour;
-use App\\Models\\Tenant;
-use Carbon\\CarbonImmutable;
-use Illuminate\\Foundation\\Testing\\DatabaseMigrations;
-use Illuminate\\Support\\Facades\\DB;
-use Tests\\TestCase;
+use App\Models\BusinessHour;
+use App\Models\Customer;
+use App\Models\Service;
+use App\Models\Staff;
+use App\Models\StaffService;
+use App\Models\StaffWorkingHour;
+use App\Models\Tenant;
+use Carbon\CarbonImmutable;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
 
 class PostgresConcurrentBookingTest extends TestCase
 {
@@ -31,7 +31,7 @@ class PostgresConcurrentBookingTest extends TestCase
             'status' => 'active',
         ]);
 
-        [$service, $staff, $customers] = \\App\\Support\\Tenancy\\TenantContext::runForTenant($tenant->id, function () {
+        [$service, $staff, $customers] = \App\Support\Tenancy\TenantContext::runForTenant($tenant->id, function () {
             $service = Service::query()->create([
                 'name' => 'Consultation',
                 'price_amount' => '1000.00',
@@ -163,7 +163,7 @@ class PostgresConcurrentBookingTest extends TestCase
                 proc_close($process);
                 $processes[$index]['process'] = null;
 
-                $this->assertContains($stdout, ["BOOKING_CREATED\\n", "SLOT_REJECTED\\n"]);
+                $this->assertContains($stdout, ["BOOKING_CREATED\n", "SLOT_REJECTED\n"]);
                 $this->assertSame('', $stderr, 'Booking worker emitted an unexpected error.');
             }
 
