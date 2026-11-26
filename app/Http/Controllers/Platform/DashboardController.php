@@ -247,7 +247,7 @@ class DashboardController extends Controller
                 }
 
                 $dedupeKey = 'platform-alert-email:'.hash('sha256', strtolower($recipient).'|'.$alert['code']);
-                if (Cache::has($dedupeKey)) {
+                if (! Cache::add($dedupeKey, true, now()->addMinutes($cooldownMinutes))) {
                     continue;
                 }
 
@@ -258,8 +258,8 @@ class DashboardController extends Controller
                         $alert['title'],
                         $alert['detail'],
                     ));
-                    Cache::put($dedupeKey, true, now()->addMinutes($cooldownMinutes));
                 } catch (\Throwable $exception) {
+                    Cache::forget($dedupeKey);
                     Log::warning('Unable to queue platform operational alert email.', [
                         'alert_code' => $alert['code'],
                         'exception' => get_class($exception),
