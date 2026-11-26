@@ -26,10 +26,7 @@ class PlatformOperationalAlertEmailTest extends TestCase
         Cache::flush();
         Notification::fake();
 
-        $admin = User::factory()->create([
-            'email' => 'platform-admin@example.test',
-            'email_verified_at' => now(),
-        ]);
+        $admin = $this->user('platform-admin@example.test');
 
         for ($i = 0; $i < 5; $i++) {
             DB::table('failed_jobs')->insert([
@@ -63,10 +60,7 @@ class PlatformOperationalAlertEmailTest extends TestCase
         ]);
         Notification::fake();
 
-        $admin = User::factory()->create([
-            'email' => 'platform-admin@example.test',
-            'email_verified_at' => now(),
-        ]);
+        $admin = $this->user('platform-admin@example.test');
 
         DB::table('failed_jobs')->insert([
             'uuid' => (string) Str::uuid(),
@@ -80,5 +74,17 @@ class PlatformOperationalAlertEmailTest extends TestCase
         $this->actingAs($admin)->get('/platform')->assertOk();
 
         Notification::assertNothingSent();
+    }
+
+    private function user(string $email): User
+    {
+        $user = User::query()->create([
+            'name' => 'Platform User',
+            'email' => $email,
+            'password' => 'StrongPassword123',
+        ]);
+        $user->forceFill(['email_verified_at' => now()])->save();
+
+        return $user;
     }
 }
