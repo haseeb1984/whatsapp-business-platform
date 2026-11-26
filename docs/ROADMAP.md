@@ -602,3 +602,12 @@ This roadmap distinguishes planned work from implemented work.
 - Added a separate 31-request readiness throttle probe that expects 30 successful responses followed by HTTP 429. The accompanying runbook limits both scripts to isolated HTTPS staging and describes evidence capture and safe execution preconditions.
 - PR #57 merged as `c574556eaf6ee9bf33fa541aff5aea349ee10742`; CI run [45727298100](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45727298100) passed the full repository pipeline.
 - The k6 scripts have not been run because no staging URL/runtime was supplied or accessed. They are verification tooling, not evidence of measured production capacity. Realistic webhook throughput, concurrent booking/load, queue saturation, provider acceptance, backup/restore and rollback drills remain external release gates.
+
+
+## Concurrent booking-slot and first-contact webhook race verification — 2026-11-26
+
+- PR #58 added a PostgreSQL-only two-process regression in which two independent customers compete for the same staff/time slot. The test verifies that exactly one pending-hold appointment is persisted. PR #58 merged as `6765d25bf5823b6f65276b419ac4090f11f240a2`; PR-head CI [run 45734593749](https://github.com/actions/runs/45734593749) and post-merge CI [run 45734790149](https://github.com/actions/runs/45734790149) passed.
+- PR #59 fixed a first-contact race: locking a customer row after a failed lookup cannot protect a row that does not yet exist. The handler now uses the unique sender key to arbitrate customer creation, then locks the persisted row before continuing. Its PostgreSQL regression uses two independent workers and distinct inbound event IDs for the same new sender; it verifies one customer, one open conversation and two messages.
+- PR #59 merged as `c41a5ecf7c4124b84bf76613e6378c0fcb393675`. PR-head CI [run 45737307924](https://github.com/actions/runs/45737307924) and post-merge CI [run 45737484787](https://github.com/actions/runs/45737484787) passed the full pipeline.
+- `main` and `work` were synchronized at `c41a5ecf7c4124b84bf76613e6378c0fcb393675` at the last verified check. Six redundant feature/test branches were identified for owner-managed deletion; they are intentionally not deleted by automation.
+- These tests strengthen database concurrency correctness but do not replace live Neon connectivity, actual Meta/WhatsApp send/receive, SMTP delivery, staging load/recovery, backup/restore or production deployment acceptance.
