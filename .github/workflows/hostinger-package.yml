@@ -1,0 +1,105 @@
+name: Hostinger deployment package
+# The committed composer.lock is kept patched and audited by the main CI workflow.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_pgsql, bcmath, curl, xml, intl, zip
+          coverage: none
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install production PHP dependencies
+        run: composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
+
+      - name: Install frontend dependencies and build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Assemble Hostinger directory layout
+        run: |
+          set -euo pipefail
+          mkdir -p hostinger-package
+          rsync -a ./ hostinger-package/ \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='node_modules/' \
+            --exclude='tests/' \
+            --exclude='storage/logs/*' \
+            --exclude='storage/framework/cache/data/*' \
+            --exclude='storage/framework/sessions/*' \
+            --exclude='storage/framework/views/*' \
+            --exclude='.env' \
+            --exclude='.env.hostinger.example' \
+            --exclude='hostinger-package/' \
+            --exclude='*.sqlite' \
+            --exclude='*.sqlite-*'
+          cp .env.hostinger.example hostinger-package/.env
+          cat > hostinger-package/DEPLOYMENT-README.txt <<'TXT'
+          WhatsApp Business Platform - Hostinger package
+
+          DIRECTORY LAYOUT
+          - Extract the package contents directly into public_html/.
+          - Set the domain document root to public_html/public.
+          - All application files remain inside public_html; no parent-directory access is required.
+          - Do not set the document root to public_html itself; it must be public_html/public.
+
+          IMPORTANT
+          1. Back up the existing website before replacing files.
+          2. Upload/extract the public_html/ contents into Hostinger's public_html/.
+          3. Set the domain/subdomain document root to public_html/public in Hostinger.
+          4. A starter .env is included at public_html/.env. Edit it before first use; it contains placeholders, not credentials.
+          5. Set APP_URL to your real HTTPS domain, DB_USERNAME to your Neon role, and DB_PASSWORD privately. Keep APP_DEBUG=false and SESSION_SECURE_COOKIE=true.
+          6. Generate APP_KEY from the application root (public_html) with: php artisan key:generate --force
+          7. Use PHP 8.3 or newer with pdo_pgsql, mbstring, bcmath, ctype, curl, dom, fileinfo, filter, hash, intl, json, openssl, pcre, PDO, session, tokenizer, xml and zip enabled.
+          8. Ensure storage and bootstrap/cache are writable by the PHP process.
+          9. Run from public_html: php artisan migrate --force
+          10. Configure a scheduled task to run php artisan schedule:run every minute from the application root (public_html).
+          11. Configure a persistent queue worker for the database queue. If the hosting plan cannot run a persistent worker, arrange a supported cron-based queue strategy before enabling production traffic.
+          12. Verify /health/ready and run php artisan platform:preflight --strict before opening traffic.
+
+          DATABASE
+          PostgreSQL via Neon: DB_CONNECTION=pgsql, DB_HOST=ep-silent-fire-bda4y7ca-pooler.c-8.us-east-2.aws.neon.tech,
+          DB_PORT=5432, DB_DATABASE=neondb, DB_USERNAME=<default Neon role>,
+          DB_PASSWORD=<enter privately in Hostinger>, DB_SSLMODE=require.
+          Never commit .env or share database credentials in chat.
+
+          This archive does not contain live provider credentials and does not perform deployment.
+          TXT
+
+      - name: Create deployment ZIP
+        run: |
+          cd hostinger-package
+          zip -qr ../whatsapp-business-platform-hostinger.zip .
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: whatsapp-business-platform-hostinger
+          path: whatsapp-business-platform-hostinger.zip
+          if-no-files-found: error
+          retention-days: 14
