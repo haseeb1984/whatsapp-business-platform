@@ -581,3 +581,10 @@ This roadmap distinguishes planned work from implemented work.
 - Successful responses reconcile the reservation against provider-reported token usage. Missing usage metadata is charged at the conservative estimate; failed provider attempts release the token reservation while still counting against the request quota.
 - The estimate uses serialized message size divided by four plus requested `max_tokens`; it is intentionally conservative and is not an exact model tokenizer.
 - PR #53 merged as `995dca3700bdc2810246a3141b17aad0beb55519`. CI run [45700219794](https://github.com/actions/runs/45700219794) passed: SQLite and PostgreSQL 16 feature suites, both migration rollback/replay checks, dependency audits, frontend production build and route-level page-chunk verification.
+
+## Platform operational alert email delivery — 2026-11-26
+
+- Added queued email notifications for the five existing platform threshold alerts. Delivery is opt-in through `PLATFORM_ALERT_EMAILS`; each alert code is deduplicated per recipient using an atomic cache claim and configurable cooldown.
+- Invalid recipient values are ignored. If queue dispatch throws, the cooldown claim is released and a privacy-safe warning is logged. Email content contains alert metadata only, not queue payloads, exception bodies, provider prompts/completions, credentials or customer data.
+- Added regression coverage for recipient routing, cooldown deduplication and the no-recipient default. Detailed setup and delivery limitations are documented in `docs/PLATFORM-ALERTS.md`.
+- Email dispatch currently occurs when an authorized operator opens the platform dashboard while an alert is active. It is not a continuously running alert poller; SMTP configuration and a functioning queue worker are required for actual delivery. Production SMTP and live email delivery remain external acceptance gates.

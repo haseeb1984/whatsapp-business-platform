@@ -8,6 +8,10 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Log;
+use App\Notifications\PlatformOperationalAlertNotification;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -232,6 +236,36 @@ class DashboardController extends Controller
                 'title' => 'Recent failed jobs exceed threshold',
                 'detail' => $queueFailedLast24Hours.' failed jobs in the last 24 hours; threshold '.$failedJobsThreshold.'.',
             ];
+        }
+
+        $alertRecipients = config('services.groq.alerts.emails', []);
+        $cooldownMinutes = max(1, min(1440, (int) config('services.groq.alerts.email_cooldown_minutes', 30)));
+        foreach ($operationalAlerts as $alert) {
+            foreach ($alertRecipients as $recipient) {
+                if (! is_string($recipient) || filter_var($recipient, FILTER_VALIDATE_EMAIL) === false) {
+                    continue;
+                }
+
+                $dedupeKey = 'platform-alert-email:'.hash('sha256', strtolower($recipient).'|'.$alert['code']);
+                if (! Cache::add($dedupeKey, true, now()->addMinutes($cooldownMinutes))) {
+                    continue;
+                }
+
+                try {
+                    Notification::route('mail', $recipient)->notify(new PlatformOperationalAlertNotification(
+                        $alert['code'],
+                        $alert['severity'],
+                        $alert['title'],
+                        $alert['detail'],
+                    ));
+                } catch (\Throwable $exception) {
+                    Cache::forget($dedupeKey);
+                    Log::warning('Unable to queue platform operational alert email.', [
+                        'alert_code' => $alert['code'],
+                        'exception' => get_class($exception),
+                    ]);
+                }
+            }
         }
 
         return Inertia::render('Platform/Dashboard', [
