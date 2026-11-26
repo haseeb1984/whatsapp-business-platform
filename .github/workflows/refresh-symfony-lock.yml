@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   refresh-lock:
@@ -21,10 +21,14 @@ jobs:
         run: composer update symfony/http-kernel symfony/mailer symfony/routing --with-all-dependencies --no-interaction --prefer-dist
       - name: Audit updated dependencies
         run: composer audit --locked
-      - name: Upload refreshed lockfile
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: refreshed-composer-lock
-          path: composer.lock
-          if-no-files-found: error
-          retention-days: 3
+      - name: Commit refreshed lockfile
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add composer.lock
+          if git diff --cached --quiet; then
+            echo 'Composer lockfile already current'
+          else
+            git commit -m 'Update patched Symfony security dependencies'
+            git push origin HEAD:${GITHUB_HEAD_REF}
+          fi
