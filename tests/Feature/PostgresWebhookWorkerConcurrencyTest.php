@@ -208,7 +208,7 @@ class PostgresWebhookWorkerConcurrencyTest extends TestCase
                 PERFORM pg_sleep(1.0);
                 RETURN NEW;
             END;
-            $
+            $$
         SQL);
         DB::unprepared(<<<'SQL'
             CREATE TRIGGER test_pause_customer_creation_trigger
