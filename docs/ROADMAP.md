@@ -595,3 +595,10 @@ This roadmap distinguishes planned work from implemented work.
 - A test-only PostgreSQL trigger forces row-lock contention while the first worker refreshes the five-minute dispatch lease. The second worker must re-read the locked row and skip it, resulting in exactly one durable database-queue job.
 - SQLite and PostgreSQL 16 feature suites, migration rollback/replay, dependency audits, frontend build and route-chunk verification passed in CI run [45726870076](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45726870076). PR #56 merged as `c8397de3b7e34aed496ca21308ae99b47743ec54`.
 - This validates the scheduler lease race under PostgreSQL; it is not a production load test or live Meta delivery test. Production-like throughput, abuse limits, queue-worker termination drills, and external backup/restore rehearsals remain release gates.
+
+## Staging load and abuse test harness — 2026-11-26
+
+- PR #57 adds an operator-run k6 smoke profile for the application health, API health and database/queue readiness endpoints. The five-VU profile is intentionally paced below the readiness route's shared-IP 30/minute throttle and defines initial error-rate and p95 latency guardrails.
+- Added a separate 31-request readiness throttle probe that expects 30 successful responses followed by HTTP 429. The accompanying runbook limits both scripts to isolated HTTPS staging and describes evidence capture and safe execution preconditions.
+- PR #57 merged as `c574556eaf6ee9bf33fa541aff5aea349ee10742`; CI run [45727298100](https://github.com/haseeb1984/whatsapp-business-platform/actions/runs/45727298100) passed the full repository pipeline.
+- The k6 scripts have not been run because no staging URL/runtime was supplied or accessed. They are verification tooling, not evidence of measured production capacity. Realistic webhook throughput, concurrent booking/load, queue saturation, provider acceptance, backup/restore and rollback drills remain external release gates.
