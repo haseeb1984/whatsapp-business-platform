@@ -83,7 +83,7 @@ jobs:
           6. Use PHP 8.3 or newer with pdo_pgsql, mbstring, bcmath, ctype, curl, dom, fileinfo, filter, hash, intl, json, mbstring, openssl, pcre, PDO, session, tokenizer, xml and zip enabled.
           7. Ensure app/storage and app/bootstrap/cache are writable by the PHP process.
           8. Run from the app directory: php artisan migrate --force
-          9. Run: php artisan storage:link (if public file uploads are enabled).
+          9. If public file uploads are enabled, create the public storage link from the directory containing app/ and public_html/: ln -s ../app/storage/app/public public_html/storage. Do not use artisan storage:link with this split document-root layout.
           10. Configure a scheduled task to run: php artisan schedule:run every minute.
           11. Configure a persistent queue worker for the database queue. If the hosting plan cannot run a persistent worker, arrange a supported cron-based queue strategy before enabling production traffic.
           12. Verify /health/ready and run platform:preflight --strict before opening traffic.
