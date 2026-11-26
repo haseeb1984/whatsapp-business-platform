@@ -11,6 +11,8 @@ return [
         'daily_request_limit' => (int) env('AI_TENANT_DAILY_REQUEST_LIMIT', 0),
         'daily_token_limit' => (int) env('AI_TENANT_DAILY_TOKEN_LIMIT', 0),
         'alerts' => [
+            'emails' => array_values(array_filter(array_map('trim', explode(',', (string) env('PLATFORM_ALERT_EMAILS', ''))))),
+            'email_cooldown_minutes' => (int) env('PLATFORM_ALERT_EMAIL_COOLDOWN_MINUTES', 30),
             'provider_min_attempts' => (int) env('AI_PROVIDER_ALERT_MIN_ATTEMPTS', 10),
             'provider_success_rate_percent' => (float) env('AI_PROVIDER_SUCCESS_RATE_ALERT_PERCENT', 90),
             'provider_avg_latency_ms' => (int) env('AI_PROVIDER_AVG_LATENCY_ALERT_MS', 3000),
