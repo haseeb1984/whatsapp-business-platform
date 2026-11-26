@@ -16,7 +16,8 @@ A reusable multi-tenant WhatsApp Business automation platform using the official
 
 **Production acceptance still pending:** Actual Neon connection/TLS and migration rehearsal, Hostinger plan/runtime and cron validation, live Meta and Google account validation, penetration/abuse and load testing, browser performance profiling, deployment rehearsal, backup/restore drill and Meta production onboarding. Composer and npm lockfiles are committed, and CI uses reproducible locked installs; this does not replace live infrastructure validation.
 
-**Current CI:** The latest verified merge is PR #59, commit `c41a5ecf7c4124b84bf76613e6378c0fcb393675`. Post-merge GitHub Actions [run 45737484787](https://github.com/actions/runs/45737484787) passed the full pipeline: SQLite and PostgreSQL 16 feature suites, migration rollback/replay on both databases, Composer and frontend production dependency audits, lockfile-exact frontend install, Vite production build and route-level page-chunk verification. Recent PostgreSQL concurrency coverage includes two independent workers competing for one outbox dispatch lease (PR #56), two customers competing for one appointment slot (PR #58), and distinct first-contact webhook events for the same new sender (PR #59). These are CI regressions, not live-provider or production-load evidence.
+**Current CI:** The latest verified merge is PR #60, commit `aedfa2aab934649c86d9db96c45e77cdd1dd5aac`. Post-merge GitHub Actions [run 45754748966](https://github.com/actions/runs/45754748966) passed the full pipeline: SQLite and PostgreSQL 16 feature suites, migration rollback/replay on both databases, Composer and frontend production dependency audits, lockfile-exact frontend install, Vite production build and route-level page-chunk verification. Recent PostgreSQL concurrency coverage includes two independent workers competing for one outbox dispatch lease (PR #56), two customers competing for one appointment slot (PR #58), and distinct first-contact webhook events for the same new sender (PR #59). PR #60 also aligned the README, roadmap and go-live evidence checkpoint. These are CI regressions, not live-provider or production-load evidence.
+
 ## Approved stack
 
 - Backend: Laravel 13, PHP 8.3+
@@ -101,7 +102,7 @@ GitHub Actions is the source of truth for the full verification pipeline:
 - Vite production build and lazy-loaded Inertia page-chunk manifest guard
 - Scheduler regression coverage for minute cadence and overlap protection
 
-The latest PR #21 full CI verification is [run 45309223904](https://github.com/actions/runs/45309223904), which passed all 17 checks before merge to `main`. The PostgreSQL multi-worker webhook concurrency regression from [PR #5](https://github.com/haseeb1984/whatsapp-business-platform/pull/5) now runs in the main PostgreSQL 16 CI suite.
+The latest full CI verification is [run 45754748966](https://github.com/actions/runs/45754748966) for PR #60 merge commit `aedfa2a`. It passed all pipeline steps, including SQLite and PostgreSQL 16 tests, migration rollback/replay, dependency audits, frontend build and route-level page-chunk verification. The PostgreSQL multi-worker concurrency regressions cover outbox dispatch (PR #56), appointment-slot contention (PR #58), and distinct first-contact webhook events for the same sender (PR #59).
 
 Run the checks locally with `composer validate`, `php artisan test`, and `npm run build`. The CI PostgreSQL service is a compatibility gate; it does not replace a connection and migration rehearsal against the actual Neon project.
 
