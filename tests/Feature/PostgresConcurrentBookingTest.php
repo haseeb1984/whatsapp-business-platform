@@ -168,7 +168,7 @@ class PostgresConcurrentBookingTest extends TestCase
             }
 
             sort($exitCodes);
-            $this->assertSame([0, 20], $exitCodes, 'Exactly one customer must acquire the slot; the other must be rejected.');
+            $this->assertSame([0, 20], $exitCodes, 'Exactly one customer must acquire the slot; the other must be rejected. Worker diagnostics: '.implode(' | ', $workerErrors));
             $this->assertSame(1, DB::table('appointments')->where('tenant_id', $tenant->id)->count());
             $this->assertDatabaseHas('appointments', [
                 'tenant_id' => $tenant->id,
