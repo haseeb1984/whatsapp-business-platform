@@ -615,6 +615,9 @@ This roadmap distinguishes planned work from implemented work.
 
 ## README and release-evidence checkpoint — 2026-11-26
 
+- PR #62 synchronized the release-evidence documentation and was squash-merged as `1265d8ca1ec0caf7a6aec660124a692e8d8470e5`. PR-head CI [run 45755948325](https://github.com/actions/runs/45755948325) and exact post-merge CI [run 45758560413](https://github.com/actions/runs/45758560413) passed the full pipeline: SQLite and PostgreSQL 16 tests, migration rollback/replay on both databases, Composer/npm production dependency audits, frontend build and route-level chunk verification.
+- `main` and `work` were synchronized at `1265d8ca1ec0caf7a6aec660124a692e8d8470e5` after PR #62. This confirms repository CI only; it does not establish live provider or hosting acceptance.
+
 - PR #60 aligned the README, roadmap and go-live evidence checkpoint; its post-merge CI run [45754748966](https://github.com/actions/runs/45754748966) passed the full SQLite/PostgreSQL 16, migration rollback/replay, dependency audit and frontend build pipeline.
 - PR #61 refreshed README verification references to PR #60 and removed obsolete CI references. PR-head CI run [45755432584](https://github.com/actions/runs/45755432584) passed all pipeline steps; it was squash-merged as `bbc0e34238fde760b7aea1458e149021d507136c`.
 - `main` and `work` are synchronized at `bbc0e34238fde760b7aea1458e149021d507136c`. The exact merge commit has not yet been confirmed by a post-merge workflow run; retain this distinction in release evidence.

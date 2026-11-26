@@ -135,7 +135,7 @@ Use a Meta test app/number first. Production onboarding is a separate approval g
 
 ## Current known state (2026-11-26)
 
-- Repository-level CI and SQLite/PostgreSQL 16 migration rollback/replay verification are implemented; latest merged main commit `bbc0e34238fde760b7aea1458e149021d507136c` (PR #61) includes the refreshed README verification checkpoint. PR #61 head CI [run 45755432584](https://github.com/actions/runs/45755432584) passed the full pipeline before merge; a post-merge run for this exact merge commit has not yet been confirmed.
+- Repository-level CI and SQLite/PostgreSQL 16 migration rollback/replay verification are implemented; latest merged main commit `1265d8ca1ec0caf7a6aec660124a692e8d8470e5` (PR #62) includes the synchronized release-evidence checkpoint. PR #62 head CI [run 45755948325](https://github.com/actions/runs/45755948325) and exact post-merge CI [run 45758560413](https://github.com/actions/runs/45758560413) both passed the full pipeline, including SQLite and PostgreSQL 16 suites, migration rollback/replay, dependency audits, frontend production build and route-chunk verification.
 - Cross-tenant authorization and foreign-ID mutation regression coverage has passed CI.
 - PostgreSQL 16 multi-process regression coverage now includes concurrent outbox dispatch lease claims (PR #56), competing appointment-slot holds (PR #58), and two distinct first-contact webhook events from one previously unknown sender (PR #59). The first-contact test verifies one customer, one conversation and two messages after the race; it does not simulate live Meta traffic.
 - Production readiness endpoint and strict configuration preflight command exist.
