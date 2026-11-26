@@ -115,7 +115,12 @@ class ProcessMetaWebhookEvent implements ShouldQueue
 
         $customer = Customer::query()->where('whatsapp_wa_id', $waId)->lockForUpdate()->first();
         if (! $customer) {
-            $customer = Customer::query()->create(['whatsapp_wa_id' => $waId]);
+            // The unique tenant/sender index is the concurrency arbiter when two
+            // first messages arrive before either transaction can see a customer.
+            // firstOrCreate recovers from that unique-key race and returns the winner.
+            $customer = Customer::query()->firstOrCreate(['whatsapp_wa_id' => $waId]);
+            $customer->refresh();
+            $customer->lockForUpdate();
         }
 
         $contactName = $payload['_contact_name'] ?? null;
