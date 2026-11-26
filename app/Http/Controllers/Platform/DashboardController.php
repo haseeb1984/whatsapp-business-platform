@@ -259,7 +259,7 @@ class DashboardController extends Controller
                         $alert['detail'],
                     ));
                     Cache::put($dedupeKey, true, now()->addMinutes($cooldownMinutes));
-                } catch (\\Throwable $exception) {
+                } catch (\Throwable $exception) {
                     Log::warning('Unable to queue platform operational alert email.', [
                         'alert_code' => $alert['code'],
                         'exception' => get_class($exception),
