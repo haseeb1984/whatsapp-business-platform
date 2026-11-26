@@ -53,6 +53,7 @@ jobs:
             --exclude='storage/framework/sessions/*' \
             --exclude='storage/framework/views/*' \
             --exclude='.env' \
+            --exclude='.env.hostinger.example' \
             --exclude='hostinger-package/' \
             --exclude='*.sqlite' \
             --exclude='*.sqlite-*'
