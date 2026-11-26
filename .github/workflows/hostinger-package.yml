@@ -42,8 +42,8 @@ jobs:
       - name: Assemble Hostinger directory layout
         run: |
           set -euo pipefail
-          mkdir -p hostinger-package/app hostinger-package/public_html
-          rsync -a ./ hostinger-package/app/ \
+          mkdir -p hostinger-package/public_html/whatsapp-app
+          rsync -a ./ hostinger-package/public_html/whatsapp-app/ \
             --exclude='.git/' \
             --exclude='.github/' \
             --exclude='node_modules/' \
@@ -56,40 +56,30 @@ jobs:
             --exclude='hostinger-package/' \
             --exclude='*.sqlite' \
             --exclude='*.sqlite-*'
-          cp -a public/. hostinger-package/public_html/
-          cat > hostinger-package/public_html/index.php <<'PHP'
-          <?php
-          use Illuminate\Foundation\Application;
-          use Illuminate\Http\Request;
-          define('LARAVEL_START', microtime(true));
-          if (file_exists($maintenance = __DIR__.'/../app/storage/framework/maintenance.php')) require $maintenance;
-          require __DIR__.'/../app/vendor/autoload.php';
-          $app = require_once __DIR__.'/../app/bootstrap/app.php';
-          $app->handleRequest(Request::capture());
-          PHP
           cat > hostinger-package/DEPLOYMENT-README.txt <<'TXT'
           WhatsApp Business Platform - Hostinger package
 
           DIRECTORY LAYOUT
-          - app/         Laravel application, vendor dependencies and storage
-          - public_html/ Public web root. Configure the domain document root to this directory.
+          - Upload the whatsapp-app/ directory into public_html/.
+          - Set the domain document root to public_html/whatsapp-app/public.
+          - All application files remain inside public_html; no parent-directory access is required.
+          - Do not set the document root to public_html/whatsapp-app itself.
 
           IMPORTANT
           1. Back up the existing website before replacing files.
-          2. Upload the CONTENTS of public_html/ into the domain's document root.
-          3. Upload the app/ directory one level ABOVE the public document root. Do not put app/ inside public_html/.
-          4. Create the production .env inside app/ (never inside public_html/).
+          2. Upload whatsapp-app/ into public_html/.
+          3. Set the domain/subdomain document root to public_html/whatsapp-app/public in Hostinger.
+          4. Create the production .env at public_html/whatsapp-app/.env (not inside public/).
           5. Set APP_ENV=production, APP_DEBUG=false, APP_URL, APP_KEY and the database settings.
-          6. Use PHP 8.3 or newer with pdo_pgsql, mbstring, bcmath, ctype, curl, dom, fileinfo, filter, hash, intl, json, mbstring, openssl, pcre, PDO, session, tokenizer, xml and zip enabled.
-          7. Ensure app/storage and app/bootstrap/cache are writable by the PHP process.
-          8. Run from the app directory: php artisan migrate --force
-          9. If public file uploads are enabled, create the public storage link from the directory containing app/ and public_html/: ln -s ../app/storage/app/public public_html/storage. Do not use artisan storage:link with this split document-root layout.
-          10. Configure a scheduled task to run: php artisan schedule:run every minute.
-          11. Configure a persistent queue worker for the database queue. If the hosting plan cannot run a persistent worker, arrange a supported cron-based queue strategy before enabling production traffic.
-          12. Verify /health/ready and run platform:preflight --strict before opening traffic.
+          6. Use PHP 8.3 or newer with pdo_pgsql, mbstring, bcmath, ctype, curl, dom, fileinfo, filter, hash, intl, json, openssl, pcre, PDO, session, tokenizer, xml and zip enabled.
+          7. Ensure whatsapp-app/storage and whatsapp-app/bootstrap/cache are writable by the PHP process.
+          8. Run from public_html/whatsapp-app: php artisan migrate --force
+          9. Configure a scheduled task to run php artisan schedule:run every minute from the whatsapp-app directory.
+          10. Configure a persistent queue worker for the database queue. If the hosting plan cannot run a persistent worker, arrange a supported cron-based queue strategy before enabling production traffic.
+          11. Verify /health/ready and run php artisan platform:preflight --strict before opening traffic.
 
           DATABASE
-          PostgreSQL via Neon: DB_CONNECTION=pgsql, DB_HOST=<Neon pooled hostname>,
+          PostgreSQL via Neon: DB_CONNECTION=pgsql, DB_HOST=ep-silent-fire-bda4y7ca-pooler.c-8.us-east-2.aws.neon.tech,
           DB_PORT=5432, DB_DATABASE=neondb, DB_USERNAME=<default Neon role>,
           DB_PASSWORD=<enter privately in Hostinger>, DB_SSLMODE=require.
           Never commit .env or share database credentials in chat.
