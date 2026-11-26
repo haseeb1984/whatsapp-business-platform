@@ -10,7 +10,7 @@ use Illuminate\Validation\ValidationException;
 
 if (! is_string($tenantId) || ! is_string($customerId) || ! is_string($serviceId)
     || ! is_string($staffId) || ! is_string($startsAt) || ! is_string($readyPath) || ! is_string($startPath)) {
-    fwrite(STDERR, "Usage: php run-booking-worker.php <tenant> <customer> <service> <staff> <UTC-start> <ready-file> <start-file>\n");
+    fwrite(STDERR, "Invalid booking worker arguments.\n");
     exit(2);
 }
 
@@ -47,10 +47,11 @@ try {
     exit(0);
 } catch (ValidationException $exception) {
     fwrite(STDOUT, "SLOT_REJECTED\n");
+    fwrite(STDERR, json_encode($exception->errors(), JSON_THROW_ON_ERROR)."\n");
     $app['db']->disconnect();
     exit(20);
 } catch (Throwable $exception) {
-    fwrite(STDERR, $exception::class.': '.$exception->getMessage()."\n");
+    fwrite(STDERR, $exception::class.': '.$exception->getMessage()."\n".$exception->getTraceAsString());
     $app['db']->disconnect();
     exit(1);
 }
