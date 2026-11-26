@@ -43,8 +43,8 @@ jobs:
       - name: Assemble Hostinger directory layout
         run: |
           set -euo pipefail
-          mkdir -p hostinger-package/public_html/whatsapp-app
-          rsync -a ./ hostinger-package/public_html/whatsapp-app/ \
+          mkdir -p hostinger-package/public_html
+          rsync -a ./ hostinger-package/public_html/ \
             --exclude='.git/' \
             --exclude='.github/' \
             --exclude='node_modules/' \
@@ -58,27 +58,27 @@ jobs:
             --exclude='hostinger-package/' \
             --exclude='*.sqlite' \
             --exclude='*.sqlite-*'
-          cp .env.hostinger.example hostinger-package/public_html/whatsapp-app/.env
+          cp .env.hostinger.example hostinger-package/public_html/.env
           cat > hostinger-package/DEPLOYMENT-README.txt <<'TXT'
           WhatsApp Business Platform - Hostinger package
 
           DIRECTORY LAYOUT
-          - Upload the whatsapp-app/ directory into public_html/.
-          - Set the domain document root to public_html/whatsapp-app/public.
+          - Extract the package contents directly into public_html/.
+          - Set the domain document root to public_html/public.
           - All application files remain inside public_html; no parent-directory access is required.
           - Do not set the document root to public_html/whatsapp-app itself.
 
           IMPORTANT
           1. Back up the existing website before replacing files.
-          2. Upload whatsapp-app/ into public_html/.
-          3. Set the domain/subdomain document root to public_html/whatsapp-app/public in Hostinger.
-          4. A starter .env is included at public_html/whatsapp-app/.env. Edit it before first use; it contains placeholders, not credentials.
+          2. Upload/extract the public_html/ contents into Hostinger's public_html/.
+          3. Set the domain/subdomain document root to public_html/public in Hostinger.
+          4. A starter .env is included at public_html/.env. Edit it before first use; it contains placeholders, not credentials.
           5. Set APP_URL to your real HTTPS domain, DB_USERNAME to your Neon role, and DB_PASSWORD privately. Keep APP_DEBUG=false and SESSION_SECURE_COOKIE=true.
-          6. Generate APP_KEY from the whatsapp-app directory with: php artisan key:generate --force
+          6. Generate APP_KEY from the application root (public_html) with: php artisan key:generate --force
           7. Use PHP 8.3 or newer with pdo_pgsql, mbstring, bcmath, ctype, curl, dom, fileinfo, filter, hash, intl, json, openssl, pcre, PDO, session, tokenizer, xml and zip enabled.
-          8. Ensure whatsapp-app/storage and whatsapp-app/bootstrap/cache are writable by the PHP process.
-          9. Run from public_html/whatsapp-app: php artisan migrate --force
-          10. Configure a scheduled task to run php artisan schedule:run every minute from the whatsapp-app directory.
+          8. Ensure storage and bootstrap/cache are writable by the PHP process.
+          9. Run from public_html: php artisan migrate --force
+          10. Configure a scheduled task to run php artisan schedule:run every minute from the application root (public_html).
           11. Configure a persistent queue worker for the database queue. If the hosting plan cannot run a persistent worker, arrange a supported cron-based queue strategy before enabling production traffic.
           12. Verify /health/ready and run php artisan platform:preflight --strict before opening traffic.
 
