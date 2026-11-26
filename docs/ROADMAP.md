@@ -611,3 +611,11 @@ This roadmap distinguishes planned work from implemented work.
 - PR #59 merged as `c41a5ecf7c4124b84bf76613e6378c0fcb393675`. PR-head CI [run 45737307924](https://github.com/actions/runs/45737307924) and post-merge CI [run 45737484787](https://github.com/actions/runs/45737484787) passed the full pipeline.
 - `main` and `work` were synchronized at `c41a5ecf7c4124b84bf76613e6378c0fcb393675` at the last verified check. Six redundant feature/test branches were identified for owner-managed deletion; they are intentionally not deleted by automation.
 - These tests strengthen database concurrency correctness but do not replace live Neon connectivity, actual Meta/WhatsApp send/receive, SMTP delivery, staging load/recovery, backup/restore or production deployment acceptance.
+
+
+## README and release-evidence checkpoint — 2026-11-26
+
+- PR #60 aligned the README, roadmap and go-live evidence checkpoint; its post-merge CI run [45754748966](https://github.com/actions/runs/45754748966) passed the full SQLite/PostgreSQL 16, migration rollback/replay, dependency audit and frontend build pipeline.
+- PR #61 refreshed README verification references to PR #60 and removed obsolete CI references. PR-head CI run [45755432584](https://github.com/actions/runs/45755432584) passed all pipeline steps; it was squash-merged as `bbc0e34238fde760b7aea1458e149021d507136c`.
+- `main` and `work` are synchronized at `bbc0e34238fde760b7aea1458e149021d507136c`. The exact merge commit has not yet been confirmed by a post-merge workflow run; retain this distinction in release evidence.
+- These documentation checkpoints do not satisfy live Neon/Hostinger/Meta/Google/SMTP, staging load, backup/restore, security review or deployment acceptance gates.
