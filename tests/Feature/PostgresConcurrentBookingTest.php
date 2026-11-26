@@ -45,7 +45,7 @@ class PostgresConcurrentBookingTest extends TestCase
             StaffService::query()->create(['staff_id' => $staff->id, 'service_id' => $service->id]);
 
             $localStart = CarbonImmutable::now('Asia/Karachi')->addDays(2)->setTime(11, 0);
-            $weekday = $localStart->dayOfWeek;
+            $weekday = $localStart->dayOfWeekIso - 1;
             BusinessHour::query()->create([
                 'weekday' => $weekday,
                 'is_closed' => false,
@@ -137,6 +137,7 @@ class PostgresConcurrentBookingTest extends TestCase
 
             file_put_contents($startPath, 'go');
             $exitCodes = [];
+            $workerErrors = [];
 
             foreach ($processes as $index => $worker) {
                 $process = $worker['process'];
@@ -164,7 +165,12 @@ class PostgresConcurrentBookingTest extends TestCase
                 $processes[$index]['process'] = null;
 
                 $this->assertContains($stdout, ["BOOKING_CREATED\n", "SLOT_REJECTED\n"]);
-                $this->assertSame('', $stderr, 'Booking worker emitted an unexpected error.');
+                if ($status['exitcode'] === 20) {
+                    $workerErrors[] = trim($stderr);
+                    $this->assertNotSame('', trim($stderr), 'Rejected worker must explain why the slot was rejected.');
+                } else {
+                    $this->assertSame('', $stderr, 'Successful booking worker emitted an unexpected error.');
+                }
             }
 
             sort($exitCodes);
